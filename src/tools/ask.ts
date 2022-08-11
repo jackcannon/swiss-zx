@@ -141,7 +141,7 @@ const multiselect = async <T extends unknown>(message: string, choices: PromptCh
 
 const validate = async <T extends unknown, I extends unknown>(
   askFunc: (initialValue?: T) => I,
-  validateFn: (input: I) => true | string
+  validateFn: (input: I) => boolean | string
 ): Promise<I> => {
   const runLoop = async (initial?: any, extraLines: number = 0) => {
     const input = await askFunc(initial);
@@ -174,7 +174,7 @@ const pause = async (text: string = 'Press enter to continue...'): Promise<void>
   await $`read -n 1`;
 };
 
-const countdown = async (totalSeconds: number, template: (s: second) => string = (s) => `Starting in ${s}s...`, complete: string): Promise<void> => {
+const countdown = async (totalSeconds: number, template: (s: second) => string = (s) => `Starting in ${s}s...`, complete?: string): Promise<void> => {
   console.log();
 
   let lines = 1;
