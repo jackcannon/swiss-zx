@@ -1,6 +1,6 @@
 {
   "name": "swiss-zx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Jack Cannon <jackc@annon.co.uk> (http://c.annon.co.uk/)",
   "license": "MIT",
   "repository": {
@@ -27,9 +27,9 @@
     "prepublishOnly": "yarn build"
   },
   "dependencies": {
+    "fuse.js": "^6.6.2",
     "prompts": "^2.4.2",
     "swiss-ak": "^1.7.1",
-    "zx": "^7.0.8",
-    "fuse.js": "^6.6.2"
+    "zx": "^7.0.8"
   }
 }
