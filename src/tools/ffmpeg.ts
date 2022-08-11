@@ -1,5 +1,5 @@
 import { getProgressBar, ProgressBarOptions } from 'swiss-ak';
-import { ls } from './$_';
+import { ls } from './$$';
 
 export const getProbeValue = async (file: string, propertyName: string): Promise<string> =>
   (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
@@ -24,7 +24,7 @@ export const getProbe = async (file: string, props?: string[]): Promise<{ [key: 
   );
 };
 
-export const getTotalFrames = async (list: string[]): Promise<number> => {
+export const getTotalFrames = async (list?: string[]): Promise<number> => {
   if (!list) {
     list = (await ls()).filter((file) => file.endsWith('.MOV'));
   }

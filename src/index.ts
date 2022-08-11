@@ -1,4 +1,4 @@
-export * from './tools/$_';
+export * from './tools/$$';
 export * from './tools/ask';
 export * from './tools/errorHandling';
 export * from './tools/ffmpeg';
@@ -10,10 +10,9 @@ export * from './tools/printTable';
 export * from './tools/LogUtils';
 export * from './tools/PathUtils';
 
-import * as $_ from './tools/$_';
 import * as out from './tools/out';
 
 import * as LogUtils from './tools/LogUtils';
 import * as PathUtils from './tools/PathUtils';
 
-export { $_, out, LogUtils, PathUtils };
+export { out, LogUtils, PathUtils };

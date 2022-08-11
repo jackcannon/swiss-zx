@@ -4,25 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/tools/$_.ts
-var __exports = {};
-__export(__exports, {
-  cat: () => cat,
-  checkDirectoryExists: () => checkDirectoryExists,
-  checkFileExists: () => checkFileExists,
-  cp: () => cp,
-  find: () => find,
-  findDirs: () => findDirs,
-  findFiles: () => findFiles,
-  grep: () => grep,
-  ls: () => ls,
-  mkdir: () => mkdir,
-  mv: () => mv,
-  readJSON: () => readJSON,
-  rm: () => rm,
-  touch: () => touch,
-  writeJSON: () => writeJSON
-});
+// src/tools/$$.ts
 import "zx/globals";
 import { $ as $2, fs as fsO } from "zx";
 
@@ -55,7 +37,7 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
   return await loop(0);
 };
 
-// src/tools/$_.ts
+// src/tools/$$.ts
 var fs = fsO.promises;
 var ls = async (dir = ".", flags = []) => (await $2`ls ${flags.map((flag) => `-${flag}`)} ${dir}`).toString().split("\n").filter((row) => row);
 var findDirs = async (parent) => (await $2`find ${parent} -maxdepth 1 -type d -execdir echo {} ';'`).toString().split("\n").filter((row) => row).map((row) => row.replace(/\/$/, ""));
@@ -77,6 +59,23 @@ var readJSON = async (filepath) => {
 var writeJSON = async (filepath, obj) => {
   const raw = (obj ? JSON.stringify(obj, null, 2) : "") || "{}";
   return await tryOr(null, () => fs.writeFile(filepath, raw, { encoding: "utf8" }));
+};
+var $$ = {
+  ls,
+  findDirs,
+  findFiles,
+  rm,
+  mkdir,
+  cp,
+  mv,
+  touch,
+  cat,
+  grep,
+  find,
+  checkFileExists,
+  checkDirectoryExists,
+  readJSON,
+  writeJSON
 };
 
 // src/tools/ask.ts
@@ -506,7 +505,7 @@ var printTable = (body, header, opts = {}) => {
   return lc.get();
 };
 export {
-  __exports as $_,
+  $$,
   LogUtils_exports as LogUtils,
   PathUtils_exports as PathUtils,
   ask,

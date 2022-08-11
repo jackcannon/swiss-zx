@@ -43,3 +43,21 @@ export const writeJSON = async <T extends Object>(filepath, obj: T) => {
   const raw = (obj ? JSON.stringify(obj, null, 2) : '') || '{}';
   return await tryOr(null, () => fs.writeFile(filepath, raw, { encoding: 'utf8' }));
 };
+
+export const $$ = {
+  ls,
+  findDirs,
+  findFiles,
+  rm,
+  mkdir,
+  cp,
+  mv,
+  touch,
+  cat,
+  grep,
+  find,
+  checkFileExists,
+  checkDirectoryExists,
+  readJSON,
+  writeJSON
+};

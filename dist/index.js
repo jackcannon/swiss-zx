@@ -25,7 +25,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
-  $_: () => __exports,
+  $$: () => $$,
   LogUtils: () => LogUtils_exports,
   PathUtils: () => PathUtils_exports,
   ask: () => ask,
@@ -67,25 +67,7 @@ __export(src_exports, {
 });
 module.exports = __toCommonJS(src_exports);
 
-// src/tools/$_.ts
-var __exports = {};
-__export(__exports, {
-  cat: () => cat,
-  checkDirectoryExists: () => checkDirectoryExists,
-  checkFileExists: () => checkFileExists,
-  cp: () => cp,
-  find: () => find,
-  findDirs: () => findDirs,
-  findFiles: () => findFiles,
-  grep: () => grep,
-  ls: () => ls,
-  mkdir: () => mkdir,
-  mv: () => mv,
-  readJSON: () => readJSON,
-  rm: () => rm,
-  touch: () => touch,
-  writeJSON: () => writeJSON
-});
+// src/tools/$$.ts
 var import_globals = require("zx/globals");
 var import_zx = require("zx");
 
@@ -118,7 +100,7 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
   return await loop(0);
 };
 
-// src/tools/$_.ts
+// src/tools/$$.ts
 var fs = import_zx.fs.promises;
 var ls = async (dir = ".", flags = []) => (await import_zx.$`ls ${flags.map((flag) => `-${flag}`)} ${dir}`).toString().split("\n").filter((row) => row);
 var findDirs = async (parent) => (await import_zx.$`find ${parent} -maxdepth 1 -type d -execdir echo {} ';'`).toString().split("\n").filter((row) => row).map((row) => row.replace(/\/$/, ""));
@@ -140,6 +122,23 @@ var readJSON = async (filepath) => {
 var writeJSON = async (filepath, obj) => {
   const raw = (obj ? JSON.stringify(obj, null, 2) : "") || "{}";
   return await tryOr(null, () => fs.writeFile(filepath, raw, { encoding: "utf8" }));
+};
+var $$ = {
+  ls,
+  findDirs,
+  findFiles,
+  rm,
+  mkdir,
+  cp,
+  mv,
+  touch,
+  cat,
+  grep,
+  find,
+  checkFileExists,
+  checkDirectoryExists,
+  readJSON,
+  writeJSON
 };
 
 // src/tools/ask.ts
@@ -570,7 +569,7 @@ var printTable = (body, header, opts = {}) => {
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  $_,
+  $$,
   LogUtils,
   PathUtils,
   ask,

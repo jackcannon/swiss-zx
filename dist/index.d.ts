@@ -16,41 +16,23 @@ declare const checkFileExists: (file: string) => Promise<boolean>;
 declare const checkDirectoryExists: (dir: string) => Promise<boolean>;
 declare const readJSON: (filepath: string) => Promise<any>;
 declare const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<any>;
-
-declare const $__ls: typeof ls;
-declare const $__findDirs: typeof findDirs;
-declare const $__findFiles: typeof findFiles;
-declare const $__rm: typeof rm;
-declare const $__mkdir: typeof mkdir;
-declare const $__cp: typeof cp;
-declare const $__mv: typeof mv;
-declare const $__touch: typeof touch;
-declare const $__cat: typeof cat;
-declare const $__grep: typeof grep;
-declare const $__find: typeof find;
-declare const $__checkFileExists: typeof checkFileExists;
-declare const $__checkDirectoryExists: typeof checkDirectoryExists;
-declare const $__readJSON: typeof readJSON;
-declare const $__writeJSON: typeof writeJSON;
-declare namespace $_ {
-  export {
-    $__ls as ls,
-    $__findDirs as findDirs,
-    $__findFiles as findFiles,
-    $__rm as rm,
-    $__mkdir as mkdir,
-    $__cp as cp,
-    $__mv as mv,
-    $__touch as touch,
-    $__cat as cat,
-    $__grep as grep,
-    $__find as find,
-    $__checkFileExists as checkFileExists,
-    $__checkDirectoryExists as checkDirectoryExists,
-    $__readJSON as readJSON,
-    $__writeJSON as writeJSON,
-  };
-}
+declare const $$: {
+    ls: (dir?: string, flags?: any[]) => Promise<string[]>;
+    findDirs: (parent: any) => Promise<string[]>;
+    findFiles: (parent: any) => Promise<string[]>;
+    rm: (item: string) => zx.ProcessPromise;
+    mkdir: (item: string) => zx.ProcessPromise;
+    cp: (a: string, b: string) => zx.ProcessPromise;
+    mv: (a: string, b: string) => zx.ProcessPromise;
+    touch: (item: string) => zx.ProcessPromise;
+    cat: (item: string) => zx.ProcessPromise;
+    grep: (item: string, pattern: string) => zx.ProcessPromise;
+    find: (item: string, pattern: string) => zx.ProcessPromise;
+    checkFileExists: (file: string) => Promise<boolean>;
+    checkDirectoryExists: (dir: string) => Promise<boolean>;
+    readJSON: (filepath: string) => Promise<any>;
+    writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<any>;
+};
 
 interface ExplodedPath {
     /**
@@ -112,7 +94,7 @@ declare const ask: {
     boolean: (message: string) => Promise<boolean>;
     select: <T_1 extends unknown>(message: string, choices: PromptChoice<T_1>[], initial?: T_1) => Promise<T_1>;
     multiselect: <T_2 extends unknown>(message: string, choices: PromptChoice<T_2>[], initial?: T_2) => Promise<T_2[]>;
-    validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I, validateFn: (input: I) => boolean | string) => Promise<I>;
+    validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I | Promise<I>, validateFn: (input: Awaited<I>) => boolean | string) => Promise<I>;
     imitate: (done: boolean, questionText: string, resultText?: string) => lines;
     pause: (text?: string) => Promise<void>;
     countdown: (totalSeconds: number, template?: (s: second) => string, complete?: string) => Promise<void>;
@@ -126,7 +108,7 @@ declare const getProbeValue: (file: string, propertyName: string) => Promise<str
 declare const getProbe: (file: string, props?: string[]) => Promise<{
     [key: string]: string | number;
 }>;
-declare const getTotalFrames: (list: string[]) => Promise<number>;
+declare const getTotalFrames: (list?: string[]) => Promise<number>;
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
 
 /**
@@ -237,4 +219,4 @@ declare namespace LogUtils {
   };
 }
 
-export { $_, ExplodedPath, LogUtils, PathUtils, ask, cat, center, checkDirectoryExists, checkFileExists, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readJSON, retry, right, rm, touch, tryOr, wrap, writeJSON };
+export { $$, ExplodedPath, LogUtils, PathUtils, ask, cat, center, checkDirectoryExists, checkFileExists, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readJSON, retry, right, rm, touch, tryOr, wrap, writeJSON };

@@ -3,7 +3,7 @@ import { second, seconds, wait } from 'swiss-ak';
 import prompts from 'prompts';
 import Fuse from 'fuse.js'; // fuzzy-search
 
-import { mv } from './$_';
+import { mv } from './$$';
 import { moveUp } from './out';
 import { ExplodedPath, explodePath } from './PathUtils';
 import { lines } from './lineCounter';
@@ -140,8 +140,8 @@ const multiselect = async <T extends unknown>(message: string, choices: PromptCh
 };
 
 const validate = async <T extends unknown, I extends unknown>(
-  askFunc: (initialValue?: T) => I,
-  validateFn: (input: I) => boolean | string
+  askFunc: (initialValue?: T) => Promise<I> | I,
+  validateFn: (input: Awaited<I>) => boolean | string
 ): Promise<I> => {
   const runLoop = async (initial?: any, extraLines: number = 0) => {
     const input = await askFunc(initial);
