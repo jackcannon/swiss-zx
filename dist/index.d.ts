@@ -1,37 +1,41 @@
 import * as zx from 'zx';
 import { second, ms, ProgressBarOptions, Partial } from 'swiss-ak';
 
-declare const ls: (dir?: string, flags?: any[]) => Promise<string[]>;
-declare const findDirs: (parent: any) => Promise<string[]>;
-declare const findFiles: (parent: any) => Promise<string[]>;
+declare const ls: (dir?: string, flags?: string[]) => Promise<string[]>;
+declare const findDirs: (parent: string, name: string, depth?: number) => Promise<string[]>;
+declare const findFiles: (parent: string, name: string, depth?: number) => Promise<string[]>;
 declare const rm: (item: string) => zx.ProcessPromise;
 declare const mkdir: (item: string) => zx.ProcessPromise;
 declare const cp: (a: string, b: string) => zx.ProcessPromise;
 declare const mv: (a: string, b: string) => zx.ProcessPromise;
 declare const touch: (item: string) => zx.ProcessPromise;
 declare const cat: (item: string) => zx.ProcessPromise;
-declare const grep: (item: string, pattern: string) => zx.ProcessPromise;
-declare const find: (item: string, pattern: string) => zx.ProcessPromise;
-declare const checkFileExists: (file: string) => Promise<boolean>;
-declare const checkDirectoryExists: (dir: string) => Promise<boolean>;
-declare const readJSON: (filepath: string) => Promise<any>;
-declare const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<any>;
+declare const grep: (item: string, pattern: string) => Promise<string[]>;
+declare const find: (item: string, pattern: string) => Promise<string[]>;
+declare const rsync: (a: string, b: string) => zx.ProcessPromise;
+declare const sync: (a: string, b: string) => Promise<void>;
+declare const isFileExist: (file: string) => Promise<boolean>;
+declare const isDirExist: (dir: string) => Promise<boolean>;
+declare const readFile: (filepath: string) => Promise<string>;
+declare const writeFile: (filepath: string, contents: string) => Promise<void>;
+declare const readJSON: <T extends unknown>(filepath: string) => Promise<T>;
+declare const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<T>;
 declare const $$: {
-    ls: (dir?: string, flags?: any[]) => Promise<string[]>;
-    findDirs: (parent: any) => Promise<string[]>;
-    findFiles: (parent: any) => Promise<string[]>;
+    ls: (dir?: string, flags?: string[]) => Promise<string[]>;
+    findDirs: (parent: string, name: string, depth?: number) => Promise<string[]>;
+    findFiles: (parent: string, name: string, depth?: number) => Promise<string[]>;
     rm: (item: string) => zx.ProcessPromise;
     mkdir: (item: string) => zx.ProcessPromise;
     cp: (a: string, b: string) => zx.ProcessPromise;
     mv: (a: string, b: string) => zx.ProcessPromise;
     touch: (item: string) => zx.ProcessPromise;
     cat: (item: string) => zx.ProcessPromise;
-    grep: (item: string, pattern: string) => zx.ProcessPromise;
-    find: (item: string, pattern: string) => zx.ProcessPromise;
-    checkFileExists: (file: string) => Promise<boolean>;
-    checkDirectoryExists: (dir: string) => Promise<boolean>;
-    readJSON: (filepath: string) => Promise<any>;
-    writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<any>;
+    grep: (item: string, pattern: string) => Promise<string[]>;
+    find: (item: string, pattern: string) => Promise<string[]>;
+    isFileExist: (file: string) => Promise<boolean>;
+    isDirExist: (dir: string) => Promise<boolean>;
+    readJSON: <T extends unknown>(filepath: string) => Promise<T>;
+    writeJSON: <T_1 extends Object>(filepath: any, obj: T_1) => Promise<T_1>;
 };
 
 interface ExplodedPath {
@@ -102,7 +106,8 @@ declare const ask: {
 };
 
 declare const tryOr: <T extends unknown, A extends unknown[]>(orValue: T, func: (...args: A) => Promise<T>, ...args: A) => Promise<T>;
-declare const retry: (maxTries?: number, delay?: ms, suppress?: boolean, run?: Function) => Promise<any>;
+declare const retry: <T extends unknown>(maxTries?: number, delay?: ms, suppress?: boolean, run?: (attemptNumber: any) => T) => Promise<T>;
+declare const retryOr: <T extends unknown>(orValue: T, maxTries?: number, delay?: ms, suppress?: boolean, run?: () => T) => Promise<T>;
 
 declare const getProbeValue: (file: string, propertyName: string) => Promise<string>;
 declare const getProbe: (file: string, props?: string[]) => Promise<{
@@ -219,4 +224,4 @@ declare namespace LogUtils {
   };
 }
 
-export { $$, ExplodedPath, LogUtils, PathUtils, ask, cat, center, checkDirectoryExists, checkFileExists, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readJSON, retry, right, rm, touch, tryOr, wrap, writeJSON };
+export { $$, ExplodedPath, LogUtils, PathUtils, ask, cat, center, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, isDirExist, isFileExist, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readFile, readJSON, retry, retryOr, right, rm, rsync, sync, touch, tryOr, wrap, writeFile, writeJSON };

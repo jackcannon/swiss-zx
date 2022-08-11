@@ -9,7 +9,7 @@ import "zx/globals";
 import { $ as $2, fs as fsO } from "zx";
 
 // src/tools/errorHandling.ts
-import { wait } from "swiss-ak";
+import { result, wait } from "swiss-ak";
 var tryOr = async (orValue, func, ...args) => {
   try {
     return await func(...args);
@@ -17,8 +17,7 @@ var tryOr = async (orValue, func, ...args) => {
     return orValue;
   }
 };
-var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
-}) => {
+var retry = async (maxTries = 10, delay = 0, suppress = true, run = result(void 0)) => {
   const loop = async (attempt, lastErr) => {
     if (attempt >= maxTries) {
       if (!suppress)
@@ -26,8 +25,8 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
       return;
     }
     try {
-      const result = await run(attempt);
-      return result;
+      const result2 = await run(attempt);
+      return result2;
     } catch (err) {
       if (delay)
         await wait(delay);
@@ -36,29 +35,44 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
   };
   return await loop(0);
 };
+var retryOr = async (orValue, maxTries = 10, delay = 0, suppress = true, run = result(orValue)) => tryOr(orValue, () => retry(maxTries, delay, suppress, run));
 
 // src/tools/$$.ts
+import { exists } from "swiss-ak";
+$2.verbose = false;
 var fs = fsO.promises;
-var ls = async (dir = ".", flags = []) => (await $2`ls ${flags.map((flag) => `-${flag}`)} ${dir}`).toString().split("\n").filter((row) => row);
-var findDirs = async (parent) => (await $2`find ${parent} -maxdepth 1 -type d -execdir echo {} ';'`).toString().split("\n").filter((row) => row).map((row) => row.replace(/\/$/, ""));
-var findFiles = async (parent) => (await $2`find ${parent} -maxdepth 1 -type f -execdir echo {} ';'`).toString().split("\n").filter((row) => row);
+var intoLines = (out) => out.toString().split("\n").filter(exists);
+var ls = async (dir = ".", flags = []) => intoLines(await $2`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
+var findDirs = async (parent, name, depth = 1) => intoLines(await $2`find ${parent} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map(
+  (row) => row.replace(/\/$/, "")
+);
+var findFiles = async (parent, name, depth = 1) => intoLines(await $2`find ${parent} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`);
 var rm = (item) => $2`rm -rf ${item}`;
 var mkdir = (item) => $2`mkdir -p ${item}`;
 var cp = (a, b) => $2`cp -r ${a} ${b}`;
 var mv = (a, b) => $2`mv ${a} ${b}`;
 var touch = (item) => $2`touch ${item}`;
 var cat = (item) => $2`cat ${item}`;
-var grep = (item, pattern) => $2`grep ${pattern} ${item}`;
-var find = (item, pattern) => $2`find ${item} -name ${pattern}`;
-var checkFileExists = async (file) => await $2`[[ -f ${file} ]]`.exitCode === 0;
-var checkDirectoryExists = async (dir) => await $2`[[ -d ${dir} ]]`.exitCode === 0;
+var grep = async (item, pattern) => intoLines(await $2`grep ${pattern} ${item}`);
+var find = async (item, pattern) => intoLines(await $2`find ${item} -name ${pattern}`);
+var rsync = (a, b) => $2`rsync -crut ${a} ${b}`;
+var sync = async (a, b) => {
+  await rsync(a, b);
+  await rsync(b, a);
+  await rsync(a, b);
+};
+var isFileExist = async (file) => await $2`[[ -f ${file} ]]`.exitCode === 0;
+var isDirExist = async (dir) => await $2`[[ -d ${dir} ]]`.exitCode === 0;
+var readFile = (filepath) => retryOr("", 3, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
+var writeFile = (filepath, contents) => retryOr(void 0, 3, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
 var readJSON = async (filepath) => {
-  const raw = await tryOr("{}", () => fs.readFile(filepath, { encoding: "utf8" }));
+  const raw = await readFile(filepath);
   return JSON.parse(raw || "{}");
 };
 var writeJSON = async (filepath, obj) => {
-  const raw = (obj ? JSON.stringify(obj, null, 2) : "") || "{}";
-  return await tryOr(null, () => fs.writeFile(filepath, raw, { encoding: "utf8" }));
+  const raw = (obj ? JSON.stringify(obj, null, 2) : "{}") || "{}";
+  await writeFile(filepath, raw);
+  return obj;
 };
 var $$ = {
   ls,
@@ -72,8 +86,8 @@ var $$ = {
   cat,
   grep,
   find,
-  checkFileExists,
-  checkDirectoryExists,
+  isFileExist,
+  isDirExist,
   readJSON,
   writeJSON
 };
@@ -104,7 +118,7 @@ __export(LogUtils_exports, {
 });
 import { inspect } from "util";
 import { chalk as chalk2 } from "zx";
-import { noact } from "swiss-ak";
+import { noact as noact2 } from "swiss-ak";
 var getLogStr = (item) => {
   const inspectList = ["object", "boolean", "number"];
   if (inspectList.includes(typeof item) && !(item instanceof Date)) {
@@ -113,8 +127,8 @@ var getLogStr = (item) => {
     return item + "";
   }
 };
-var processLogContents = (prefix, wrapper = noact, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => chalk2.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
-var getLog = (prefix, wrapper = noact) => (...args) => {
+var processLogContents = (prefix, wrapper = noact2, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => chalk2.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
+var getLog = (prefix, wrapper = noact2) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
@@ -285,8 +299,8 @@ var multiselect = async (message, choices, initial) => {
     },
     promptsOptions
   );
-  const result = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
-  return result.map((value) => typeof value === "number" ? choiceObjs[value] : value);
+  const result2 = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
+  return result2.map((value) => typeof value === "number" ? choiceObjs[value] : value);
 };
 var validate = async (askFunc, validateFn) => {
   const runLoop = async (initial, extraLines = 0) => {
@@ -308,8 +322,8 @@ var imitate = (done, questionText, resultText) => {
   const question = chalk3.whiteBright.bold(questionText);
   const joiner = chalk3.gray(done ? "\u2026" : "\u203A");
   const resultWrapper = done ? chalk3.white : chalk3.gray;
-  const result = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
-  console.log(`${prefix} ${question} ${result}`);
+  const result2 = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
+  console.log(`${prefix} ${question} ${result2}`);
   return 1;
 };
 var pause = async (text2 = "Press enter to continue...") => {
@@ -511,8 +525,6 @@ export {
   ask,
   cat,
   center,
-  checkDirectoryExists,
-  checkFileExists,
   closeFinder,
   cp,
   explodePath,
@@ -527,6 +539,8 @@ export {
   getProbeValue,
   getTotalFrames,
   grep,
+  isDirExist,
+  isFileExist,
   left,
   ls,
   mkdir,
@@ -536,12 +550,17 @@ export {
   pad,
   printTable,
   processLogContents,
+  readFile,
   readJSON,
   retry,
+  retryOr,
   right,
   rm,
+  rsync,
+  sync,
   touch,
   tryOr,
   wrap,
+  writeFile,
   writeJSON
 };

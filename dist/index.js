@@ -31,8 +31,6 @@ __export(src_exports, {
   ask: () => ask,
   cat: () => cat,
   center: () => center,
-  checkDirectoryExists: () => checkDirectoryExists,
-  checkFileExists: () => checkFileExists,
   closeFinder: () => closeFinder,
   cp: () => cp,
   explodePath: () => explodePath,
@@ -47,6 +45,8 @@ __export(src_exports, {
   getProbeValue: () => getProbeValue,
   getTotalFrames: () => getTotalFrames,
   grep: () => grep,
+  isDirExist: () => isDirExist,
+  isFileExist: () => isFileExist,
   left: () => left,
   ls: () => ls,
   mkdir: () => mkdir,
@@ -56,13 +56,18 @@ __export(src_exports, {
   pad: () => pad,
   printTable: () => printTable,
   processLogContents: () => processLogContents,
+  readFile: () => readFile,
   readJSON: () => readJSON,
   retry: () => retry,
+  retryOr: () => retryOr,
   right: () => right,
   rm: () => rm,
+  rsync: () => rsync,
+  sync: () => sync,
   touch: () => touch,
   tryOr: () => tryOr,
   wrap: () => wrap,
+  writeFile: () => writeFile,
   writeJSON: () => writeJSON
 });
 module.exports = __toCommonJS(src_exports);
@@ -80,8 +85,7 @@ var tryOr = async (orValue, func, ...args) => {
     return orValue;
   }
 };
-var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
-}) => {
+var retry = async (maxTries = 10, delay = 0, suppress = true, run = (0, import_swiss_ak.result)(void 0)) => {
   const loop = async (attempt, lastErr) => {
     if (attempt >= maxTries) {
       if (!suppress)
@@ -89,8 +93,8 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
       return;
     }
     try {
-      const result = await run(attempt);
-      return result;
+      const result2 = await run(attempt);
+      return result2;
     } catch (err) {
       if (delay)
         await (0, import_swiss_ak.wait)(delay);
@@ -99,29 +103,44 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = () => {
   };
   return await loop(0);
 };
+var retryOr = async (orValue, maxTries = 10, delay = 0, suppress = true, run = (0, import_swiss_ak.result)(orValue)) => tryOr(orValue, () => retry(maxTries, delay, suppress, run));
 
 // src/tools/$$.ts
+var import_swiss_ak2 = require("swiss-ak");
+import_zx.$.verbose = false;
 var fs = import_zx.fs.promises;
-var ls = async (dir = ".", flags = []) => (await import_zx.$`ls ${flags.map((flag) => `-${flag}`)} ${dir}`).toString().split("\n").filter((row) => row);
-var findDirs = async (parent) => (await import_zx.$`find ${parent} -maxdepth 1 -type d -execdir echo {} ';'`).toString().split("\n").filter((row) => row).map((row) => row.replace(/\/$/, ""));
-var findFiles = async (parent) => (await import_zx.$`find ${parent} -maxdepth 1 -type f -execdir echo {} ';'`).toString().split("\n").filter((row) => row);
+var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak2.exists);
+var ls = async (dir = ".", flags = []) => intoLines(await import_zx.$`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
+var findDirs = async (parent, name, depth = 1) => intoLines(await import_zx.$`find ${parent} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map(
+  (row) => row.replace(/\/$/, "")
+);
+var findFiles = async (parent, name, depth = 1) => intoLines(await import_zx.$`find ${parent} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`);
 var rm = (item) => import_zx.$`rm -rf ${item}`;
 var mkdir = (item) => import_zx.$`mkdir -p ${item}`;
 var cp = (a, b) => import_zx.$`cp -r ${a} ${b}`;
 var mv = (a, b) => import_zx.$`mv ${a} ${b}`;
 var touch = (item) => import_zx.$`touch ${item}`;
 var cat = (item) => import_zx.$`cat ${item}`;
-var grep = (item, pattern) => import_zx.$`grep ${pattern} ${item}`;
-var find = (item, pattern) => import_zx.$`find ${item} -name ${pattern}`;
-var checkFileExists = async (file) => await import_zx.$`[[ -f ${file} ]]`.exitCode === 0;
-var checkDirectoryExists = async (dir) => await import_zx.$`[[ -d ${dir} ]]`.exitCode === 0;
+var grep = async (item, pattern) => intoLines(await import_zx.$`grep ${pattern} ${item}`);
+var find = async (item, pattern) => intoLines(await import_zx.$`find ${item} -name ${pattern}`);
+var rsync = (a, b) => import_zx.$`rsync -crut ${a} ${b}`;
+var sync = async (a, b) => {
+  await rsync(a, b);
+  await rsync(b, a);
+  await rsync(a, b);
+};
+var isFileExist = async (file) => await import_zx.$`[[ -f ${file} ]]`.exitCode === 0;
+var isDirExist = async (dir) => await import_zx.$`[[ -d ${dir} ]]`.exitCode === 0;
+var readFile = (filepath) => retryOr("", 3, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
+var writeFile = (filepath, contents) => retryOr(void 0, 3, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
 var readJSON = async (filepath) => {
-  const raw = await tryOr("{}", () => fs.readFile(filepath, { encoding: "utf8" }));
+  const raw = await readFile(filepath);
   return JSON.parse(raw || "{}");
 };
 var writeJSON = async (filepath, obj) => {
-  const raw = (obj ? JSON.stringify(obj, null, 2) : "") || "{}";
-  return await tryOr(null, () => fs.writeFile(filepath, raw, { encoding: "utf8" }));
+  const raw = (obj ? JSON.stringify(obj, null, 2) : "{}") || "{}";
+  await writeFile(filepath, raw);
+  return obj;
 };
 var $$ = {
   ls,
@@ -135,15 +154,15 @@ var $$ = {
   cat,
   grep,
   find,
-  checkFileExists,
-  checkDirectoryExists,
+  isFileExist,
+  isDirExist,
   readJSON,
   writeJSON
 };
 
 // src/tools/ask.ts
 var import_zx3 = require("zx");
-var import_swiss_ak3 = require("swiss-ak");
+var import_swiss_ak4 = require("swiss-ak");
 var import_prompts = __toESM(require("prompts"));
 var import_fuse = __toESM(require("fuse.js"));
 
@@ -167,7 +186,7 @@ __export(LogUtils_exports, {
 });
 var import_util = require("util");
 var import_zx2 = require("zx");
-var import_swiss_ak2 = require("swiss-ak");
+var import_swiss_ak3 = require("swiss-ak");
 var getLogStr = (item) => {
   const inspectList = ["object", "boolean", "number"];
   if (inspectList.includes(typeof item) && !(item instanceof Date)) {
@@ -176,8 +195,8 @@ var getLogStr = (item) => {
     return item + "";
   }
 };
-var processLogContents = (prefix, wrapper = import_swiss_ak2.noact, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => import_zx2.chalk.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
-var getLog = (prefix, wrapper = import_swiss_ak2.noact) => (...args) => {
+var processLogContents = (prefix, wrapper = import_swiss_ak3.noact, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => import_zx2.chalk.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
+var getLog = (prefix, wrapper = import_swiss_ak3.noact) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
@@ -348,8 +367,8 @@ var multiselect = async (message, choices, initial) => {
     },
     promptsOptions
   );
-  const result = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
-  return result.map((value) => typeof value === "number" ? choiceObjs[value] : value);
+  const result2 = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
+  return result2.map((value) => typeof value === "number" ? choiceObjs[value] : value);
 };
 var validate = async (askFunc, validateFn) => {
   const runLoop = async (initial, extraLines = 0) => {
@@ -371,8 +390,8 @@ var imitate = (done, questionText, resultText) => {
   const question = import_zx3.chalk.whiteBright.bold(questionText);
   const joiner = import_zx3.chalk.gray(done ? "\u2026" : "\u203A");
   const resultWrapper = done ? import_zx3.chalk.white : import_zx3.chalk.gray;
-  const result = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
-  console.log(`${prefix} ${question} ${result}`);
+  const result2 = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
+  console.log(`${prefix} ${question} ${result2}`);
   return 1;
 };
 var pause = async (text2 = "Press enter to continue...") => {
@@ -387,7 +406,7 @@ var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, c
     moveUp(lines);
     lines = text2.split("\n").length;
     console.log(import_zx3.chalk.blackBright(text2));
-    await (0, import_swiss_ak3.wait)((0, import_swiss_ak3.seconds)(1));
+    await (0, import_swiss_ak4.wait)((0, import_swiss_ak4.seconds)(1));
   }
   moveUp(lines);
   if (complete) {
@@ -428,7 +447,7 @@ var ask = {
 };
 
 // src/tools/ffmpeg.ts
-var import_swiss_ak4 = require("swiss-ak");
+var import_swiss_ak5 = require("swiss-ak");
 var getProbeValue = async (file, propertyName) => (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
 var getProbe = async (file, props) => {
   const full = await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
@@ -458,7 +477,7 @@ var ffmpeg = async (command = () => $`ffmpeg -progress pr.txt`, progressFileName
   await $`echo "" > ${progressFileName}`;
   const ffmpegProcess = command();
   const tail = $`tail -f ${progressFileName}`.nothrow();
-  const bar = (0, import_swiss_ak4.getProgressBar)(totalFrames, {
+  const bar = (0, import_swiss_ak5.getProgressBar)(totalFrames, {
     showCount: true,
     showPercent: true,
     chalk,
@@ -517,7 +536,7 @@ var closeFinder = async () => {
 };
 
 // src/tools/printTable.ts
-var import_swiss_ak5 = require("swiss-ak");
+var import_swiss_ak6 = require("swiss-ak");
 var getFullOptions = (opts) => ({
   wrapperFn: (x) => x,
   overrideChar: "",
@@ -535,7 +554,7 @@ var printTable = (body, header, opts = {}) => {
   const correctRow = (row) => [...row, ...empty()].slice(0, numCols).map((cell) => "" + cell);
   header = header && header.map(correctRow);
   body = body.map(correctRow);
-  const colWidths = (0, import_swiss_ak5.zip)(...allRows()).map((col) => Math.max(...col.map((s) => (s || "").length)));
+  const colWidths = (0, import_swiss_ak6.zip)(...allRows()).map((col) => Math.max(...col.map((s) => (s || "").length)));
   const printRow = (row = empty(), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
     const orientOverride = isHor ? overrideHorChar : overrideVerChar;
     const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
@@ -575,8 +594,6 @@ var printTable = (body, header, opts = {}) => {
   ask,
   cat,
   center,
-  checkDirectoryExists,
-  checkFileExists,
   closeFinder,
   cp,
   explodePath,
@@ -591,6 +608,8 @@ var printTable = (body, header, opts = {}) => {
   getProbeValue,
   getTotalFrames,
   grep,
+  isDirExist,
+  isFileExist,
   left,
   ls,
   mkdir,
@@ -600,12 +619,17 @@ var printTable = (body, header, opts = {}) => {
   pad,
   printTable,
   processLogContents,
+  readFile,
   readJSON,
   retry,
+  retryOr,
   right,
   rm,
+  rsync,
+  sync,
   touch,
   tryOr,
   wrap,
+  writeFile,
   writeJSON
 });
