@@ -112,10 +112,10 @@ declare const ask: {
     boolean: (message: string) => Promise<boolean>;
     select: <T_1 extends unknown>(message: string, choices: PromptChoice<T_1>[], initial?: T_1) => Promise<T_1>;
     multiselect: <T_2 extends unknown>(message: string, choices: PromptChoice<T_2>[], initial?: T_2) => Promise<T_2[]>;
-    validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I, validateFn: (input: I) => true | string) => Promise<I>;
+    validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I, validateFn: (input: I) => boolean | string) => Promise<I>;
     imitate: (done: boolean, questionText: string, resultText?: string) => lines;
     pause: (text?: string) => Promise<void>;
-    countdown: (totalSeconds: number, template: (s: second) => string, complete: string) => Promise<void>;
+    countdown: (totalSeconds: number, template?: (s: second) => string, complete?: string) => Promise<void>;
     rename: (bef: string, aft: (before: ExplodedPath) => string) => Promise<boolean>;
 };
 
