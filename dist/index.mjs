@@ -80,10 +80,6 @@ var writeJSON = async (filepath, obj) => {
 };
 
 // src/tools/ask.ts
-var ask_exports = {};
-__export(ask_exports, {
-  ask: () => ask
-});
 import { chalk as chalk3 } from "zx";
 import { seconds, wait as wait2 } from "swiss-ak";
 import prompts from "prompts";
@@ -513,7 +509,7 @@ export {
   __exports as $_,
   LogUtils_exports as LogUtils,
   PathUtils_exports as PathUtils,
-  ask_exports as ask,
+  ask,
   cat,
   center,
   checkDirectoryExists,

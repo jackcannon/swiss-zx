@@ -28,7 +28,7 @@ __export(src_exports, {
   $_: () => __exports,
   LogUtils: () => LogUtils_exports,
   PathUtils: () => PathUtils_exports,
-  ask: () => ask_exports,
+  ask: () => ask,
   cat: () => cat,
   center: () => center,
   checkDirectoryExists: () => checkDirectoryExists,
@@ -143,10 +143,6 @@ var writeJSON = async (filepath, obj) => {
 };
 
 // src/tools/ask.ts
-var ask_exports = {};
-__export(ask_exports, {
-  ask: () => ask
-});
 var import_zx3 = require("zx");
 var import_swiss_ak3 = require("swiss-ak");
 var import_prompts = __toESM(require("prompts"));

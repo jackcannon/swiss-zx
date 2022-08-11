@@ -119,13 +119,6 @@ declare const ask: {
     rename: (bef: string, aft: (before: ExplodedPath) => string) => Promise<boolean>;
 };
 
-declare const ask$1_ask: typeof ask;
-declare namespace ask$1 {
-  export {
-    ask$1_ask as ask,
-  };
-}
-
 declare const tryOr: <T extends unknown, A extends unknown[]>(orValue: T, func: (...args: A) => Promise<T>, ...args: A) => Promise<T>;
 declare const retry: (maxTries?: number, delay?: ms, suppress?: boolean, run?: Function) => Promise<any>;
 
@@ -244,4 +237,4 @@ declare namespace LogUtils {
   };
 }
 
-export { $_, ExplodedPath, LogUtils, PathUtils, ask$1 as ask, cat, center, checkDirectoryExists, checkFileExists, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readJSON, retry, right, rm, touch, tryOr, wrap, writeJSON };
+export { $_, ExplodedPath, LogUtils, PathUtils, ask, cat, center, checkDirectoryExists, checkFileExists, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readJSON, retry, right, rm, touch, tryOr, wrap, writeJSON };
