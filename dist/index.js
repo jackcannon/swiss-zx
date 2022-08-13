@@ -38,6 +38,7 @@ __export(src_exports, {
   find: () => find,
   findDirs: () => findDirs,
   findFiles: () => findFiles,
+  findRegex: () => findRegex,
   getLineCounter: () => getLineCounter,
   getLog: () => getLog,
   getLogStr: () => getLogStr,
@@ -109,20 +110,23 @@ var retryOr = async (orValue, maxTries = 10, delay = 0, suppress = true, run = (
 var import_swiss_ak2 = require("swiss-ak");
 import_zx.$.verbose = false;
 var fs = import_zx.fs.promises;
-var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak2.exists);
+var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak2.isTruthy);
+var removeTrailSlash = (path) => path.replace(/\/$/, "");
+var trailSlash = (path) => removeTrailSlash(path) + "/";
 var ls = async (dir = ".", flags = []) => intoLines(await import_zx.$`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
-var findDirs = async (parent, name, depth = 1) => intoLines(await import_zx.$`find ${parent} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map(
-  (row) => row.replace(/\/$/, "")
+var findDirs = async (parent = ".", name, depth = 1) => intoLines(await import_zx.$`find ${trailSlash(parent)} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map((row) => row.replace(/\/$/, "")).filter((0, import_swiss_ak2.isNotEqual)("."));
+var findFiles = async (parent = ".", name, depth = 1) => intoLines(await import_zx.$`find ${trailSlash(parent)} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`).filter(
+  (0, import_swiss_ak2.isNotEqual)(".")
 );
-var findFiles = async (parent, name, depth = 1) => intoLines(await import_zx.$`find ${parent} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`);
 var rm = (item) => import_zx.$`rm -rf ${item}`;
 var mkdir = (item) => import_zx.$`mkdir -p ${item}`;
 var cp = (a, b) => import_zx.$`cp -r ${a} ${b}`;
 var mv = (a, b) => import_zx.$`mv ${a} ${b}`;
 var touch = (item) => import_zx.$`touch ${item}`;
 var cat = (item) => import_zx.$`cat ${item}`;
-var grep = async (item, pattern) => intoLines(await import_zx.$`grep ${pattern} ${item}`);
-var find = async (item, pattern) => intoLines(await import_zx.$`find ${item} -name ${pattern}`);
+var grep = async (pattern, file) => intoLines(await import_zx.$`grep ${pattern} ${file}`);
+var find = async (dir, name, type = "d") => intoLines(await import_zx.$`find ${dir} -type ${type} -name ${name}`);
+var findRegex = async (dir, regex, type = "d") => intoLines(await import_zx.$`find -E ${dir} -type ${type} -regex ${regex.toString()}`);
 var rsync = (a, b) => import_zx.$`rsync -crut ${a} ${b}`;
 var sync = async (a, b) => {
   await rsync(a, b);
@@ -601,6 +605,7 @@ var printTable = (body, header, opts = {}) => {
   find,
   findDirs,
   findFiles,
+  findRegex,
   getLineCounter,
   getLog,
   getLogStr,

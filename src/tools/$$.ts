@@ -1,24 +1,28 @@
 import 'zx/globals';
 import { $, fs as fsO } from 'zx';
 import { retry, retryOr, tryOr } from './errorHandling';
-import { exists, noact } from 'swiss-ak';
+import { isTruthy, isNotEqual, noact } from 'swiss-ak';
 
 $.verbose = false;
 
 const fs = fsO.promises;
 
-const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(exists);
+const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(isTruthy);
+const removeTrailSlash = (path: string) => path.replace(/\/$/, '');
+const trailSlash = (path: string) => removeTrailSlash(path) + '/';
 
 export const ls = async (dir: string = '.', flags: string[] = []): Promise<string[]> =>
   intoLines(await $`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
 
-export const findDirs = async (parent: string, name: string, depth: number = 1): Promise<string[]> =>
-  intoLines(await $`find ${parent} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ['-name', name] : ''}`).map((row) =>
-    row.replace(/\/$/, '')
-  );
+export const findDirs = async (parent: string = '.', name?: string, depth: number = 1): Promise<string[]> =>
+  intoLines(await $`find ${trailSlash(parent)} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ['-name', name] : ''}`)
+    .map((row) => row.replace(/\/$/, ''))
+    .filter(isNotEqual('.'));
 
-export const findFiles = async (parent: string, name: string, depth: number = 1): Promise<string[]> =>
-  intoLines(await $`find ${parent} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ['-name', name] : ''}`);
+export const findFiles = async (parent: string = '.', name?: string, depth: number = 1): Promise<string[]> =>
+  intoLines(await $`find ${trailSlash(parent)} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ['-name', name] : ''}`).filter(
+    isNotEqual('.')
+  );
 
 export const rm = (item: string) => $`rm -rf ${item}`;
 export const mkdir = (item: string) => $`mkdir -p ${item}`;
@@ -26,8 +30,21 @@ export const cp = (a: string, b: string) => $`cp -r ${a} ${b}`;
 export const mv = (a: string, b: string) => $`mv ${a} ${b}`;
 export const touch = (item: string) => $`touch ${item}`;
 export const cat = (item: string) => $`cat ${item}`;
-export const grep = async (item: string, pattern: string) => intoLines(await $`grep ${pattern} ${item}`);
-export const find = async (item: string, pattern: string) => intoLines(await $`find ${item} -name ${pattern}`);
+export const grep = async (pattern: string, file: string) => intoLines(await $`grep ${pattern} ${file}`);
+
+/**
+ * * b = block special
+ * * c = character special
+ * * d = directory
+ * * f = regular file
+ * * l = symbolic link
+ * * p = FIFO
+ * * s = socket
+ */
+type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
+export const find = async (dir: string, name: string, type: FindType = 'd') => intoLines(await $`find ${dir} -type ${type} -name ${name}`);
+export const findRegex = async (dir: string, regex: RegExp | string, type: FindType = 'd') =>
+  intoLines(await $`find -E ${dir} -type ${type} -regex ${regex.toString()}`);
 
 export const rsync = (a: string, b: string) => $`rsync -crut ${a} ${b}`;
 export const sync = async (a: string, b: string): Promise<void> => {

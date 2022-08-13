@@ -38,23 +38,26 @@ var retry = async (maxTries = 10, delay = 0, suppress = true, run = result(void 
 var retryOr = async (orValue, maxTries = 10, delay = 0, suppress = true, run = result(orValue)) => tryOr(orValue, () => retry(maxTries, delay, suppress, run));
 
 // src/tools/$$.ts
-import { exists } from "swiss-ak";
+import { isTruthy, isNotEqual } from "swiss-ak";
 $2.verbose = false;
 var fs = fsO.promises;
-var intoLines = (out) => out.toString().split("\n").filter(exists);
+var intoLines = (out) => out.toString().split("\n").filter(isTruthy);
+var removeTrailSlash = (path) => path.replace(/\/$/, "");
+var trailSlash = (path) => removeTrailSlash(path) + "/";
 var ls = async (dir = ".", flags = []) => intoLines(await $2`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
-var findDirs = async (parent, name, depth = 1) => intoLines(await $2`find ${parent} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map(
-  (row) => row.replace(/\/$/, "")
+var findDirs = async (parent = ".", name, depth = 1) => intoLines(await $2`find ${trailSlash(parent)} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map((row) => row.replace(/\/$/, "")).filter(isNotEqual("."));
+var findFiles = async (parent = ".", name, depth = 1) => intoLines(await $2`find ${trailSlash(parent)} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`).filter(
+  isNotEqual(".")
 );
-var findFiles = async (parent, name, depth = 1) => intoLines(await $2`find ${parent} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`);
 var rm = (item) => $2`rm -rf ${item}`;
 var mkdir = (item) => $2`mkdir -p ${item}`;
 var cp = (a, b) => $2`cp -r ${a} ${b}`;
 var mv = (a, b) => $2`mv ${a} ${b}`;
 var touch = (item) => $2`touch ${item}`;
 var cat = (item) => $2`cat ${item}`;
-var grep = async (item, pattern) => intoLines(await $2`grep ${pattern} ${item}`);
-var find = async (item, pattern) => intoLines(await $2`find ${item} -name ${pattern}`);
+var grep = async (pattern, file) => intoLines(await $2`grep ${pattern} ${file}`);
+var find = async (dir, name, type = "d") => intoLines(await $2`find ${dir} -type ${type} -name ${name}`);
+var findRegex = async (dir, regex, type = "d") => intoLines(await $2`find -E ${dir} -type ${type} -regex ${regex.toString()}`);
 var rsync = (a, b) => $2`rsync -crut ${a} ${b}`;
 var sync = async (a, b) => {
   await rsync(a, b);
@@ -532,6 +535,7 @@ export {
   find,
   findDirs,
   findFiles,
+  findRegex,
   getLineCounter,
   getLog,
   getLogStr,

@@ -2,16 +2,27 @@ import * as zx from 'zx';
 import { second, ms, ProgressBarOptions, Partial } from 'swiss-ak';
 
 declare const ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-declare const findDirs: (parent: string, name: string, depth?: number) => Promise<string[]>;
-declare const findFiles: (parent: string, name: string, depth?: number) => Promise<string[]>;
+declare const findDirs: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
+declare const findFiles: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
 declare const rm: (item: string) => zx.ProcessPromise;
 declare const mkdir: (item: string) => zx.ProcessPromise;
 declare const cp: (a: string, b: string) => zx.ProcessPromise;
 declare const mv: (a: string, b: string) => zx.ProcessPromise;
 declare const touch: (item: string) => zx.ProcessPromise;
 declare const cat: (item: string) => zx.ProcessPromise;
-declare const grep: (item: string, pattern: string) => Promise<string[]>;
-declare const find: (item: string, pattern: string) => Promise<string[]>;
+declare const grep: (pattern: string, file: string) => Promise<string[]>;
+/**
+ * * b = block special
+ * * c = character special
+ * * d = directory
+ * * f = regular file
+ * * l = symbolic link
+ * * p = FIFO
+ * * s = socket
+ */
+declare type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
+declare const find: (dir: string, name: string, type?: FindType) => Promise<string[]>;
+declare const findRegex: (dir: string, regex: RegExp | string, type?: FindType) => Promise<string[]>;
 declare const rsync: (a: string, b: string) => zx.ProcessPromise;
 declare const sync: (a: string, b: string) => Promise<void>;
 declare const isFileExist: (file: string) => Promise<boolean>;
@@ -22,16 +33,16 @@ declare const readJSON: <T extends unknown>(filepath: string) => Promise<T>;
 declare const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<T>;
 declare const $$: {
     ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-    findDirs: (parent: string, name: string, depth?: number) => Promise<string[]>;
-    findFiles: (parent: string, name: string, depth?: number) => Promise<string[]>;
+    findDirs: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
+    findFiles: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
     rm: (item: string) => zx.ProcessPromise;
     mkdir: (item: string) => zx.ProcessPromise;
     cp: (a: string, b: string) => zx.ProcessPromise;
     mv: (a: string, b: string) => zx.ProcessPromise;
     touch: (item: string) => zx.ProcessPromise;
     cat: (item: string) => zx.ProcessPromise;
-    grep: (item: string, pattern: string) => Promise<string[]>;
-    find: (item: string, pattern: string) => Promise<string[]>;
+    grep: (pattern: string, file: string) => Promise<string[]>;
+    find: (dir: string, name: string, type?: FindType) => Promise<string[]>;
     isFileExist: (file: string) => Promise<boolean>;
     isDirExist: (dir: string) => Promise<boolean>;
     readJSON: <T extends unknown>(filepath: string) => Promise<T>;
@@ -224,4 +235,4 @@ declare namespace LogUtils {
   };
 }
 
-export { $$, ExplodedPath, LogUtils, PathUtils, ask, cat, center, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, isDirExist, isFileExist, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readFile, readJSON, retry, retryOr, right, rm, rsync, sync, touch, tryOr, wrap, writeFile, writeJSON };
+export { $$, ExplodedPath, LogUtils, PathUtils, ask, cat, center, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, findRegex, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, isDirExist, isFileExist, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readFile, readJSON, retry, retryOr, right, rm, rsync, sync, touch, tryOr, wrap, writeFile, writeJSON };
