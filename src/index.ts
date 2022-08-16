@@ -1,6 +1,7 @@
 export * from './tools/$$';
 export * from './tools/ask';
 export * from './tools/ffmpeg';
+export * from './tools/gm';
 export * from './tools/lineCounter';
 export * from './tools/out';
 export * from './tools/os';

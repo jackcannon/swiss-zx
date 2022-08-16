@@ -76,6 +76,15 @@ Uses `swiss-ak`
   - [getProbe](#getprobe)
   - [getTotalFrames](#gettotalframes)
   - [ffmpeg](#ffmpeg-1)
+- [gm](#gm)
+  - [gm.convert](#gmconvert)
+  - [gm.composite](#gmcomposite)
+  - [gm.ask](#gmask)
+    - [gm.ask.flags](#gmaskflags)
+  - [gm.utils](#gmutils)
+    - [gm.utils.supportedFlags](#gmutilssupportedflags)
+    - [gm.utils.printFlagsTable](#gmutilsprintflagstable)
+    - [gm.utils.flagsObjToArray](#gmutilsflagsobjtoarray)
 - [LogUtils](#logutils)
   - [LogUtils.getLogStr](#logutilsgetlogstr)
   - [LogUtils.processLogContents](#logutilsprocesslogcontents)
@@ -732,6 +741,62 @@ Wrapper for ffmpeg command
 const progBarOpts = {}; // Same options as getProgressBar
 await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
 ```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+# gm
+
+## gm.convert
+
+Wrapper function for gm (GraphicsMagick) convert command
+
+```typescript
+const converted = await gm.convert(input, output, {});
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## gm.composite
+
+Wrapper function for gm (GraphicsMagick) composite command
+
+Has extra functionality for using a 'Screen' blending mode (similar to Photoshop)
+
+```typescript
+const composited = await gm.composite(change, base, out, undefined, {});
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## gm.ask
+
+### gm.ask.flags
+
+Advanced input for choosing which flags to use.
+
+```typescript
+const flags = await gm.ask.flags('example');
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## gm.utils
+
+### gm.utils.supportedFlags
+
+An object containing the supported flags and their types (or options).
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### gm.utils.printFlagsTable
+
+Prints a table of flags and their values.
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### gm.utils.flagsObjToArray
+
+Converts a FlagsObj to an array of flags and values (for zx).
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 

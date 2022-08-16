@@ -166,7 +166,7 @@ declare const getLineCounter: () => {
      * lc.clear(); // 0
      * ```
      */
-    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined, func: (...args: A) => number | T, ...args: A) => number | T;
+    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined, func: (...args: A) => number | T, ...args: A) => T;
     /**
      * lc.add
      *
@@ -280,6 +280,57 @@ declare const getTotalFrames: (list?: string[]) => Promise<number>;
  * ```
  */
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
+
+interface FlagsObj {
+    compose?: string;
+    displace?: string;
+    dissolve?: number;
+    geometry?: string;
+    gravity?: string;
+    negate?: boolean;
+    quality?: number;
+    resize?: string;
+    rotate?: number;
+    size?: string;
+}
+interface CompositeFlags {
+    change?: FlagsObj;
+    mask?: FlagsObj;
+}
+declare const gm: {
+    convert: (inPath: string, outPath: string, flags?: FlagsObj) => Promise<ProcessOutput>;
+    composite: (changePath: string, basePath: string, outPath?: string, maskPath?: string, flags?: CompositeFlags | FlagsObj) => Promise<ProcessOutput>;
+    ask: {
+        flags: (name: string, previousFlagsObj?: FlagsObj) => Promise<{
+            compose?: string;
+            displace?: string;
+            dissolve?: number;
+            geometry?: string;
+            gravity?: string;
+            negate?: boolean;
+            quality?: number;
+            resize?: string;
+            rotate?: number;
+            size?: string;
+        }>;
+    };
+    utils: {
+        supportedFlags: {
+            compose: string[];
+            displace: string;
+            dissolve: string;
+            geometry: string;
+            gravity: string[];
+            negate: string;
+            quality: string;
+            resize: string;
+            rotate: string;
+            size: string;
+        };
+        printFlagsTable: (flagsObjArray: FlagsObj[], overrideHeader: string[][], extraRow?: any) => number;
+        flagsObjToArray: (obj: FlagsObj) => any[];
+    };
+};
 
 /**
  * out.pad
@@ -550,4 +601,4 @@ declare namespace chlk {
   };
 }
 
-export { $$, ExplodedPath, LogUtils, PathUtils, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, left, lines, loading, moveUp, out, pad, printTable, processLogContents, right, wrap };
+export { $$, ExplodedPath, LogUtils, PathUtils, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, left, lines, loading, moveUp, out, pad, printTable, processLogContents, right, wrap };

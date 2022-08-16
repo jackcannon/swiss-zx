@@ -56,7 +56,7 @@ export const getLineCounter = () => {
      * lc.clear(); // 0
      * ```
      */
-    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined = 1, func: (...args: A) => T | number, ...args: A): T | number => {
+    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined = 1, func: (...args: A) => T | number, ...args: A): T => {
       const result = func(...args);
 
       if (newLines === undefined) {
@@ -65,7 +65,7 @@ export const getLineCounter = () => {
       } else {
         lineCount += newLines;
       }
-      return result;
+      return result as T;
     },
 
     /**
