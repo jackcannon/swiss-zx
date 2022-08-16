@@ -1,70 +1,346 @@
 import 'zx/globals';
 import { $, fs as fsO } from 'zx';
-import { retry, retryOr, tryOr } from './errorHandling';
-import { isTruthy, isNotEqual, noact } from 'swiss-ak';
+import { fn, retry, retryOr, tryOr } from 'swiss-ak';
 
 $.verbose = false;
 
 const fs = fsO.promises;
 
-const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(isTruthy);
-const removeTrailSlash = (path: string) => path.replace(/\/$/, '');
-const trailSlash = (path: string) => removeTrailSlash(path) + '/';
-
-export const ls = async (dir: string = '.', flags: string[] = []): Promise<string[]> =>
-  intoLines(await $`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
-
-export const findDirs = async (parent: string = '.', name?: string, depth: number = 1): Promise<string[]> =>
-  intoLines(await $`find ${trailSlash(parent)} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ['-name', name] : ''}`)
-    .map((row) => row.replace(/\/$/, ''))
-    .filter(isNotEqual('.'));
-
-export const findFiles = async (parent: string = '.', name?: string, depth: number = 1): Promise<string[]> =>
-  intoLines(await $`find ${trailSlash(parent)} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ['-name', name] : ''}`).filter(
-    isNotEqual('.')
-  );
-
-export const rm = (item: string) => $`rm -rf ${item}`;
-export const mkdir = (item: string) => $`mkdir -p ${item}`;
-export const cp = (a: string, b: string) => $`cp -r ${a} ${b}`;
-export const mv = (a: string, b: string) => $`mv ${a} ${b}`;
-export const touch = (item: string) => $`touch ${item}`;
-export const cat = (item: string) => $`cat ${item}`;
-export const grep = async (pattern: string, file: string) => intoLines(await $`grep ${pattern} ${file}`);
+/**
+ * $$.utils.intoLines
+ *
+ * Turns ProcessOutput into string array, split into lines
+ *
+ * ```typescript
+ * $$.utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
+ * ```
+ */
+const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(fn.isTruthy);
 
 /**
- * * b = block special
- * * c = character special
- * * d = directory
- * * f = regular file
- * * l = symbolic link
- * * p = FIFO
- * * s = socket
+ * $$.utils.removeTrailSlash
+ *
+ * Remove trailing slash from path (if one exists)
+ *
+ * ```typescript
+ * '/path/to/file/' -> '/path/to/file'
+ * ```
  */
-type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
-export const find = async (dir: string, name: string, type: FindType = 'd') => intoLines(await $`find ${dir} -type ${type} -name ${name}`);
-export const findRegex = async (dir: string, regex: RegExp | string, type: FindType = 'd') =>
-  intoLines(await $`find -E ${dir} -type ${type} -regex ${regex.toString()}`);
+const removeTrailSlash = (path: string) => path.replace(/\/$/, '');
 
-export const rsync = (a: string, b: string) => $`rsync -crut ${a} ${b}`;
-export const sync = async (a: string, b: string): Promise<void> => {
-  await rsync(a, b);
-  await rsync(b, a);
-  await rsync(a, b);
+/**
+ * $$.utils.trailSlash
+ *
+ * Ensures there's a trailing slash on path
+ *
+ * ```typescript
+ * '/path/to/file' -> '/path/to/file/'
+ * ```
+ */
+const trailSlash = (path: string) => removeTrailSlash(path) + '/';
+
+/**
+ * $$.utils.removeDoubleSlashes
+ *
+ * Removes double slashes from path (an bug with Unix paths)
+ *
+ * ```typescript
+ * '/path/to//file' -> '/path/to/file'
+ * ```
+ */
+const removeDoubleSlashes = (path: string) => path.replace(/\/\//g, '/');
+
+/**
+ * $$.ls
+ *
+ * Wrapper for ls (list) command
+ *
+ * ```typescript
+ * await $$.ls('example') // ['a', 'b']
+ * ```
+ */
+const ls = async (dir: string = '.', flags: string[] = []): Promise<string[]> => intoLines(await $`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
+
+/**
+ * $$.rm
+ *
+ * Wrapper for rm (remove) command
+ *
+ * ```typescript
+ * await $$.rm('example') // same as $`rm -rf 'example'`
+ * ```
+ */
+const rm = (item: string) => $`rm -rf ${item}`;
+
+/**
+ * $$.mkdir
+ *
+ * Wrapper for mkdir (make directory) command
+ *
+ * ```typescript
+ * await $$.mkdir('example') // same as $`mkdir -p 'example'`
+ * ```
+ */
+const mkdir = (item: string) => $`mkdir -p ${item}`;
+
+/**
+ * $$.cp
+ *
+ * Wrapper for cp (copy) command
+ *
+ * ```typescript
+ * await $$.cp('example1', 'example2') // same as $`cp -r 'example1' 'example2'`
+ * ```
+ */
+const cp = (a: string, b: string) => $`cp -r ${a} ${b}`;
+
+/**
+ * $$.mv
+ *
+ * Wrapper for mv (move) command
+ *
+ * ```typescript
+ * await $$.mv('example1', 'example2') // same as $`mv 'example1' 'example2'`
+ * ```
+ */
+const mv = (a: string, b: string) => $`mv ${a} ${b}`;
+
+/**
+ * $$.touch
+ *
+ * Wrapper for touch (create blank file) command
+ *
+ * ```typescript
+ * await $$.touch('example') // same as $`touch 'example'`
+ * ```
+ */
+const touch = (item: string) => $`touch ${item}`;
+
+/**
+ * $$.cat
+ *
+ * Wrapper for cat (concatenate) command
+ *
+ * ```typescript
+ * await $$.cat('example') // same as $`cat 'example'`
+ * ```
+ */
+const cat = (item: string) => $`cat ${item}`;
+
+/**
+ * $$.grep
+ *
+ * Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
+ *
+ * ```typescript
+ * await $$.grep('example', '.') // same as $`grep 'example' '.'`
+ * ```
+ */
+const grep = async (pattern: string, file: string) => intoLines(await $`grep ${pattern} ${file}`);
+
+type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
+
+interface FindOptions {
+  /**
+   * Type of item to find
+   *
+   * * d = directory
+   * * f = regular file
+   * * b = block special
+   * * c = character special
+   * * l = symbolic link
+   * * p = FIFO
+   * * s = socket
+   */
+  type?: FindType;
+  /**
+   * Maximum depth to search
+   */
+  maxdepth?: number;
+  /**
+   * Name of file/directory to find
+   */
+  name?: string;
+  /**
+   * Regular expression to match
+   */
+  regex?: string;
+  /**
+   * If true, removes the path from the result (so you just get the file/directory name)
+   */
+  removePath?: boolean;
+  /**
+   * If true, ensures the provided path has a trailing slash.
+   */
+  contentsOnly?: boolean;
+  /**
+   * If true, removes trailing slashes from the results.
+   */
+  removeTrailingSlashes?: boolean;
+  /**
+   * If true, includes files that start with a dot.
+   */
+  showHidden?: boolean;
+}
+const convertFindOptionsToFlags = (options: FindOptions) => {
+  const { type, maxdepth, name, regex, removePath } = options;
+  const flags = [];
+  if (type) flags.push('-type', type);
+  if (maxdepth) flags.push('-maxdepth', maxdepth + '');
+  if (name) flags.push('-name', name);
+  if (regex) flags.push('-regex', regex);
+  return flags;
 };
 
-export const isFileExist = async (file: string) => (await $`[[ -f ${file} ]]`.exitCode) === 0;
-export const isDirExist = async (dir: string) => (await $`[[ -d ${dir} ]]`.exitCode) === 0;
+/**
+ * $$.find
+ *
+ * Helper function for finding files
+ *
+ * ```typescript
+ * await $$.find('.', { type: 'f' }) // ['a', 'b']
+ * ```
+ */
+const find = async (dir: string = '.', options: FindOptions = {}): Promise<string[]> => {
+  // google zx doesn't allow for unquoted arguments, so we need work around to conditionally add -execdir
+  let result;
 
-export const readFile = (filepath: string): Promise<string> => retryOr<string>('', 3, 100, true, () => fs.readFile(filepath, { encoding: 'utf8' }));
-export const writeFile = (filepath: string, contents: string): Promise<void> =>
-  retryOr<undefined>(undefined, 3, 100, true, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
+  const newDir = options.contentsOnly ? trailSlash(dir) : dir;
+  const flags = convertFindOptionsToFlags(options);
 
-export const readJSON = async <T extends unknown>(filepath: string): Promise<T> => {
+  const pruneRegex = options.showHidden ? '.*(\\.Trash|\\.DS_Store).*' : '.*(/\\.|\\.Trash|\\.DS_Store).*';
+
+  // E - advanced regex
+  // s - sort lexicographically
+  // L - follow symbolic links
+  if (options.removePath) {
+    result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\)`;
+  } else {
+    result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\)`;
+  }
+
+  return intoLines(result)
+    .map(removeDoubleSlashes)
+    .filter(fn.isNotEqual('.'))
+    .filter((str) => !str.includes('.Trash'))
+    .map(options.removeTrailingSlashes ? removeTrailSlash : fn.noact);
+};
+
+/**
+ * $$.findDirs
+ *
+ * Find all directories in a given directory (shallow)
+ *
+ * ```typescript
+ * await $$.findDirs('.') // ['a', 'b']
+ * ```
+ */
+const findDirs = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
+  find(dir, { type: 'd', maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
+
+/**
+ * $$.findFiles
+ *
+ * Find all files in a given directory (shallow)
+ *
+ * ```typescript
+ * await $$.findFiles('.') // ['a', 'b']
+ * ```
+ */
+const findFiles = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
+  find(dir, { type: 'f', maxdepth: 1, removePath: true, contentsOnly: true, ...options });
+
+/**
+ * $$.rsync
+ *
+ * Wrapper for rsync command
+ *
+ * ```typescript
+ * await $$.rsync('example1', 'example2') // same as $`rsync -crut 'example1' 'example2'`
+ * ```
+ */
+const rsync = (a: string, b: string, flags: string[] = []) => $`rsync -crut ${a} ${b} ${flags}`;
+
+/**
+ * $$.sync
+ *
+ * Helper function for syncing files
+ *
+ * ```typescript
+ * await $$.sync('example1', 'example2') // same as $`rsync -crut 'example1' 'example2' --delete`
+ * ```
+ */
+const sync = (a: string, b: string) => rsync(trailSlash(a), trailSlash(b), ['--delete']);
+
+/**
+ * $$.isFileExist
+ *
+ * Check if a file exists
+ *
+ * ```typescript
+ * await $$.isFileExist('example') // true
+ * ```
+ */
+const isFileExist = async (file: string) => (await $`[[ -f ${file} ]]`.exitCode) === 0;
+
+/**
+ * $$.isDirExist
+ *
+ * Check if a directory exists
+ *
+ * ```typescript
+ * await $$.isDirExist('example') // true
+ * ```
+ */
+const isDirExist = async (dir: string) => (await $`[[ -d ${dir} ]]`.exitCode) === 0;
+
+/**
+ * $$.readFile
+ *
+ * Read a file's contents
+ *
+ * ```typescript
+ * await $$.readFile('example') // 'hello world'
+ * ```
+ */
+const readFile = (filepath: string): Promise<string> => retryOr<string>('', 2, 100, true, () => fs.readFile(filepath, { encoding: 'utf8' }));
+
+/**
+ * $$.writeFile
+ *
+ * Write to a file
+ *
+ * ```typescript
+ * await $$.writeFile('example', 'hello world') // saves a new file called 'example' with the contents 'hello world'
+ * ```
+ */
+const writeFile = (filepath: string, contents: string): Promise<void> =>
+  retryOr<undefined>(undefined, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
+
+/**
+ * $$.readJSON
+ *
+ * Read a JSON file
+ *
+ * ```typescript
+ * await $$.readJSON('example.json') // { hello: 'world' }
+ * ```
+ */
+const readJSON = async <T extends unknown>(filepath: string): Promise<T> => {
   const raw = await readFile(filepath);
   return JSON.parse(raw || '{}');
 };
-export const writeJSON = async <T extends Object>(filepath, obj: T): Promise<T> => {
+
+/**
+ * $$.writeJSON
+ *
+ * Write to a JSON file
+ *
+ * ```typescript
+ * await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file called 'example.json' with the contents {'hello':'world'}
+ * ```
+ */
+const writeJSON = async <T extends Object>(filepath, obj: T): Promise<T> => {
   const raw = (obj ? JSON.stringify(obj, null, 2) : '{}') || '{}';
   await writeFile(filepath, raw);
   return obj;
@@ -72,6 +348,7 @@ export const writeJSON = async <T extends Object>(filepath, obj: T): Promise<T> 
 
 export const $$ = {
   ls,
+  find,
   findDirs,
   findFiles,
   rm,
@@ -81,9 +358,16 @@ export const $$ = {
   touch,
   cat,
   grep,
-  find,
   isFileExist,
   isDirExist,
   readJSON,
-  writeJSON
+  writeJSON,
+  rsync,
+  sync,
+  utils: {
+    intoLines,
+    removeTrailSlash,
+    trailSlash,
+    removeDoubleSlashes
+  }
 };

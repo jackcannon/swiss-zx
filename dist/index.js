@@ -29,95 +29,40 @@ __export(src_exports, {
   LogUtils: () => LogUtils_exports,
   PathUtils: () => PathUtils_exports,
   ask: () => ask,
-  cat: () => cat,
   center: () => center,
+  chlk: () => chlk_exports,
   closeFinder: () => closeFinder,
-  cp: () => cp,
   explodePath: () => explodePath,
   ffmpeg: () => ffmpeg,
-  find: () => find,
-  findDirs: () => findDirs,
-  findFiles: () => findFiles,
-  findRegex: () => findRegex,
   getLineCounter: () => getLineCounter,
   getLog: () => getLog,
   getLogStr: () => getLogStr,
   getProbe: () => getProbe,
   getProbeValue: () => getProbeValue,
   getTotalFrames: () => getTotalFrames,
-  grep: () => grep,
-  isDirExist: () => isDirExist,
-  isFileExist: () => isFileExist,
   left: () => left,
-  ls: () => ls,
-  mkdir: () => mkdir,
+  loading: () => loading,
   moveUp: () => moveUp,
-  mv: () => mv,
   out: () => out_exports,
   pad: () => pad,
   printTable: () => printTable,
   processLogContents: () => processLogContents,
-  readFile: () => readFile,
-  readJSON: () => readJSON,
-  retry: () => retry,
-  retryOr: () => retryOr,
   right: () => right,
-  rm: () => rm,
-  rsync: () => rsync,
-  sync: () => sync,
-  touch: () => touch,
-  tryOr: () => tryOr,
-  wrap: () => wrap,
-  writeFile: () => writeFile,
-  writeJSON: () => writeJSON
+  wrap: () => wrap
 });
 module.exports = __toCommonJS(src_exports);
 
 // src/tools/$$.ts
 var import_globals = require("zx/globals");
 var import_zx = require("zx");
-
-// src/tools/errorHandling.ts
 var import_swiss_ak = require("swiss-ak");
-var tryOr = async (orValue, func, ...args) => {
-  try {
-    return await func(...args);
-  } catch (err) {
-    return orValue;
-  }
-};
-var retry = async (maxTries = 10, delay = 0, suppress = true, run = (0, import_swiss_ak.result)(void 0)) => {
-  const loop = async (attempt, lastErr) => {
-    if (attempt >= maxTries) {
-      if (!suppress)
-        throw lastErr;
-      return;
-    }
-    try {
-      const result2 = await run(attempt);
-      return result2;
-    } catch (err) {
-      if (delay)
-        await (0, import_swiss_ak.wait)(delay);
-      return await loop(attempt + 1, err);
-    }
-  };
-  return await loop(0);
-};
-var retryOr = async (orValue, maxTries = 10, delay = 0, suppress = true, run = (0, import_swiss_ak.result)(orValue)) => tryOr(orValue, () => retry(maxTries, delay, suppress, run));
-
-// src/tools/$$.ts
-var import_swiss_ak2 = require("swiss-ak");
 import_zx.$.verbose = false;
 var fs = import_zx.fs.promises;
-var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak2.isTruthy);
+var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak.fn.isTruthy);
 var removeTrailSlash = (path) => path.replace(/\/$/, "");
 var trailSlash = (path) => removeTrailSlash(path) + "/";
+var removeDoubleSlashes = (path) => path.replace(/\/\//g, "/");
 var ls = async (dir = ".", flags = []) => intoLines(await import_zx.$`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
-var findDirs = async (parent = ".", name, depth = 1) => intoLines(await import_zx.$`find ${trailSlash(parent)} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map((row) => row.replace(/\/$/, "")).filter((0, import_swiss_ak2.isNotEqual)("."));
-var findFiles = async (parent = ".", name, depth = 1) => intoLines(await import_zx.$`find ${trailSlash(parent)} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`).filter(
-  (0, import_swiss_ak2.isNotEqual)(".")
-);
 var rm = (item) => import_zx.$`rm -rf ${item}`;
 var mkdir = (item) => import_zx.$`mkdir -p ${item}`;
 var cp = (a, b) => import_zx.$`cp -r ${a} ${b}`;
@@ -125,18 +70,39 @@ var mv = (a, b) => import_zx.$`mv ${a} ${b}`;
 var touch = (item) => import_zx.$`touch ${item}`;
 var cat = (item) => import_zx.$`cat ${item}`;
 var grep = async (pattern, file) => intoLines(await import_zx.$`grep ${pattern} ${file}`);
-var find = async (dir, name, type = "d") => intoLines(await import_zx.$`find ${dir} -type ${type} -name ${name}`);
-var findRegex = async (dir, regex, type = "d") => intoLines(await import_zx.$`find -E ${dir} -type ${type} -regex ${regex.toString()}`);
-var rsync = (a, b) => import_zx.$`rsync -crut ${a} ${b}`;
-var sync = async (a, b) => {
-  await rsync(a, b);
-  await rsync(b, a);
-  await rsync(a, b);
+var convertFindOptionsToFlags = (options) => {
+  const { type, maxdepth, name, regex, removePath } = options;
+  const flags = [];
+  if (type)
+    flags.push("-type", type);
+  if (maxdepth)
+    flags.push("-maxdepth", maxdepth + "");
+  if (name)
+    flags.push("-name", name);
+  if (regex)
+    flags.push("-regex", regex);
+  return flags;
 };
+var find = async (dir = ".", options = {}) => {
+  let result;
+  const newDir = options.contentsOnly ? trailSlash(dir) : dir;
+  const flags = convertFindOptionsToFlags(options);
+  const pruneRegex = options.showHidden ? ".*(\\.Trash|\\.DS_Store).*" : ".*(/\\.|\\.Trash|\\.DS_Store).*";
+  if (options.removePath) {
+    result = await import_zx.$`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\)`;
+  } else {
+    result = await import_zx.$`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\)`;
+  }
+  return intoLines(result).map(removeDoubleSlashes).filter(import_swiss_ak.fn.isNotEqual(".")).filter((str) => !str.includes(".Trash")).map(options.removeTrailingSlashes ? removeTrailSlash : import_swiss_ak.fn.noact);
+};
+var findDirs = (dir = ".", options = {}) => find(dir, { type: "d", maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
+var findFiles = (dir = ".", options = {}) => find(dir, { type: "f", maxdepth: 1, removePath: true, contentsOnly: true, ...options });
+var rsync = (a, b, flags = []) => import_zx.$`rsync -crut ${a} ${b} ${flags}`;
+var sync = (a, b) => rsync(trailSlash(a), trailSlash(b), ["--delete"]);
 var isFileExist = async (file) => await import_zx.$`[[ -f ${file} ]]`.exitCode === 0;
 var isDirExist = async (dir) => await import_zx.$`[[ -d ${dir} ]]`.exitCode === 0;
-var readFile = (filepath) => retryOr("", 3, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
-var writeFile = (filepath, contents) => retryOr(void 0, 3, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
+var readFile = (filepath) => (0, import_swiss_ak.retryOr)("", 2, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
+var writeFile = (filepath, contents) => (0, import_swiss_ak.retryOr)(void 0, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
 var readJSON = async (filepath) => {
   const raw = await readFile(filepath);
   return JSON.parse(raw || "{}");
@@ -148,6 +114,7 @@ var writeJSON = async (filepath, obj) => {
 };
 var $$ = {
   ls,
+  find,
   findDirs,
   findFiles,
   rm,
@@ -157,15 +124,22 @@ var $$ = {
   touch,
   cat,
   grep,
-  find,
   isFileExist,
   isDirExist,
   readJSON,
-  writeJSON
+  writeJSON,
+  rsync,
+  sync,
+  utils: {
+    intoLines,
+    removeTrailSlash,
+    trailSlash,
+    removeDoubleSlashes
+  }
 };
 
 // src/tools/ask.ts
-var import_zx3 = require("zx");
+var import_zx4 = require("zx");
 var import_swiss_ak4 = require("swiss-ak");
 var import_prompts = __toESM(require("prompts"));
 var import_fuse = __toESM(require("fuse.js"));
@@ -175,6 +149,7 @@ var out_exports = {};
 __export(out_exports, {
   center: () => center,
   left: () => left,
+  loading: () => loading,
   moveUp: () => moveUp,
   pad: () => pad,
   right: () => right,
@@ -190,7 +165,7 @@ __export(LogUtils_exports, {
 });
 var import_util = require("util");
 var import_zx2 = require("zx");
-var import_swiss_ak3 = require("swiss-ak");
+var import_swiss_ak2 = require("swiss-ak");
 var getLogStr = (item) => {
   const inspectList = ["object", "boolean", "number"];
   if (inspectList.includes(typeof item) && !(item instanceof Date)) {
@@ -199,12 +174,14 @@ var getLogStr = (item) => {
     return item + "";
   }
 };
-var processLogContents = (prefix, wrapper = import_swiss_ak3.noact, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => import_zx2.chalk.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
-var getLog = (prefix, wrapper = import_swiss_ak3.noact) => (...args) => {
+var processLogContents = (prefix, wrapper = import_swiss_ak2.fn.noact, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => import_zx2.chalk.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
+var getLog = (prefix, wrapper = import_swiss_ak2.fn.noact) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
 // src/tools/out.ts
+var import_string_width = __toESM(require("string-width"));
+var import_swiss_ak3 = require("swiss-ak");
 var getDefaultColumns = () => {
   var _a;
   return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) || 100;
@@ -212,11 +189,11 @@ var getDefaultColumns = () => {
 var getLines = (text2) => text2.split("\n").map((line) => line.trim());
 var getOutputLines = (item) => getLines(getLogStr(item));
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var center = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, Math.floor((width - line.length) / 2), Math.ceil((width - line.length) / 2), replaceChar)).join("\n");
-var left = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, 0, width - line.length, replaceChar)).join("\n");
-var right = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, width - line.length, 0, replaceChar)).join("\n");
+var center = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, Math.floor((width - (0, import_string_width.default)(line)) / 2), Math.ceil((width - (0, import_string_width.default)(line)) / 2), replaceChar)).join("\n");
+var left = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, 0, width - (0, import_string_width.default)(line), replaceChar)).join("\n");
+var right = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, width - (0, import_string_width.default)(line), 0, replaceChar)).join("\n");
 var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line) => {
-  if (line.length > width) {
+  if ((0, import_string_width.default)(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
     let rowStartIndex = 0;
@@ -224,7 +201,7 @@ var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line
       const word = words[wIndex];
       const candidateRow = words.slice(rowStartIndex, Math.max(0, Number(wIndex) - 1));
       const candText = candidateRow.join("");
-      if (candText.length + word.length > width) {
+      if ((0, import_string_width.default)(candText) + (0, import_string_width.default)(word) > width) {
         rows.push(candidateRow);
         rowStartIndex = Number(wIndex) - 1;
       }
@@ -235,7 +212,7 @@ var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line
   }
   return line;
 }).flat().join("\n");
-var moveUp = (lines = 2) => {
+var moveUp = (lines = 1) => {
   var _a;
   if ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.clearLine) {
     process.stdout.cursorTo(0);
@@ -246,6 +223,56 @@ var moveUp = (lines = 2) => {
     }
   }
 };
+var loadingDefault = (s) => console.log(`Loading${s}`);
+var loading = (action = loadingDefault, lines = 1, symbols = [".  ", ".. ", "..."]) => {
+  let stopped = false;
+  let count = 0;
+  const runLoop = async () => {
+    if (stopped)
+      return;
+    if (count)
+      moveUp(lines);
+    action(symbols[count++ % symbols.length]);
+    await (0, import_swiss_ak3.wait)(500);
+    return runLoop();
+  };
+  runLoop();
+  return {
+    stop: () => {
+      moveUp(lines);
+      stopped = true;
+    }
+  };
+};
+
+// src/tools/chlk.ts
+var chlk_exports = {};
+__export(chlk_exports, {
+  gray: () => gray,
+  gray0: () => gray0,
+  gray1: () => gray1,
+  gray2: () => gray2,
+  gray3: () => gray3,
+  gray4: () => gray4,
+  gray5: () => gray5,
+  grays: () => grays
+});
+var import_zx3 = require("zx");
+var gray0 = import_zx3.chalk.black;
+var gray1 = import_zx3.chalk.gray.dim;
+var gray2 = import_zx3.chalk.white.dim;
+var gray3 = import_zx3.chalk.whiteBright.dim;
+var gray4 = import_zx3.chalk.white;
+var gray5 = import_zx3.chalk.whiteBright;
+var grays = [
+  gray0,
+  gray1,
+  gray2,
+  gray3,
+  gray4,
+  gray5
+];
+var gray = (num) => grays[Math.max(0, Math.min(num, grays.length - 1))];
 
 // src/tools/PathUtils.ts
 var PathUtils_exports = {};
@@ -371,8 +398,8 @@ var multiselect = async (message, choices, initial) => {
     },
     promptsOptions
   );
-  const result2 = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
-  return result2.map((value) => typeof value === "number" ? choiceObjs[value] : value);
+  const result = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
+  return result.map((value) => typeof value === "number" ? choiceObjs[value] : value);
 };
 var validate = async (askFunc, validateFn) => {
   const runLoop = async (initial, extraLines = 0) => {
@@ -383,23 +410,24 @@ var validate = async (askFunc, validateFn) => {
     } else {
       const message = validateResponse || "";
       moveUp(1 + extraLines);
-      console.log(import_zx3.chalk.red(message));
+      console.log(import_zx4.chalk.red(message));
       return runLoop(input, message.split("\n").length);
     }
   };
   return runLoop();
 };
 var imitate = (done, questionText, resultText) => {
-  const prefix = done ? import_zx3.chalk.green("\u2714") : import_zx3.chalk.cyan("?");
-  const question = import_zx3.chalk.whiteBright.bold(questionText);
-  const joiner = import_zx3.chalk.gray(done ? "\u2026" : "\u203A");
-  const resultWrapper = done ? import_zx3.chalk.white : import_zx3.chalk.gray;
-  const result2 = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
-  console.log(`${prefix} ${question} ${result2}`);
+  const prefix = done ? import_zx4.chalk.green("\u2714") : import_zx4.chalk.cyan("?");
+  const question = import_zx4.chalk.whiteBright.bold(questionText);
+  const joiner = import_zx4.chalk.gray(done ? "\u2026" : "\u203A");
+  const resultWrapper = done ? import_zx4.chalk.white : import_zx4.chalk.gray;
+  const result = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
+  console.log(`${prefix} ${question} ${result}`);
   return 1;
 };
+var loading2 = (questionText) => loading((s) => imitate(false, questionText, `[Loading${s}]`));
 var pause = async (text2 = "Press enter to continue...") => {
-  console.log(import_zx3.chalk.gray(text2));
+  console.log(import_zx4.chalk.gray(text2));
   await $`read -n 1`;
 };
 var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, complete) => {
@@ -409,7 +437,7 @@ var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, c
     const text2 = template(s);
     moveUp(lines);
     lines = text2.split("\n").length;
-    console.log(import_zx3.chalk.blackBright(text2));
+    console.log(import_zx4.chalk.blackBright(text2));
     await (0, import_swiss_ak4.wait)((0, import_swiss_ak4.seconds)(1));
   }
   moveUp(lines);
@@ -427,14 +455,48 @@ var getRenameObj = (bef, aft) => {
 };
 var rename = async (bef, aft) => {
   const { before, after } = getRenameObj(bef, aft);
-  console.log(import_zx3.chalk.green("Renaming:"));
-  console.log(import_zx3.chalk.greenBright.bold(`	${before.name} ${import_zx3.chalk.dim("\u2192")} ${after.name}`));
+  console.log(import_zx4.chalk.green("Renaming:"));
+  console.log(import_zx4.chalk.greenBright.bold(`	${before.name} ${import_zx4.chalk.dim("\u2192")} ${after.name}`));
   console.log("");
   const isConfirmed = await boolean(`Would you like to rename ${before.name} to ${after.name}?`);
   if (isConfirmed) {
-    await mv(before.path, after.path);
+    await $$.mv(before.path, after.path);
   }
   return isConfirmed;
+};
+var fileExplorer = async (startDir, filter = import_swiss_ak4.fn.result(true), questionText = "Choose a file:") => {
+  const fnDir = gray5;
+  const fnFiles = gray3;
+  const runExplorer = async (dir) => {
+    const loader = loading2(questionText);
+    const dirs = await $$.findDirs(dir);
+    const files = (await $$.findFiles(dir)).filter(filter);
+    loader.stop();
+    const options = [
+      { title: gray1("\u25B2 [back]"), value: ".." },
+      ...dirs.map((dir2) => ({ title: fnDir(`\u203A ${dir2}`), value: dir2 })),
+      ...files.map((file) => ({ title: fnFiles(`${file}`), value: file }))
+    ];
+    const result = await ask.select(questionText, options, dirs[0] || files[0]);
+    if (result === "..") {
+      moveUp(1);
+      return runExplorer(explodePath(dir).dir);
+    }
+    if (dirs.includes(result)) {
+      moveUp(1);
+      return runExplorer($$.utils.removeTrailSlash(`${dir}/${result}`));
+    }
+    return `${dir}/${result}`;
+  };
+  const startDirs = [startDir].flat();
+  if (startDirs.length <= 1) {
+    return await runExplorer($$.utils.removeTrailSlash(startDirs[0]));
+  } else {
+    const options = startDirs.map((dir) => ({ title: fnDir(`\u203A ${explodePath(dir).name}`), value: dir }));
+    const result = await ask.select(questionText, options);
+    moveUp(1);
+    return await runExplorer($$.utils.removeTrailSlash(result));
+  }
 };
 var ask = {
   text,
@@ -445,9 +507,11 @@ var ask = {
   multiselect,
   validate,
   imitate,
+  loading: loading2,
   pause,
   countdown,
-  rename
+  rename,
+  fileExplorer
 };
 
 // src/tools/ffmpeg.ts
@@ -466,7 +530,7 @@ var getProbe = async (file, props) => {
 };
 var getTotalFrames = async (list) => {
   if (!list) {
-    list = (await ls()).filter((file) => file.endsWith(".MOV"));
+    list = (await $$.ls()).filter((file) => file.endsWith(".MOV"));
   }
   const counts = await Promise.all(list.map(async (file) => getProbeValue(file, "nb_frames")));
   const totalFrames = counts.map((count) => Number(count.trim())).reduce((acc, cur) => acc + cur, 0);
@@ -516,8 +580,14 @@ var getLineCounter = () => {
       return added;
     },
     wrap: (newLines = 1, func, ...args) => {
-      lineCount += newLines;
-      return func(...args);
+      const result = func(...args);
+      if (newLines === void 0) {
+        const resultNum = Number(result);
+        lineCount += Number.isNaN(resultNum) ? 1 : resultNum;
+      } else {
+        lineCount += newLines;
+      }
+      return result;
     },
     add(newLines) {
       lineCount += newLines;
@@ -541,12 +611,13 @@ var closeFinder = async () => {
 
 // src/tools/printTable.ts
 var import_swiss_ak6 = require("swiss-ak");
+var import_string_width2 = __toESM(require("string-width"));
 var getFullOptions = (opts) => ({
-  wrapperFn: (x) => x,
   overrideChar: "",
   overrideHorChar: opts.overrideChar || "",
   overrideVerChar: opts.overrideChar || "",
   ...opts,
+  wrapperFn: typeof opts.wrapperFn !== "function" ? import_swiss_ak6.fn.noact : opts.wrapperFn,
   drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter
 });
 var printTable = (body, header, opts = {}) => {
@@ -554,18 +625,18 @@ var printTable = (body, header, opts = {}) => {
   const lc = getLineCounter();
   const allRows = () => [...header || [], ...body];
   const numCols = Math.max(...allRows().map((row) => row.length));
-  const empty = (char = " ") => new Array(numCols).fill(char);
+  const empty = (char = "") => new Array(numCols).fill(char);
   const correctRow = (row) => [...row, ...empty()].slice(0, numCols).map((cell) => "" + cell);
   header = header && header.map(correctRow);
   body = body.map(correctRow);
-  const colWidths = (0, import_swiss_ak6.zip)(...allRows()).map((col) => Math.max(...col.map((s) => (s || "").length)));
+  const colWidths = (0, import_swiss_ak6.zip)(...allRows()).map((col) => Math.max(...col.map((s) => (0, import_string_width2.default)(s || ""))));
   const printRow = (row = empty(), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
     const orientOverride = isHor ? overrideHorChar : overrideVerChar;
     const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
     const joinC = orientOverride || overrideChar || joinChar;
     const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
     const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
-    let padded = row.map((cell, col) => (cell || padC).padEnd(colWidths[col], padC));
+    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
     if (textWrapperFn)
       padded = padded.map((x) => textWrapperFn(x));
     const inner = padded.join(`${padC}${joinC}${padC}`);
@@ -596,45 +667,24 @@ var printTable = (body, header, opts = {}) => {
   LogUtils,
   PathUtils,
   ask,
-  cat,
   center,
+  chlk,
   closeFinder,
-  cp,
   explodePath,
   ffmpeg,
-  find,
-  findDirs,
-  findFiles,
-  findRegex,
   getLineCounter,
   getLog,
   getLogStr,
   getProbe,
   getProbeValue,
   getTotalFrames,
-  grep,
-  isDirExist,
-  isFileExist,
   left,
-  ls,
-  mkdir,
+  loading,
   moveUp,
-  mv,
   out,
   pad,
   printTable,
   processLogContents,
-  readFile,
-  readJSON,
-  retry,
-  retryOr,
   right,
-  rm,
-  rsync,
-  sync,
-  touch,
-  tryOr,
-  wrap,
-  writeFile,
-  writeJSON
+  wrap
 });

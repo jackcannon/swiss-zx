@@ -1,10 +1,14 @@
 import { getLogStr } from './LogUtils';
+import stringWidth from 'string-width';
+import { wait } from 'swiss-ak';
 
 const getDefaultColumns = (): number => process?.stdout?.columns || 100;
 const getLines = (text: string): string[] => text.split('\n').map((line) => line.trim());
 const getOutputLines = (item): string[] => getLines(getLogStr(item));
 
 /**
+ * out.pad
+ *
  * Pad before and after the given text with the given character.
  *
  * ```typescript
@@ -16,6 +20,8 @@ export const pad = (line: string, start: number, end: number, replaceChar: strin
   `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
 
 /**
+ * out.center
+ *
  * Align the given text to the center within the given width of characters/columns
  *
  * ```typescript
@@ -29,10 +35,12 @@ export const pad = (line: string, start: number, end: number, replaceChar: strin
  */
 export const center = (item: any, width: number = getDefaultColumns(), replaceChar: string = ' '): string =>
   getOutputLines(item)
-    .map((line) => pad(line, Math.floor((width - line.length) / 2), Math.ceil((width - line.length) / 2), replaceChar))
+    .map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar))
     .join('\n');
 
 /**
+ * out.left
+ *
  * Align the given text to the left within the given width of characters/columns
  *
  * ```typescript
@@ -46,10 +54,12 @@ export const center = (item: any, width: number = getDefaultColumns(), replaceCh
  */
 export const left = (item: any, width: number = getDefaultColumns(), replaceChar: string = ' '): string =>
   getOutputLines(item)
-    .map((line) => pad(line, 0, width - line.length, replaceChar))
+    .map((line) => pad(line, 0, width - stringWidth(line), replaceChar))
     .join('\n');
 
 /**
+ * out.right
+ *
  * Align the given text to the right within the given width of characters/columns
  *
  * ```typescript
@@ -63,10 +73,12 @@ export const left = (item: any, width: number = getDefaultColumns(), replaceChar
  */
 export const right = (item: any, width: number = getDefaultColumns(), replaceChar: string = ' '): string =>
   getOutputLines(item)
-    .map((line) => pad(line, width - line.length, 0, replaceChar))
+    .map((line) => pad(line, width - stringWidth(line), 0, replaceChar))
     .join('\n');
 
 /**
+ * out.wrap
+ *
  * Wrap the given text to the given width of characters/columns
  *
  * ```typescript
@@ -78,7 +90,7 @@ export const right = (item: any, width: number = getDefaultColumns(), replaceCha
 export const wrap = (item: any, width: number = getDefaultColumns()): string =>
   getOutputLines(item)
     .map((line) => {
-      if (line.length > width) {
+      if (stringWidth(line) > width) {
         const words: string[] = line.split(/(?<=#?[ -]+)/g);
         const rows: string[][] = [];
 
@@ -90,7 +102,7 @@ export const wrap = (item: any, width: number = getDefaultColumns()): string =>
           const candidateRow = words.slice(rowStartIndex, Math.max(0, Number(wIndex) - 1));
           const candText = candidateRow.join('');
 
-          if (candText.length + word.length > width) {
+          if (stringWidth(candText) + stringWidth(word) > width) {
             rows.push(candidateRow);
             rowStartIndex = Number(wIndex) - 1;
           }
@@ -108,11 +120,17 @@ export const wrap = (item: any, width: number = getDefaultColumns()): string =>
     .join('\n');
 
 /**
+ * out.moveUp
+ *
  * Move the terminal cursor up X lines, clearing each row.
  *
  * Useful for replacing previous lines of output
+ *
+ * ```typescript
+ * moveUp(1);
+ * ```
  */
-export const moveUp = (lines: number = 2) => {
+export const moveUp = (lines: number = 1) => {
   if (process?.stdout?.clearLine) {
     process.stdout.cursorTo(0);
     process.stdout.clearLine(0);
@@ -121,4 +139,39 @@ export const moveUp = (lines: number = 2) => {
       process.stdout.clearLine(0);
     }
   }
+};
+
+const loadingDefault = (s) => console.log(`Loading${s}`);
+
+/**
+ * out.loading
+ *
+ * Display an animated loading indicator
+ *
+ * ```typescript
+ * const loader = out.loading();
+ * // ...
+ * loader.stop();
+ * ```
+ */
+export const loading = (action: (s: string) => any = loadingDefault, lines: number = 1, symbols: string[] = ['.  ', '.. ', '...']) => {
+  let stopped = false;
+
+  let count = 0;
+  const runLoop = async () => {
+    if (stopped) return;
+    if (count) moveUp(lines);
+    action(symbols[count++ % symbols.length]);
+    await wait(500);
+    return runLoop();
+  };
+
+  runLoop();
+
+  return {
+    stop: () => {
+      moveUp(lines);
+      stopped = true;
+    }
+  };
 };

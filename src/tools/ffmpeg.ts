@@ -1,9 +1,27 @@
 import { getProgressBar, ProgressBarOptions } from 'swiss-ak';
-import { ls } from './$$';
+import { $$ } from './$$';
 
+/**
+ * getProbeValue
+ *
+ * Get a value from ffprobe output
+ *
+ * ```typescript
+ * const probe = await getProbe('file.mp4', 'width'); // '1280'
+ * ```
+ */
 export const getProbeValue = async (file: string, propertyName: string): Promise<string> =>
   (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
 
+/**
+ * getProbe
+ *
+ * Get the probe of a file as an object
+ *
+ * ```typescript
+ * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
+ * ```
+ */
 export const getProbe = async (file: string, props?: string[]): Promise<{ [key: string]: string | number }> => {
   const full = await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
 
@@ -24,9 +42,18 @@ export const getProbe = async (file: string, props?: string[]): Promise<{ [key: 
   );
 };
 
+/**
+ * getTotalFrames
+ *
+ * Get the total number of frames in a video file.
+ *
+ * ```typescript
+ * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
+ * ```
+ */
 export const getTotalFrames = async (list?: string[]): Promise<number> => {
   if (!list) {
-    list = (await ls()).filter((file) => file.endsWith('.MOV'));
+    list = (await $$.ls()).filter((file) => file.endsWith('.MOV'));
   }
 
   const counts = await Promise.all(list.map(async (file) => getProbeValue(file, 'nb_frames')));
@@ -50,6 +77,16 @@ const readChunk = (chunk) =>
       )
   );
 
+/**
+ * ffmpeg
+ *
+ * Wrapper for ffmpeg command
+ *
+ * ```typescript
+ * const progBarOpts = {}; // Same options as getProgressBar
+ * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
+ * ```
+ */
 export const ffmpeg = async (
   command: () => ProcessPromise = () => $`ffmpeg -progress pr.txt`,
   progressFileName: string = 'pr.txt',

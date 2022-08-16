@@ -1,40 +1,55 @@
 import * as zx from 'zx';
-import { second, ms, ProgressBarOptions, Partial } from 'swiss-ak';
+import { second, ProgressBarOptions, Partial } from 'swiss-ak';
+import * as chalk from 'chalk';
 
-declare const ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-declare const findDirs: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
-declare const findFiles: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
-declare const rm: (item: string) => zx.ProcessPromise;
-declare const mkdir: (item: string) => zx.ProcessPromise;
-declare const cp: (a: string, b: string) => zx.ProcessPromise;
-declare const mv: (a: string, b: string) => zx.ProcessPromise;
-declare const touch: (item: string) => zx.ProcessPromise;
-declare const cat: (item: string) => zx.ProcessPromise;
-declare const grep: (pattern: string, file: string) => Promise<string[]>;
-/**
- * * b = block special
- * * c = character special
- * * d = directory
- * * f = regular file
- * * l = symbolic link
- * * p = FIFO
- * * s = socket
- */
 declare type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
-declare const find: (dir: string, name: string, type?: FindType) => Promise<string[]>;
-declare const findRegex: (dir: string, regex: RegExp | string, type?: FindType) => Promise<string[]>;
-declare const rsync: (a: string, b: string) => zx.ProcessPromise;
-declare const sync: (a: string, b: string) => Promise<void>;
-declare const isFileExist: (file: string) => Promise<boolean>;
-declare const isDirExist: (dir: string) => Promise<boolean>;
-declare const readFile: (filepath: string) => Promise<string>;
-declare const writeFile: (filepath: string, contents: string) => Promise<void>;
-declare const readJSON: <T extends unknown>(filepath: string) => Promise<T>;
-declare const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<T>;
+interface FindOptions {
+    /**
+     * Type of item to find
+     *
+     * * d = directory
+     * * f = regular file
+     * * b = block special
+     * * c = character special
+     * * l = symbolic link
+     * * p = FIFO
+     * * s = socket
+     */
+    type?: FindType;
+    /**
+     * Maximum depth to search
+     */
+    maxdepth?: number;
+    /**
+     * Name of file/directory to find
+     */
+    name?: string;
+    /**
+     * Regular expression to match
+     */
+    regex?: string;
+    /**
+     * If true, removes the path from the result (so you just get the file/directory name)
+     */
+    removePath?: boolean;
+    /**
+     * If true, ensures the provided path has a trailing slash.
+     */
+    contentsOnly?: boolean;
+    /**
+     * If true, removes trailing slashes from the results.
+     */
+    removeTrailingSlashes?: boolean;
+    /**
+     * If true, includes files that start with a dot.
+     */
+    showHidden?: boolean;
+}
 declare const $$: {
     ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-    findDirs: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
-    findFiles: (parent?: string, name?: string, depth?: number) => Promise<string[]>;
+    find: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    findFiles: (dir?: string, options?: FindOptions) => Promise<string[]>;
     rm: (item: string) => zx.ProcessPromise;
     mkdir: (item: string) => zx.ProcessPromise;
     cp: (a: string, b: string) => zx.ProcessPromise;
@@ -42,11 +57,18 @@ declare const $$: {
     touch: (item: string) => zx.ProcessPromise;
     cat: (item: string) => zx.ProcessPromise;
     grep: (pattern: string, file: string) => Promise<string[]>;
-    find: (dir: string, name: string, type?: FindType) => Promise<string[]>;
     isFileExist: (file: string) => Promise<boolean>;
     isDirExist: (dir: string) => Promise<boolean>;
     readJSON: <T extends unknown>(filepath: string) => Promise<T>;
     writeJSON: <T_1 extends Object>(filepath: any, obj: T_1) => Promise<T_1>;
+    rsync: (a: string, b: string, flags?: string[]) => zx.ProcessPromise;
+    sync: (a: string, b: string) => zx.ProcessPromise;
+    utils: {
+        intoLines: (out: ProcessOutput) => string[];
+        removeTrailSlash: (path: string) => string;
+        trailSlash: (path: string) => string;
+        removeDoubleSlashes: (path: string) => string;
+    };
 };
 
 interface ExplodedPath {
@@ -70,12 +92,23 @@ interface ExplodedPath {
     filename: string;
 }
 /**
+ * explodePath
+ *
  * 'Explodes' a path into its components
  *
  * - dir: the directory path of the given path
  * - name: the name of the file, not including the extension
  * - ext: the extension of the file, not including the dot
  * - filename: the full name of the file, including the extension (and dot)
+ *
+ * ```typescript
+ * const { dir, name, ext, filename } = explodePath('/path/to/file.txt');
+ *
+ * console.log(dir); // '/path/to'
+ * console.log(name); // 'file'
+ * console.log(ext); // 'txt'
+ * console.log(filename); // 'file.txt'
+ * ```
  */
 declare const explodePath: (filepath: string) => ExplodedPath;
 
@@ -89,11 +122,95 @@ declare namespace PathUtils {
 }
 
 declare type lines = number;
+/**
+ * getLineCounter
+ *
+ * Get line counter for counter output lines
+ *
+ * ```typescript
+ * const lc = getLineCounter();
+ * lc.log('hello'); // 1
+ * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+ * lc.add(1); // 3
+ * lc.get(); // 3
+ * lc.clear(); // 0
+ * ```
+ */
 declare const getLineCounter: () => {
+    /**
+     * lc.log
+     *
+     * Same as console.log, but adds to the lc counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
     log(...args: any[]): lines;
-    wrap: <A extends unknown[], T extends unknown>(newLines: lines, func: (...args: A) => T, ...args: A) => T;
+    /**
+     * lc.wrap
+     *
+     * Wraps a function, and adds a given number (of the result of the function) to the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
+    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined, func: (...args: A) => number | T, ...args: A) => number | T;
+    /**
+     * lc.add
+     *
+     * Adds a given number to the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
     add(newLines: lines): lines;
+    /**
+     * lc.get
+     *
+     * returns the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
     get(): lines;
+    /**
+     * lc.clear
+     *
+     * clears the line counter, and moves the cursor up by the value of the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
     clear(): lines;
 };
 
@@ -111,23 +228,62 @@ declare const ask: {
     multiselect: <T_2 extends unknown>(message: string, choices: PromptChoice<T_2>[], initial?: T_2) => Promise<T_2[]>;
     validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I | Promise<I>, validateFn: (input: Awaited<I>) => boolean | string) => Promise<I>;
     imitate: (done: boolean, questionText: string, resultText?: string) => lines;
+    loading: (questionText: string) => {
+        stop: () => void;
+    };
     pause: (text?: string) => Promise<void>;
     countdown: (totalSeconds: number, template?: (s: second) => string, complete?: string) => Promise<void>;
     rename: (bef: string, aft: (before: ExplodedPath) => string) => Promise<boolean>;
+    fileExplorer: (startDir: string | string[], filter?: (item: any, index: number, arr: any[]) => boolean, questionText?: string) => Promise<any>;
 };
 
-declare const tryOr: <T extends unknown, A extends unknown[]>(orValue: T, func: (...args: A) => Promise<T>, ...args: A) => Promise<T>;
-declare const retry: <T extends unknown>(maxTries?: number, delay?: ms, suppress?: boolean, run?: (attemptNumber: any) => T) => Promise<T>;
-declare const retryOr: <T extends unknown>(orValue: T, maxTries?: number, delay?: ms, suppress?: boolean, run?: () => T) => Promise<T>;
-
+/**
+ * getProbeValue
+ *
+ * Get a value from ffprobe output
+ *
+ * ```typescript
+ * const probe = await getProbe('file.mp4', 'width'); // '1280'
+ * ```
+ */
 declare const getProbeValue: (file: string, propertyName: string) => Promise<string>;
+/**
+ * getProbe
+ *
+ * Get the probe of a file as an object
+ *
+ * ```typescript
+ * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
+ * ```
+ */
 declare const getProbe: (file: string, props?: string[]) => Promise<{
     [key: string]: string | number;
 }>;
+/**
+ * getTotalFrames
+ *
+ * Get the total number of frames in a video file.
+ *
+ * ```typescript
+ * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
+ * ```
+ */
 declare const getTotalFrames: (list?: string[]) => Promise<number>;
+/**
+ * ffmpeg
+ *
+ * Wrapper for ffmpeg command
+ *
+ * ```typescript
+ * const progBarOpts = {}; // Same options as getProgressBar
+ * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
+ * ```
+ */
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
 
 /**
+ * out.pad
+ *
  * Pad before and after the given text with the given character.
  *
  * ```typescript
@@ -137,6 +293,8 @@ declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string
  */
 declare const pad: (line: string, start: number, end: number, replaceChar?: string) => string;
 /**
+ * out.center
+ *
  * Align the given text to the center within the given width of characters/columns
  *
  * ```typescript
@@ -150,6 +308,8 @@ declare const pad: (line: string, start: number, end: number, replaceChar?: stri
  */
 declare const center: (item: any, width?: number, replaceChar?: string) => string;
 /**
+ * out.left
+ *
  * Align the given text to the left within the given width of characters/columns
  *
  * ```typescript
@@ -163,6 +323,8 @@ declare const center: (item: any, width?: number, replaceChar?: string) => strin
  */
 declare const left: (item: any, width?: number, replaceChar?: string) => string;
 /**
+ * out.right
+ *
  * Align the given text to the right within the given width of characters/columns
  *
  * ```typescript
@@ -176,6 +338,8 @@ declare const left: (item: any, width?: number, replaceChar?: string) => string;
  */
 declare const right: (item: any, width?: number, replaceChar?: string) => string;
 /**
+ * out.wrap
+ *
  * Wrap the given text to the given width of characters/columns
  *
  * ```typescript
@@ -186,11 +350,31 @@ declare const right: (item: any, width?: number, replaceChar?: string) => string
  */
 declare const wrap: (item: any, width?: number) => string;
 /**
+ * out.moveUp
+ *
  * Move the terminal cursor up X lines, clearing each row.
  *
  * Useful for replacing previous lines of output
+ *
+ * ```typescript
+ * moveUp(1);
+ * ```
  */
 declare const moveUp: (lines?: number) => void;
+/**
+ * out.loading
+ *
+ * Display an animated loading indicator
+ *
+ * ```typescript
+ * const loader = out.loading();
+ * // ...
+ * loader.stop();
+ * ```
+ */
+declare const loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
+    stop: () => void;
+};
 
 declare const out_pad: typeof pad;
 declare const out_center: typeof center;
@@ -198,6 +382,7 @@ declare const out_left: typeof left;
 declare const out_right: typeof right;
 declare const out_wrap: typeof wrap;
 declare const out_moveUp: typeof moveUp;
+declare const out_loading: typeof loading;
 declare namespace out {
   export {
     out_pad as pad,
@@ -206,22 +391,74 @@ declare namespace out {
     out_right as right,
     out_wrap as wrap,
     out_moveUp as moveUp,
+    out_loading as loading,
   };
 }
 
+/**
+ * Close all Mac OS X Finder windows.
+ */
 declare const closeFinder: () => Promise<void>;
 
 interface TableOptions {
+    /**
+     * Function to wrap each line of the table in (e.g. chalk.blue)
+     */
     wrapperFn: Function;
+    /**
+     * Character to use instead of lines
+     */
     overrideChar: string;
+    /**
+     * Character to use instead of horizontal lines
+     */
     overrideHorChar: string;
+    /**
+     * Character to use instead of vertical lines
+     */
     overrideVerChar: string;
+    /**
+     * Whether to draw the outer border of the table
+     */
     drawOuter: boolean;
 }
+/**
+ * printTable
+ *
+ * Print a table
+ *
+ * ```typescript
+ * const header = [['Name', 'Age']];
+ * const body = [['John', '25'], ['Jane', '26']];
+ * printTable(body, header);
+ *
+ * // ┏━━━━━━┳━━━━━┓
+ * // ┃ Name ┃ Age ┃
+ * // ┡━━━━━━╇━━━━━┩
+ * // │ John │ 25  │
+ * // │ Jane │ 26  │
+ * // └──────┴─────┘
+ * ```
+ */
 declare const printTable: (body: string[][], header: string[][], opts?: Partial<TableOptions>) => number;
 
+/**
+ * LogUtils.getLogStr
+ *
+ * Get a string for a given object as it would be printed by console.log
+ */
 declare const getLogStr: (item: any) => string;
+/**
+ * LogUtils.processLogContents
+ *
+ * Process an item to be logged
+ */
 declare const processLogContents: (prefix: string, wrapper?: Function, ...args: any[]) => string;
+/**
+ * LogUtils.getLog
+ *
+ * Get a log function for a given prefix
+ */
 declare const getLog: (prefix: string, wrapper?: Function) => (...args: any[]) => void;
 
 declare const LogUtils_getLogStr: typeof getLogStr;
@@ -235,4 +472,82 @@ declare namespace LogUtils {
   };
 }
 
-export { $$, ExplodedPath, LogUtils, PathUtils, ask, cat, center, closeFinder, cp, explodePath, ffmpeg, find, findDirs, findFiles, findRegex, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, grep, isDirExist, isFileExist, left, lines, ls, mkdir, moveUp, mv, out, pad, printTable, processLogContents, readFile, readJSON, retry, retryOr, right, rm, rsync, sync, touch, tryOr, wrap, writeFile, writeJSON };
+/**
+ * gray0
+ *
+ * Gray 0 (0-5). Equivalent to chalk.black
+ */
+declare const gray0: chalk.ChalkInstance;
+/**
+ * gray1
+ *
+ * Gray 1 (0-5). Equivalent to chalk.gray.dim
+ */
+declare const gray1: chalk.ChalkInstance;
+/**
+ * gray2
+ *
+ * Gray 2 (0-5). Equivalent to chalk.white.dim
+ */
+declare const gray2: chalk.ChalkInstance;
+/**
+ * gray3
+ *
+ * Gray 3 (0-5). Equivalent to chalk.whiteBright.dim
+ */
+declare const gray3: chalk.ChalkInstance;
+/**
+ * gray4
+ *
+ * Gray 4 (0-5). Equivalent to chalk.white
+ */
+declare const gray4: chalk.ChalkInstance;
+/**
+ * gray5
+ *
+ * Gray 5 (0-5). Equivalent to chalk.whiteBright
+ */
+declare const gray5: chalk.ChalkInstance;
+/**
+ * grays
+ *
+ * Grays between 0 and 5.
+ *
+ * ```typescript
+ * grays[2]; // gray2
+ * ```
+ */
+declare const grays: chalk.ChalkInstance[];
+/**
+ * gray
+ *
+ * Grays between 0 and 5.
+ *
+ * ```typescript
+ * gray(2); // gray2
+ * ```
+ */
+declare const gray: (num: number) => chalk.ChalkInstance;
+
+declare const chlk_gray0: typeof gray0;
+declare const chlk_gray1: typeof gray1;
+declare const chlk_gray2: typeof gray2;
+declare const chlk_gray3: typeof gray3;
+declare const chlk_gray4: typeof gray4;
+declare const chlk_gray5: typeof gray5;
+declare const chlk_grays: typeof grays;
+declare const chlk_gray: typeof gray;
+declare namespace chlk {
+  export {
+    chlk_gray0 as gray0,
+    chlk_gray1 as gray1,
+    chlk_gray2 as gray2,
+    chlk_gray3 as gray3,
+    chlk_gray4 as gray4,
+    chlk_gray5 as gray5,
+    chlk_grays as grays,
+    chlk_gray as gray,
+  };
+}
+
+export { $$, ExplodedPath, LogUtils, PathUtils, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, left, lines, loading, moveUp, out, pad, printTable, processLogContents, right, wrap };

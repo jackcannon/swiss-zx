@@ -29,7 +29,8 @@
   "dependencies": {
     "fuse.js": "^6.6.2",
     "prompts": "^2.4.2",
-    "swiss-ak": "^1.7.1",
+    "string-width": "^5.1.2",
+    "swiss-ak": "^1.9.0",
     "zx": "^7.0.8"
   }
 }

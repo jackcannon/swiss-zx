@@ -1,10 +1,11 @@
 import { chalk } from 'zx';
-import { second, seconds, wait } from 'swiss-ak';
+import { second, seconds, wait, fn } from 'swiss-ak';
 import prompts from 'prompts';
 import Fuse from 'fuse.js'; // fuzzy-search
 
-import { mv } from './$$';
-import { moveUp } from './out';
+import { $$ } from './$$';
+import { moveUp, loading as loadingOut } from './out';
+import * as chlk from './chlk';
 import { ExplodedPath, explodePath } from './PathUtils';
 import { lines } from './lineCounter';
 
@@ -23,6 +24,15 @@ interface PromptChoiceObject<T = string> {
 
 type PromptChoice<T = string> = string | PromptChoiceObject<T>;
 
+/**
+ * ask.text
+ *
+ * Get a text input from the user.
+ *
+ * ```typescript
+ * const name = await ask.text('What is your name?'); // 'Jack'
+ * ```
+ */
 const text = async (message: string, initial?: string): Promise<string> => {
   const response = await prompts(
     {
@@ -37,6 +47,15 @@ const text = async (message: string, initial?: string): Promise<string> => {
   return '' + response[PROMPT_VALUE_PROPERTY];
 };
 
+/**
+ * ask.autotext
+ *
+ * Get a text input from the user, with auto-completion.
+ *
+ * ```typescript
+ * const name = await ask.autotext('What is your name?', ['Jack', 'Jane', 'Joe']); // 'Jack'
+ * ```
+ */
 const autotext = async <T extends unknown>(message: string, choices: PromptChoice<T>[], choiceLimit: number = 5): Promise<T> => {
   let response = {} as { [key: string]: T };
 
@@ -66,6 +85,15 @@ const autotext = async <T extends unknown>(message: string, choices: PromptChoic
   return response[PROMPT_VALUE_PROPERTY];
 };
 
+/**
+ * ask.number
+ *
+ * Get a number input from the user.
+ *
+ * ```typescript
+ * const age = await ask.number('How old are you?'); // 30
+ * ```
+ */
 const number = async (message: string, initial: number = 1): Promise<number> => {
   const response = await prompts(
     {
@@ -79,6 +107,15 @@ const number = async (message: string, initial: number = 1): Promise<number> => 
   return Number(response[PROMPT_VALUE_PROPERTY]);
 };
 
+/**
+ * ask.boolean
+ *
+ * Get a boolean input from the user (yes or no)
+ *
+ * ```typescript
+ * const isCool = await ask.boolean('Is this cool?'); // true
+ * ```
+ */
 const boolean = async (message: string): Promise<boolean> => {
   const response = await prompts(
     {
@@ -92,6 +129,15 @@ const boolean = async (message: string): Promise<boolean> => {
   return Boolean(response[PROMPT_VALUE_PROPERTY]);
 };
 
+/**
+ * ask.select
+ *
+ * Get the user to select an option from a list.
+ *
+ * ```typescript
+ * const colour = await ask.select('Whats your favourite colour?', ['red', 'green', 'blue']); // 'red'
+ * ```
+ */
 const select = async <T extends unknown>(message: string, choices: PromptChoice<T>[], initial?: T): Promise<T> => {
   const choiceObjs = choices.map((choice) => (typeof choice === 'object' ? choice : { title: choice, value: choice }));
   let initialId = 0;
@@ -115,6 +161,15 @@ const select = async <T extends unknown>(message: string, choices: PromptChoice<
   return typeof value === 'number' ? choiceObjs[value] : value;
 };
 
+/**
+ * ask.multiselect
+ *
+ * Get the user to select multiple options from a list.
+ *
+ * ```typescript
+ * const colours = await ask.multiselect('Whats your favourite colours?', ['red', 'green', 'blue']); // ['red', 'green']
+ * ```
+ */
 const multiselect = async <T extends unknown>(message: string, choices: PromptChoice<T>[], initial?: T): Promise<T[]> => {
   const choiceObjs = choices.map((choice) => (typeof choice === 'object' ? choice : { title: choice, value: choice }));
   let initialId = 0;
@@ -139,6 +194,18 @@ const multiselect = async <T extends unknown>(message: string, choices: PromptCh
   return result.map((value) => (typeof value === 'number' ? choiceObjs[value] : value));
 };
 
+/**
+ * ask.validate
+ *
+ * Validate the result of an `ask` prompt
+ *
+ * ```typescript
+ * const name = await ask.validate(
+ *   () => ask.text('What is your name?'),
+ *   (name) => name.length > 0
+ * ); // 'Jack'
+ * ```
+ */
 const validate = async <T extends unknown, I extends unknown>(
   askFunc: (initialValue?: T) => Promise<I> | I,
   validateFn: (input: Awaited<I>) => boolean | string
@@ -158,6 +225,15 @@ const validate = async <T extends unknown, I extends unknown>(
   return runLoop();
 };
 
+/**
+ * ask.imitate
+ *
+ * Imitate the display of a prompt
+ *
+ * ```typescript
+ * ask.imitate(true, 'What is your name?', 'Jack');
+ * ```
+ */
 const imitate = (done: boolean, questionText: string, resultText?: string): lines => {
   const prefix = done ? chalk.green('✔') : chalk.cyan('?');
   const question = chalk.whiteBright.bold(questionText);
@@ -169,11 +245,42 @@ const imitate = (done: boolean, questionText: string, resultText?: string): line
   return 1;
 };
 
+/**
+ * ask.loading
+ *
+ * Display an animated loading indicator that imitates the display of a prompt
+ *
+ * ```typescript
+ * const loader = ask.loading('What is your name?');
+ * // ...
+ * loader.stop();
+ * ```
+ */
+const loading = (questionText: string) => loadingOut((s) => imitate(false, questionText, `[Loading${s}]`));
+
+/**
+ * ask.pause
+ *
+ * Pause the program until the user presses enter
+ *
+ * ```typescript
+ * await ask.pause();
+ * ```
+ */
 const pause = async (text: string = 'Press enter to continue...'): Promise<void> => {
   console.log(chalk.gray(text));
   await $`read -n 1`;
 };
 
+/**
+ * ask.countdown
+ *
+ * Animated countdown for a given number of seconds
+ *
+ * ```typescript
+ * await ask.countdown(5);
+ * ```
+ */
 const countdown = async (totalSeconds: number, template: (s: second) => string = (s) => `Starting in ${s}s...`, complete?: string): Promise<void> => {
   console.log();
 
@@ -201,6 +308,15 @@ const getRenameObj = (bef: string, aft: (before: ExplodedPath) => string) => {
   };
 };
 
+/**
+ * ask.rename
+ *
+ * Ask the user to rename a file or directory
+ *
+ * ```typescript
+ * await ask.rename('/path/to/file.txt', '/path/to/new-file.txt');
+ * ```
+ */
 const rename = async (bef: string, aft: (before: ExplodedPath) => string): Promise<boolean> => {
   const { before, after } = getRenameObj(bef, aft);
 
@@ -209,9 +325,62 @@ const rename = async (bef: string, aft: (before: ExplodedPath) => string): Promi
   console.log('');
   const isConfirmed = await boolean(`Would you like to rename ${before.name} to ${after.name}?`);
   if (isConfirmed) {
-    await mv(before.path, after.path);
+    await $$.mv(before.path, after.path);
   }
   return isConfirmed;
+};
+
+/**
+ * ask.fileExplorer
+ *
+ * Get a file from the user
+ *
+ * ```typescript
+ * const file = await ask.fileExplorer('Select a file');
+ * ```
+ */
+const fileExplorer = async (
+  startDir: string | string[],
+  filter: (item: any, index: number, arr: any[]) => boolean = fn.result(true),
+  questionText: string = 'Choose a file:'
+) => {
+  const fnDir = chlk.gray5;
+  const fnFiles = chlk.gray3;
+  const runExplorer = async (dir) => {
+    const loader = loading(questionText);
+
+    const dirs = await $$.findDirs(dir);
+    const files = (await $$.findFiles(dir)).filter(filter);
+
+    loader.stop();
+
+    const options = [
+      { title: chlk.gray1('▲ [back]'), value: '..' },
+      ...dirs.map((dir) => ({ title: fnDir(`› ${dir}`), value: dir })),
+      ...files.map((file) => ({ title: fnFiles(`${file}`), value: file }))
+    ];
+    const result = await ask.select(questionText, options, dirs[0] || files[0]);
+    if (result === '..') {
+      moveUp(1);
+      return runExplorer(explodePath(dir).dir);
+    }
+    if (dirs.includes(result)) {
+      moveUp(1);
+      return runExplorer($$.utils.removeTrailSlash(`${dir}/${result}`));
+    }
+    return `${dir}/${result}`;
+  };
+
+  const startDirs = [startDir].flat();
+
+  if (startDirs.length <= 1) {
+    return await runExplorer($$.utils.removeTrailSlash(startDirs[0]));
+  } else {
+    const options = startDirs.map((dir) => ({ title: fnDir(`› ${explodePath(dir).name}`), value: dir }));
+    const result = await ask.select(questionText, options);
+    moveUp(1);
+    return await runExplorer($$.utils.removeTrailSlash(result));
+  }
 };
 
 export const ask = {
@@ -223,7 +392,9 @@ export const ask = {
   multiselect,
   validate,
   imitate,
+  loading,
   pause,
   countdown,
-  rename
+  rename,
+  fileExplorer
 };

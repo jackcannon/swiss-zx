@@ -7,48 +7,14 @@ var __export = (target, all) => {
 // src/tools/$$.ts
 import "zx/globals";
 import { $ as $2, fs as fsO } from "zx";
-
-// src/tools/errorHandling.ts
-import { result, wait } from "swiss-ak";
-var tryOr = async (orValue, func, ...args) => {
-  try {
-    return await func(...args);
-  } catch (err) {
-    return orValue;
-  }
-};
-var retry = async (maxTries = 10, delay = 0, suppress = true, run = result(void 0)) => {
-  const loop = async (attempt, lastErr) => {
-    if (attempt >= maxTries) {
-      if (!suppress)
-        throw lastErr;
-      return;
-    }
-    try {
-      const result2 = await run(attempt);
-      return result2;
-    } catch (err) {
-      if (delay)
-        await wait(delay);
-      return await loop(attempt + 1, err);
-    }
-  };
-  return await loop(0);
-};
-var retryOr = async (orValue, maxTries = 10, delay = 0, suppress = true, run = result(orValue)) => tryOr(orValue, () => retry(maxTries, delay, suppress, run));
-
-// src/tools/$$.ts
-import { isTruthy, isNotEqual } from "swiss-ak";
+import { fn, retryOr } from "swiss-ak";
 $2.verbose = false;
 var fs = fsO.promises;
-var intoLines = (out) => out.toString().split("\n").filter(isTruthy);
+var intoLines = (out) => out.toString().split("\n").filter(fn.isTruthy);
 var removeTrailSlash = (path) => path.replace(/\/$/, "");
 var trailSlash = (path) => removeTrailSlash(path) + "/";
+var removeDoubleSlashes = (path) => path.replace(/\/\//g, "/");
 var ls = async (dir = ".", flags = []) => intoLines(await $2`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
-var findDirs = async (parent = ".", name, depth = 1) => intoLines(await $2`find ${trailSlash(parent)} -maxdepth ${depth} -type d -execdir echo {} ';' ${name ? ["-name", name] : ""}`).map((row) => row.replace(/\/$/, "")).filter(isNotEqual("."));
-var findFiles = async (parent = ".", name, depth = 1) => intoLines(await $2`find ${trailSlash(parent)} -maxdepth ${depth} -type f -execdir echo {} ';' ${name ? ["-name", name] : ""}`).filter(
-  isNotEqual(".")
-);
 var rm = (item) => $2`rm -rf ${item}`;
 var mkdir = (item) => $2`mkdir -p ${item}`;
 var cp = (a, b) => $2`cp -r ${a} ${b}`;
@@ -56,18 +22,39 @@ var mv = (a, b) => $2`mv ${a} ${b}`;
 var touch = (item) => $2`touch ${item}`;
 var cat = (item) => $2`cat ${item}`;
 var grep = async (pattern, file) => intoLines(await $2`grep ${pattern} ${file}`);
-var find = async (dir, name, type = "d") => intoLines(await $2`find ${dir} -type ${type} -name ${name}`);
-var findRegex = async (dir, regex, type = "d") => intoLines(await $2`find -E ${dir} -type ${type} -regex ${regex.toString()}`);
-var rsync = (a, b) => $2`rsync -crut ${a} ${b}`;
-var sync = async (a, b) => {
-  await rsync(a, b);
-  await rsync(b, a);
-  await rsync(a, b);
+var convertFindOptionsToFlags = (options) => {
+  const { type, maxdepth, name, regex, removePath } = options;
+  const flags = [];
+  if (type)
+    flags.push("-type", type);
+  if (maxdepth)
+    flags.push("-maxdepth", maxdepth + "");
+  if (name)
+    flags.push("-name", name);
+  if (regex)
+    flags.push("-regex", regex);
+  return flags;
 };
+var find = async (dir = ".", options = {}) => {
+  let result;
+  const newDir = options.contentsOnly ? trailSlash(dir) : dir;
+  const flags = convertFindOptionsToFlags(options);
+  const pruneRegex = options.showHidden ? ".*(\\.Trash|\\.DS_Store).*" : ".*(/\\.|\\.Trash|\\.DS_Store).*";
+  if (options.removePath) {
+    result = await $2`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\)`;
+  } else {
+    result = await $2`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\)`;
+  }
+  return intoLines(result).map(removeDoubleSlashes).filter(fn.isNotEqual(".")).filter((str) => !str.includes(".Trash")).map(options.removeTrailingSlashes ? removeTrailSlash : fn.noact);
+};
+var findDirs = (dir = ".", options = {}) => find(dir, { type: "d", maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
+var findFiles = (dir = ".", options = {}) => find(dir, { type: "f", maxdepth: 1, removePath: true, contentsOnly: true, ...options });
+var rsync = (a, b, flags = []) => $2`rsync -crut ${a} ${b} ${flags}`;
+var sync = (a, b) => rsync(trailSlash(a), trailSlash(b), ["--delete"]);
 var isFileExist = async (file) => await $2`[[ -f ${file} ]]`.exitCode === 0;
 var isDirExist = async (dir) => await $2`[[ -d ${dir} ]]`.exitCode === 0;
-var readFile = (filepath) => retryOr("", 3, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
-var writeFile = (filepath, contents) => retryOr(void 0, 3, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
+var readFile = (filepath) => retryOr("", 2, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
+var writeFile = (filepath, contents) => retryOr(void 0, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
 var readJSON = async (filepath) => {
   const raw = await readFile(filepath);
   return JSON.parse(raw || "{}");
@@ -79,6 +66,7 @@ var writeJSON = async (filepath, obj) => {
 };
 var $$ = {
   ls,
+  find,
   findDirs,
   findFiles,
   rm,
@@ -88,16 +76,23 @@ var $$ = {
   touch,
   cat,
   grep,
-  find,
   isFileExist,
   isDirExist,
   readJSON,
-  writeJSON
+  writeJSON,
+  rsync,
+  sync,
+  utils: {
+    intoLines,
+    removeTrailSlash,
+    trailSlash,
+    removeDoubleSlashes
+  }
 };
 
 // src/tools/ask.ts
-import { chalk as chalk3 } from "zx";
-import { seconds, wait as wait2 } from "swiss-ak";
+import { chalk as chalk4 } from "zx";
+import { seconds, wait as wait2, fn as fn3 } from "swiss-ak";
 import prompts from "prompts";
 import Fuse from "fuse.js";
 
@@ -106,6 +101,7 @@ var out_exports = {};
 __export(out_exports, {
   center: () => center,
   left: () => left,
+  loading: () => loading,
   moveUp: () => moveUp,
   pad: () => pad,
   right: () => right,
@@ -121,7 +117,7 @@ __export(LogUtils_exports, {
 });
 import { inspect } from "util";
 import { chalk as chalk2 } from "zx";
-import { noact as noact2 } from "swiss-ak";
+import { fn as fn2 } from "swiss-ak";
 var getLogStr = (item) => {
   const inspectList = ["object", "boolean", "number"];
   if (inspectList.includes(typeof item) && !(item instanceof Date)) {
@@ -130,12 +126,14 @@ var getLogStr = (item) => {
     return item + "";
   }
 };
-var processLogContents = (prefix, wrapper = noact2, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => chalk2.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
-var getLog = (prefix, wrapper = noact2) => (...args) => {
+var processLogContents = (prefix, wrapper = fn2.noact, ...args) => args.map(getLogStr).join(" ").split("\n").map((line, index) => chalk2.bold(index ? " ".repeat(prefix.length) : prefix) + " " + wrapper(line)).join("\n");
+var getLog = (prefix, wrapper = fn2.noact) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
 // src/tools/out.ts
+import stringWidth from "string-width";
+import { wait } from "swiss-ak";
 var getDefaultColumns = () => {
   var _a;
   return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) || 100;
@@ -143,11 +141,11 @@ var getDefaultColumns = () => {
 var getLines = (text2) => text2.split("\n").map((line) => line.trim());
 var getOutputLines = (item) => getLines(getLogStr(item));
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var center = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, Math.floor((width - line.length) / 2), Math.ceil((width - line.length) / 2), replaceChar)).join("\n");
-var left = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, 0, width - line.length, replaceChar)).join("\n");
-var right = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, width - line.length, 0, replaceChar)).join("\n");
+var center = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar)).join("\n");
+var left = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, 0, width - stringWidth(line), replaceChar)).join("\n");
+var right = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, width - stringWidth(line), 0, replaceChar)).join("\n");
 var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line) => {
-  if (line.length > width) {
+  if (stringWidth(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
     let rowStartIndex = 0;
@@ -155,7 +153,7 @@ var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line
       const word = words[wIndex];
       const candidateRow = words.slice(rowStartIndex, Math.max(0, Number(wIndex) - 1));
       const candText = candidateRow.join("");
-      if (candText.length + word.length > width) {
+      if (stringWidth(candText) + stringWidth(word) > width) {
         rows.push(candidateRow);
         rowStartIndex = Number(wIndex) - 1;
       }
@@ -166,7 +164,7 @@ var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line
   }
   return line;
 }).flat().join("\n");
-var moveUp = (lines = 2) => {
+var moveUp = (lines = 1) => {
   var _a;
   if ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.clearLine) {
     process.stdout.cursorTo(0);
@@ -177,6 +175,56 @@ var moveUp = (lines = 2) => {
     }
   }
 };
+var loadingDefault = (s) => console.log(`Loading${s}`);
+var loading = (action = loadingDefault, lines = 1, symbols = [".  ", ".. ", "..."]) => {
+  let stopped = false;
+  let count = 0;
+  const runLoop = async () => {
+    if (stopped)
+      return;
+    if (count)
+      moveUp(lines);
+    action(symbols[count++ % symbols.length]);
+    await wait(500);
+    return runLoop();
+  };
+  runLoop();
+  return {
+    stop: () => {
+      moveUp(lines);
+      stopped = true;
+    }
+  };
+};
+
+// src/tools/chlk.ts
+var chlk_exports = {};
+__export(chlk_exports, {
+  gray: () => gray,
+  gray0: () => gray0,
+  gray1: () => gray1,
+  gray2: () => gray2,
+  gray3: () => gray3,
+  gray4: () => gray4,
+  gray5: () => gray5,
+  grays: () => grays
+});
+import { chalk as chalk3 } from "zx";
+var gray0 = chalk3.black;
+var gray1 = chalk3.gray.dim;
+var gray2 = chalk3.white.dim;
+var gray3 = chalk3.whiteBright.dim;
+var gray4 = chalk3.white;
+var gray5 = chalk3.whiteBright;
+var grays = [
+  gray0,
+  gray1,
+  gray2,
+  gray3,
+  gray4,
+  gray5
+];
+var gray = (num) => grays[Math.max(0, Math.min(num, grays.length - 1))];
 
 // src/tools/PathUtils.ts
 var PathUtils_exports = {};
@@ -302,8 +350,8 @@ var multiselect = async (message, choices, initial) => {
     },
     promptsOptions
   );
-  const result2 = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
-  return result2.map((value) => typeof value === "number" ? choiceObjs[value] : value);
+  const result = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
+  return result.map((value) => typeof value === "number" ? choiceObjs[value] : value);
 };
 var validate = async (askFunc, validateFn) => {
   const runLoop = async (initial, extraLines = 0) => {
@@ -314,23 +362,24 @@ var validate = async (askFunc, validateFn) => {
     } else {
       const message = validateResponse || "";
       moveUp(1 + extraLines);
-      console.log(chalk3.red(message));
+      console.log(chalk4.red(message));
       return runLoop(input, message.split("\n").length);
     }
   };
   return runLoop();
 };
 var imitate = (done, questionText, resultText) => {
-  const prefix = done ? chalk3.green("\u2714") : chalk3.cyan("?");
-  const question = chalk3.whiteBright.bold(questionText);
-  const joiner = chalk3.gray(done ? "\u2026" : "\u203A");
-  const resultWrapper = done ? chalk3.white : chalk3.gray;
-  const result2 = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
-  console.log(`${prefix} ${question} ${result2}`);
+  const prefix = done ? chalk4.green("\u2714") : chalk4.cyan("?");
+  const question = chalk4.whiteBright.bold(questionText);
+  const joiner = chalk4.gray(done ? "\u2026" : "\u203A");
+  const resultWrapper = done ? chalk4.white : chalk4.gray;
+  const result = resultText ? `${joiner} ${resultWrapper(resultText)}` : "";
+  console.log(`${prefix} ${question} ${result}`);
   return 1;
 };
+var loading2 = (questionText) => loading((s) => imitate(false, questionText, `[Loading${s}]`));
 var pause = async (text2 = "Press enter to continue...") => {
-  console.log(chalk3.gray(text2));
+  console.log(chalk4.gray(text2));
   await $`read -n 1`;
 };
 var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, complete) => {
@@ -340,7 +389,7 @@ var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, c
     const text2 = template(s);
     moveUp(lines);
     lines = text2.split("\n").length;
-    console.log(chalk3.blackBright(text2));
+    console.log(chalk4.blackBright(text2));
     await wait2(seconds(1));
   }
   moveUp(lines);
@@ -358,14 +407,48 @@ var getRenameObj = (bef, aft) => {
 };
 var rename = async (bef, aft) => {
   const { before, after } = getRenameObj(bef, aft);
-  console.log(chalk3.green("Renaming:"));
-  console.log(chalk3.greenBright.bold(`	${before.name} ${chalk3.dim("\u2192")} ${after.name}`));
+  console.log(chalk4.green("Renaming:"));
+  console.log(chalk4.greenBright.bold(`	${before.name} ${chalk4.dim("\u2192")} ${after.name}`));
   console.log("");
   const isConfirmed = await boolean(`Would you like to rename ${before.name} to ${after.name}?`);
   if (isConfirmed) {
-    await mv(before.path, after.path);
+    await $$.mv(before.path, after.path);
   }
   return isConfirmed;
+};
+var fileExplorer = async (startDir, filter = fn3.result(true), questionText = "Choose a file:") => {
+  const fnDir = gray5;
+  const fnFiles = gray3;
+  const runExplorer = async (dir) => {
+    const loader = loading2(questionText);
+    const dirs = await $$.findDirs(dir);
+    const files = (await $$.findFiles(dir)).filter(filter);
+    loader.stop();
+    const options = [
+      { title: gray1("\u25B2 [back]"), value: ".." },
+      ...dirs.map((dir2) => ({ title: fnDir(`\u203A ${dir2}`), value: dir2 })),
+      ...files.map((file) => ({ title: fnFiles(`${file}`), value: file }))
+    ];
+    const result = await ask.select(questionText, options, dirs[0] || files[0]);
+    if (result === "..") {
+      moveUp(1);
+      return runExplorer(explodePath(dir).dir);
+    }
+    if (dirs.includes(result)) {
+      moveUp(1);
+      return runExplorer($$.utils.removeTrailSlash(`${dir}/${result}`));
+    }
+    return `${dir}/${result}`;
+  };
+  const startDirs = [startDir].flat();
+  if (startDirs.length <= 1) {
+    return await runExplorer($$.utils.removeTrailSlash(startDirs[0]));
+  } else {
+    const options = startDirs.map((dir) => ({ title: fnDir(`\u203A ${explodePath(dir).name}`), value: dir }));
+    const result = await ask.select(questionText, options);
+    moveUp(1);
+    return await runExplorer($$.utils.removeTrailSlash(result));
+  }
 };
 var ask = {
   text,
@@ -376,9 +459,11 @@ var ask = {
   multiselect,
   validate,
   imitate,
+  loading: loading2,
   pause,
   countdown,
-  rename
+  rename,
+  fileExplorer
 };
 
 // src/tools/ffmpeg.ts
@@ -397,7 +482,7 @@ var getProbe = async (file, props) => {
 };
 var getTotalFrames = async (list) => {
   if (!list) {
-    list = (await ls()).filter((file) => file.endsWith(".MOV"));
+    list = (await $$.ls()).filter((file) => file.endsWith(".MOV"));
   }
   const counts = await Promise.all(list.map(async (file) => getProbeValue(file, "nb_frames")));
   const totalFrames = counts.map((count) => Number(count.trim())).reduce((acc, cur) => acc + cur, 0);
@@ -447,8 +532,14 @@ var getLineCounter = () => {
       return added;
     },
     wrap: (newLines = 1, func, ...args) => {
-      lineCount += newLines;
-      return func(...args);
+      const result = func(...args);
+      if (newLines === void 0) {
+        const resultNum = Number(result);
+        lineCount += Number.isNaN(resultNum) ? 1 : resultNum;
+      } else {
+        lineCount += newLines;
+      }
+      return result;
     },
     add(newLines) {
       lineCount += newLines;
@@ -471,13 +562,14 @@ var closeFinder = async () => {
 };
 
 // src/tools/printTable.ts
-import { zip } from "swiss-ak";
+import { zip, fn as fn4 } from "swiss-ak";
+import stringWidth2 from "string-width";
 var getFullOptions = (opts) => ({
-  wrapperFn: (x) => x,
   overrideChar: "",
   overrideHorChar: opts.overrideChar || "",
   overrideVerChar: opts.overrideChar || "",
   ...opts,
+  wrapperFn: typeof opts.wrapperFn !== "function" ? fn4.noact : opts.wrapperFn,
   drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter
 });
 var printTable = (body, header, opts = {}) => {
@@ -485,18 +577,18 @@ var printTable = (body, header, opts = {}) => {
   const lc = getLineCounter();
   const allRows = () => [...header || [], ...body];
   const numCols = Math.max(...allRows().map((row) => row.length));
-  const empty = (char = " ") => new Array(numCols).fill(char);
+  const empty = (char = "") => new Array(numCols).fill(char);
   const correctRow = (row) => [...row, ...empty()].slice(0, numCols).map((cell) => "" + cell);
   header = header && header.map(correctRow);
   body = body.map(correctRow);
-  const colWidths = zip(...allRows()).map((col) => Math.max(...col.map((s) => (s || "").length)));
+  const colWidths = zip(...allRows()).map((col) => Math.max(...col.map((s) => stringWidth2(s || ""))));
   const printRow = (row = empty(), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
     const orientOverride = isHor ? overrideHorChar : overrideVerChar;
     const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
     const joinC = orientOverride || overrideChar || joinChar;
     const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
     const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
-    let padded = row.map((cell, col) => (cell || padC).padEnd(colWidths[col], padC));
+    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
     if (textWrapperFn)
       padded = padded.map((x) => textWrapperFn(x));
     const inner = padded.join(`${padC}${joinC}${padC}`);
@@ -526,45 +618,24 @@ export {
   LogUtils_exports as LogUtils,
   PathUtils_exports as PathUtils,
   ask,
-  cat,
   center,
+  chlk_exports as chlk,
   closeFinder,
-  cp,
   explodePath,
   ffmpeg,
-  find,
-  findDirs,
-  findFiles,
-  findRegex,
   getLineCounter,
   getLog,
   getLogStr,
   getProbe,
   getProbeValue,
   getTotalFrames,
-  grep,
-  isDirExist,
-  isFileExist,
   left,
-  ls,
-  mkdir,
+  loading,
   moveUp,
-  mv,
   out_exports as out,
   pad,
   printTable,
   processLogContents,
-  readFile,
-  readJSON,
-  retry,
-  retryOr,
   right,
-  rm,
-  rsync,
-  sync,
-  touch,
-  tryOr,
-  wrap,
-  writeFile,
-  writeJSON
+  wrap
 };
