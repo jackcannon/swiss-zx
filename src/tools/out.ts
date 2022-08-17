@@ -54,9 +54,9 @@ const correctWidth = (width: number): number => (width <= 0 || width === Infinit
  * Giving a width of 0 will use the terminal width
  *
  * ```typescript
- * center('foo', 10); // '   foo    '
- * center('something long', 10); // 'something long'
- * center('lines\n1\n3', 5);
+ * out.center('foo', 10); // '   foo    '
+ * out.center('something long', 10); // 'something long'
+ * out.center('lines\n1\n3', 5);
  * // 'lines' +
  * // '  1  ' +
  * // '  2  '
@@ -82,9 +82,9 @@ export const center: AlignFunction = (item: any, width: number = getTerminalWidt
  * Giving a width of 0 will use the terminal width
  *
  * ```typescript
- * left('foo', 10); // 'foo       '
- * left('something long', 10); // 'something long'
- * left('lines\n1\n3', 5);
+ * out.left('foo', 10); // 'foo       '
+ * out.left('something long', 10); // 'something long'
+ * out.left('lines\n1\n3', 5);
  * // 'lines' +
  * // '1    ' +
  * // '2    '
@@ -103,9 +103,9 @@ export const left: AlignFunction = (item: any, width: number = getTerminalWidth(
  * Giving a width of 0 will use the terminal width
  *
  * ```typescript
- * right('foo', 10); // '       foo'
- * right('something long', 10); // 'something long'
- * right('lines\n1\n3', 5);
+ * out.right('foo', 10); // '       foo'
+ * out.right('something long', 10); // 'something long'
+ * out.right('lines\n1\n3', 5);
  * // 'lines' +
  * // '    1' +
  * // '    2'
@@ -121,8 +121,22 @@ const alignFunc = {
   center,
   right
 };
+
 /**
- * TODO - add docs
+ * out.align
+ *
+ * Align the given text to the given alignment within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * out.align('foo', 'left', 10); // 'foo       '
+ * out.align('something long', 'center', 10); // 'something long'
+ * out.align('lines\n1\n3', 'right', 5);
+ * // 'lines' +
+ * // '    1' +
+ * // '    2'
+ * ```
  */
 export const align = (item: any, direction: AlignType, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true) => {
   const func = alignFunc[direction] || alignFunc.left;

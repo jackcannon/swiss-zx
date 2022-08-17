@@ -10,7 +10,9 @@ import { getTableCharacters } from '../utils/tableCharacters';
  *
  * Get maximum terminal width (columns)
  *
- * TODO - add to README
+ * ```typescript
+ * getTerminalWidth(); // 127
+ * ```
  */
 export const getTerminalWidth = () => (process?.stdout?.columns ? process.stdout.columns : 100);
 
@@ -41,20 +43,17 @@ export interface TableOptions {
   drawOuter: boolean;
 
   /**
-   * Whether to draw lines between rows (other than separating header and body);
-   * TODO - update docs
+   * Whether to draw lines between rows (other than separating header and body)
    */
   drawRowLines: boolean;
 
   /**
    * Whether to draw lines between columns
-   * TODO - update docs
    */
   drawColLines: boolean;
 
   /**
    * Preferred width (in number of characters) of each column
-   * TODO - update docs
    */
   colWidths: number[];
 
@@ -62,7 +61,6 @@ export interface TableOptions {
    * How the table should be aligned on the screen
    *
    * left, right or center
-   * TODO - update docs
    */
   align: 'left' | 'right' | 'center';
 
@@ -70,7 +68,6 @@ export interface TableOptions {
    * How each column should be aligned
    *
    * Array with alignment for each column: left, right or center
-   * TODO - update docs
    */
   alignCols: ('left' | 'right' | 'center')[];
 }
@@ -124,7 +121,7 @@ export const printTable = (body: string[][], header: string[][], options: Partia
   const tableChars = getTableCharacters(opts);
 
   const printLine = (row = empty(numCols), chars = tableChars.bNor, textWrapperFn?: Function) => {
-    const { norm, strt, sepr, endc } = chars;
+    const [norm, strt, sepr, endc] = chars;
 
     let padded = row.map((cell, col) => out.align(cell || '', alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn) padded = padded.map((x) => textWrapperFn(x));

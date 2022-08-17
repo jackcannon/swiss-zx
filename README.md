@@ -50,6 +50,7 @@ Uses `swiss-ak`
   - [out.center](#outcenter)
   - [out.left](#outleft)
   - [out.right](#outright)
+  - [out.align](#outalign)
   - [out.wrap](#outwrap)
   - [out.moveUp](#outmoveup)
   - [out.loading](#outloading)
@@ -94,6 +95,7 @@ Uses `swiss-ak`
 - [printTable](#printtable)
   - [printTable](#printtable-1)
     - [printTable Options](#printtable-options)
+  - [getTerminalWidth](#getterminalwidth)
 
 # Install
 
@@ -510,9 +512,9 @@ pad('bar', 10, 5, '_'); // '__________bar_____'
 Align the given text to the center within the given width of characters/columns
 
 ```typescript
-center('foo', 10); // '   foo    '
-center('something long', 10); // 'something long'
-center('lines\n1\n3', 5);
+out.center('foo', 10); // '   foo    '
+out.center('something long', 10); // 'something long'
+out.center('lines\n1\n3', 5);
 // 'lines' +
 // '  1  ' +
 // '  2  '
@@ -525,9 +527,9 @@ center('lines\n1\n3', 5);
 Align the given text to the left within the given width of characters/columns
 
 ```typescript
-left('foo', 10); // 'foo       '
-left('something long', 10); // 'something long'
-left('lines\n1\n3', 5);
+out.left('foo', 10); // 'foo       '
+out.left('something long', 10); // 'something long'
+out.left('lines\n1\n3', 5);
 // 'lines' +
 // '1    ' +
 // '2    '
@@ -540,9 +542,26 @@ left('lines\n1\n3', 5);
 Align the given text to the right within the given width of characters/columns
 
 ```typescript
-right('foo', 10); // '       foo'
-right('something long', 10); // 'something long'
-right('lines\n1\n3', 5);
+out.right('foo', 10); // '       foo'
+out.right('something long', 10); // 'something long'
+out.right('lines\n1\n3', 5);
+// 'lines' +
+// '    1' +
+// '    2'
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## out.align
+
+Align the given text to the given alignment within the given width of characters/columns
+
+Giving a width of 0 will use the terminal width
+
+```typescript
+out.align('foo', 'left', 10); // 'foo       '
+out.align('something long', 'center', 10); // 'something long'
+out.align('lines\n1\n3', 'right', 5);
 // 'lines' +
 // '    1' +
 // '    2'
@@ -868,12 +887,27 @@ printTable(body, header);
 
 ### printTable Options
 
-| Name            | Default              | Description                                                  |
-| --------------- | -------------------- | ------------------------------------------------------------ |
-| wrapperFn       | `fn.noact`           | Function to wrap each line of the table in (e.g. chalk.blue) |
-| overrideChar    | `''` (`─`, `│`, etc) | Character to use instead of lines                            |
-| overrideHorChar | `''` (`─`)           | Character to use instead of horizontal lines                 |
-| overrideVerChar | `''` (`│`)           | Character to use instead of vertical lines                   |
-| drawOuter       | `true`               | Whether to draw the outer border of the table                |
+| Name            | Default              | Description                                                                |
+| --------------- | -------------------- | -------------------------------------------------------------------------- |
+| wrapperFn       | `fn.noact`           | Function to wrap each line of the table in (e.g. chalk.blue)               |
+| overrideChar    | `''` (`─`, `│`, etc) | Character to use instead of lines                                          |
+| overrideHorChar | `''` (`─`)           | Character to use instead of horizontal lines                               |
+| overrideVerChar | `''` (`│`)           | Character to use instead of vertical lines                                 |
+| drawOuter       | `true`               | Whether to draw the outer border of the table                              |
+| drawRowLines    | `true`               | Whether to draw lines between rows (other than separating header and body) |
+| drawColLines    | `true`               | Whether to draw lines between columns                                      |
+| colWidths       | `[]`                 | Preferred width (in number of characters) of each column                   |
+| align           | `'left'`             | How the table should be aligned on the screen                              |
+| alignCols       | `['left']`           | How each column should be aligned (values repeated for all columns)        |
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## getTerminalWidth
+
+Get maximum terminal width (columns)
+
+```typescript
+getTerminalWidth(); // 127
+```
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)

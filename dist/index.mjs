@@ -274,23 +274,7 @@ var getTableCharacters = (opts) => {
       }
     }
   }
-  console.log(mapped);
-  const result = {
-    hTop: {},
-    hNor: {},
-    hSep: {},
-    hBot: {},
-    mSep: {},
-    bTop: {},
-    bNor: {},
-    bSep: {},
-    bBot: {}
-  };
-  for (const colType of Object.keys(mapped)) {
-    const [norm, strt, sepr, endc] = mapped[colType];
-    result[colType] = { norm, strt, sepr, endc };
-  }
-  return result;
+  return mapped;
 };
 
 // src/tools/printTable.ts
@@ -324,7 +308,7 @@ var printTable = (body, header, options = {}) => {
   const alignColumns = ArrayUtils3.repeat(numCols, ...alignCols);
   const tableChars = getTableCharacters(opts);
   const printLine = (row = empty2(numCols), chars = tableChars.bNor, textWrapperFn) => {
-    const { norm, strt, sepr, endc } = chars;
+    const [norm, strt, sepr, endc] = chars;
     let padded = row.map((cell, col) => align(cell || "", alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn)
       padded = padded.map((x) => textWrapperFn(x));

@@ -1,13 +1,6 @@
 import { ArrayUtils } from 'swiss-ak';
 import { TableOptions } from '../tools/printTable';
 
-interface CharRowLookup {
-  norm: string;
-  strt: string;
-  sepr: string;
-  endc: string;
-}
-
 interface CharLookup<T> {
   hTop: T;
   hNor: T;
@@ -38,7 +31,7 @@ const ovAllCharact = (orig: string[], char: string) => ArrayUtils.repeat(4, char
 const ovSeperators = (orig: string[], char: string) => [orig[0], char, char, char];
 const ovOuterChars = (orig: string[], char: string) => [orig[0], char, orig[2], char];
 
-export const getTableCharacters = (opts: TableOptions): CharLookup<CharRowLookup> => {
+export const getTableCharacters = (opts: TableOptions): CharLookup<string[]> => {
   let mapped = tableCharactersBasic();
 
   const normalRows = ['hNor', 'bNor'];
@@ -92,24 +85,5 @@ export const getTableCharacters = (opts: TableOptions): CharLookup<CharRowLookup
     }
   }
 
-  console.log(mapped);
-
-  const result = {
-    hTop: {} as CharRowLookup,
-    hNor: {} as CharRowLookup,
-    hSep: {} as CharRowLookup,
-    hBot: {} as CharRowLookup,
-    mSep: {} as CharRowLookup,
-    bTop: {} as CharRowLookup,
-    bNor: {} as CharRowLookup,
-    bSep: {} as CharRowLookup,
-    bBot: {} as CharRowLookup
-  };
-
-  for (const colType of Object.keys(mapped)) {
-    const [norm, strt, sepr, endc] = mapped[colType];
-    result[colType] = { norm, strt, sepr, endc } as CharRowLookup;
-  }
-
-  return result;
+  return mapped;
 };

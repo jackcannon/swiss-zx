@@ -348,7 +348,9 @@ declare const getLineCounter: () => {
  *
  * Get maximum terminal width (columns)
  *
- * TODO - add to README
+ * ```typescript
+ * getTerminalWidth(); // 127
+ * ```
  */
 declare const getTerminalWidth: () => number;
 interface TableOptions {
@@ -373,32 +375,27 @@ interface TableOptions {
      */
     drawOuter: boolean;
     /**
-     * Whether to draw lines between rows (other than separating header and body);
-     * TODO - update docs
+     * Whether to draw lines between rows (other than separating header and body)
      */
     drawRowLines: boolean;
     /**
      * Whether to draw lines between columns
-     * TODO - update docs
      */
     drawColLines: boolean;
     /**
      * Preferred width (in number of characters) of each column
-     * TODO - update docs
      */
     colWidths: number[];
     /**
      * How the table should be aligned on the screen
      *
      * left, right or center
-     * TODO - update docs
      */
     align: 'left' | 'right' | 'center';
     /**
      * How each column should be aligned
      *
      * Array with alignment for each column: left, right or center
-     * TODO - update docs
      */
     alignCols: ('left' | 'right' | 'center')[];
 }
@@ -454,9 +451,9 @@ declare type AlignFunction = (item: any, width?: number, replaceChar?: string, f
  * Giving a width of 0 will use the terminal width
  *
  * ```typescript
- * center('foo', 10); // '   foo    '
- * center('something long', 10); // 'something long'
- * center('lines\n1\n3', 5);
+ * out.center('foo', 10); // '   foo    '
+ * out.center('something long', 10); // 'something long'
+ * out.center('lines\n1\n3', 5);
  * // 'lines' +
  * // '  1  ' +
  * // '  2  '
@@ -471,9 +468,9 @@ declare const center: AlignFunction;
  * Giving a width of 0 will use the terminal width
  *
  * ```typescript
- * left('foo', 10); // 'foo       '
- * left('something long', 10); // 'something long'
- * left('lines\n1\n3', 5);
+ * out.left('foo', 10); // 'foo       '
+ * out.left('something long', 10); // 'something long'
+ * out.left('lines\n1\n3', 5);
  * // 'lines' +
  * // '1    ' +
  * // '2    '
@@ -488,9 +485,9 @@ declare const left: AlignFunction;
  * Giving a width of 0 will use the terminal width
  *
  * ```typescript
- * right('foo', 10); // '       foo'
- * right('something long', 10); // 'something long'
- * right('lines\n1\n3', 5);
+ * out.right('foo', 10); // '       foo'
+ * out.right('something long', 10); // 'something long'
+ * out.right('lines\n1\n3', 5);
  * // 'lines' +
  * // '    1' +
  * // '    2'
@@ -498,7 +495,20 @@ declare const left: AlignFunction;
  */
 declare const right: AlignFunction;
 /**
- * TODO - add docs
+ * out.align
+ *
+ * Align the given text to the given alignment within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * out.align('foo', 'left', 10); // 'foo       '
+ * out.align('something long', 'center', 10); // 'something long'
+ * out.align('lines\n1\n3', 'right', 5);
+ * // 'lines' +
+ * // '    1' +
+ * // '    2'
+ * ```
  */
 declare const align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
 /**
