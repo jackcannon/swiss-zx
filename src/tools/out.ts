@@ -2,20 +2,55 @@ import { wait, fn } from 'swiss-ak';
 import stringWidth from 'string-width';
 import { getLogStr } from './LogUtils';
 import { getTerminalWidth } from './printTable';
-import { tableText } from '../utils/processTableInput';
+import { Text } from '../utils/processTableInput';
 
 const NEW_LINE = '\n';
 
-const anyTextToString = (text: tableText): string => (text instanceof Array ? joinLines(text) : text);
+const textToString = (text: Text): string => (text instanceof Array ? joinLines(text) : text);
 
-const getLines = (text: tableText): string[] => anyTextToString(text).split(NEW_LINE);
-const getNumLines = (text: tableText): number => getLines(text).length;
-const getLinesWidth = (text: tableText): number => Math.max(...getLines(text).map((line) => stringWidth(line)));
+/**
+ * out.utils.getLines
+ *
+ * Split multi-line text into an array of lines
+ */
+const getLines = (text: Text): string[] => textToString(text).split(NEW_LINE);
+/**
+ * out.utils.getNumLines
+ *
+ * Get how many lines a string or array of lines has
+ */
+const getNumLines = (text: Text): number => getLines(text).length;
+/**
+ * out.utils.getLinesWidth
+ *
+ * Get how wide a string or array of lines has
+ */
+const getLinesWidth = (text: Text): number => Math.max(...getLines(text).map((line) => stringWidth(line)));
 
+/**
+ * out.utils.getLogLines
+ *
+ * Split a log-formatted multi-line text into an array of lines
+ */
 const getLogLines = (item: any): string[] => getLines(getLogStr(item));
-const getNumLogLines = (item: tableText): number => getNumLines(getLogStr(item));
-const getLogLinesWidth = (item: tableText): number => getLinesWidth(getLogStr(item));
+/**
+ * out.utils.getNumLogLines
+ *
+ * Get how many lines a log-formatted string or array of lines has
+ */
+const getNumLogLines = (item: Text): number => getNumLines(getLogStr(item));
+/**
+ * out.utils.getLogLinesWidth
+ *
+ * Get how wide a log-formatted string or array of lines has
+ */
+const getLogLinesWidth = (item: Text): number => getLinesWidth(getLogStr(item));
 
+/**
+ * out.utils.joinLines
+ *
+ * Join an array of lines into a single multi-line string
+ */
 const joinLines = (lines: string[]): string => lines.map(fn.maps.toString).join(NEW_LINE);
 
 export const utils = {

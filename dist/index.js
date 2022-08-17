@@ -48,6 +48,7 @@ __export(src_exports, {
   moveUp: () => moveUp,
   out: () => out_exports,
   pad: () => pad,
+  printObjectsTable: () => printObjectsTable,
   printTable: () => printTable,
   processLogContents: () => processLogContents,
   right: () => right,
@@ -228,11 +229,33 @@ var getLineCounter = () => {
 // src/utils/processTableInput.ts
 var import_swiss_ak3 = require("swiss-ak");
 var empty = (numCols, char = "") => new Array(numCols).fill(char);
+var showBlank = ["undefined", "null"];
+var showRaw = ["string", "number", "boolean"];
+var itemToString = (item) => {
+  if (showBlank.includes(typeof item))
+    return "";
+  if (showRaw.includes(typeof item))
+    return item.toString();
+  return getLogStr(item);
+};
 var processCells = (cells, processFn, ...args) => ({
   header: processFn(cells.header, ...args),
   body: processFn(cells.body, ...args)
 });
-var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => "" + cell));
+var fixMixingHeader = (cells) => {
+  return {
+    header: cells.header || [],
+    body: cells.body || []
+  };
+};
+var transposeTable = (cells) => {
+  const body = (0, import_swiss_ak3.zip)(...[...cells.header || [], ...cells.body]);
+  return {
+    header: [],
+    body
+  };
+};
+var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => itemToString(cell)));
 var splitCellsIntoLines = (rows) => rows.map((row) => row.map((cell) => utils.getLines(cell)));
 var getDesiredColumnWidths = (cells, numCols, preferredWidths) => {
   const transposed = (0, import_swiss_ak3.zip)(...[...cells.header, ...cells.body]);
@@ -253,8 +276,10 @@ var wrapCells = (rows, colWidths) => rows.map((row) => {
 });
 var seperateLinesIntoRows = (rows) => rows.map((row) => (0, import_swiss_ak3.zip)(...row));
 var processInput = (cells, opts) => {
-  const numCols = Math.max(...[...cells.header || [], ...cells.body].map((row) => row.length));
-  const everyCell = processCells(cells, ensureStringForEveryCell, numCols);
+  const fixed = fixMixingHeader(cells);
+  const transposed = opts.transpose ? transposeTable(fixed) : fixed;
+  const numCols = Math.max(...[...transposed.header || [], ...transposed.body].map((row) => row.length));
+  const everyCell = processCells(transposed, ensureStringForEveryCell, numCols);
   const linedCells = processCells(everyCell, splitCellsIntoLines);
   const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths);
   const wrappedCells = processCells(linedCells, wrapCells, colWidths);
@@ -343,15 +368,16 @@ var getFullOptions = (opts) => ({
   colWidths: [],
   ...opts,
   wrapperFn: typeof opts.wrapperFn !== "function" ? import_swiss_ak5.fn.noact : opts.wrapperFn,
-  drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
-  drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
-  drawColLines: opts.drawColLines === void 0 ? true : opts.drawColLines
+  drawOuter: typeof opts.drawOuter !== "boolean" ? true : opts.drawOuter,
+  drawRowLines: typeof opts.drawRowLines !== "boolean" ? true : opts.drawRowLines,
+  drawColLines: typeof opts.drawColLines !== "boolean" ? true : opts.drawColLines,
+  transpose: typeof opts.transpose !== "boolean" ? false : opts.transpose
 });
 var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
 var printTable = (body, header, options = {}) => {
   const lc = getLineCounter();
   const opts = getFullOptions(options);
-  const { wrapperFn, drawOuter, drawRowLines, alignCols, align: align2 } = opts;
+  const { wrapperFn, drawOuter, alignCols, align: align2 } = opts;
   const {
     cells: { header: pHeader, body: pBody },
     numCols,
@@ -368,7 +394,7 @@ var printTable = (body, header, options = {}) => {
     const str = `${strt}${norm}${inner}${norm}${endc}`;
     lc.log(align(wrapperFn(str), align2, 0, " ", false));
   };
-  if (pHeader) {
+  if (pHeader.length) {
     if (drawOuter)
       printLine(empty2(numCols, ""), tableChars.hTop);
     for (let index in pHeader) {
@@ -396,11 +422,26 @@ var printTable = (body, header, options = {}) => {
     printLine(empty2(numCols, ""), tableChars.bBot);
   return lc.get();
 };
+var getAllKeys = (objects) => {
+  const allKeys = {};
+  objects.forEach((obj) => {
+    Object.keys(obj).forEach((key) => {
+      allKeys[key] = true;
+    });
+  });
+  return Object.keys(allKeys);
+};
+var printObjectsTable = (objects, headers = {}, options = {}) => {
+  const allKeys = getAllKeys(objects);
+  const header = [allKeys.map((key) => headers[key] || key)];
+  const body = objects.map((obj) => allKeys.map((key) => obj[key]));
+  return printTable(body, header, options);
+};
 
 // src/tools/out.ts
 var NEW_LINE = "\n";
-var anyTextToString = (text2) => text2 instanceof Array ? joinLines(text2) : text2;
-var getLines = (text2) => anyTextToString(text2).split(NEW_LINE);
+var textToString = (text2) => text2 instanceof Array ? joinLines(text2) : text2;
+var getLines = (text2) => textToString(text2).split(NEW_LINE);
 var getNumLines = (text2) => getLines(text2).length;
 var getLinesWidth = (text2) => Math.max(...getLines(text2).map((line) => (0, import_string_width.default)(line)));
 var getLogLines = (item) => getLines(getLogStr(item));
@@ -1141,6 +1182,7 @@ var closeFinder = async () => {
   moveUp,
   out,
   pad,
+  printObjectsTable,
   printTable,
   processLogContents,
   right,

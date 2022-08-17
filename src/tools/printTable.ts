@@ -70,6 +70,11 @@ export interface TableOptions {
    * Array with alignment for each column: left, right or center
    */
   alignCols: ('left' | 'right' | 'center')[];
+
+  /**
+   * Change rows into columns and vice versa
+   */
+  transpose: boolean;
 }
 
 const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
@@ -81,9 +86,10 @@ const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
   colWidths: [],
   ...opts,
   wrapperFn: typeof opts.wrapperFn !== 'function' ? fn.noact : opts.wrapperFn,
-  drawOuter: opts.drawOuter === undefined ? true : opts.drawOuter,
-  drawRowLines: opts.drawRowLines === undefined ? true : opts.drawRowLines,
-  drawColLines: opts.drawColLines === undefined ? true : opts.drawColLines
+  drawOuter: typeof opts.drawOuter !== 'boolean' ? true : opts.drawOuter,
+  drawRowLines: typeof opts.drawRowLines !== 'boolean' ? true : opts.drawRowLines,
+  drawColLines: typeof opts.drawColLines !== 'boolean' ? true : opts.drawColLines,
+  transpose: typeof opts.transpose !== 'boolean' ? false : opts.transpose
 });
 
 const empty = (numCols: number, char: string = '') => new Array(numCols).fill(char);
@@ -106,10 +112,10 @@ const empty = (numCols: number, char: string = '') => new Array(numCols).fill(ch
  * // └──────┴─────┘
  * ```
  */
-export const printTable = (body: string[][], header: string[][], options: Partial<TableOptions> = {}): number => {
+export const printTable = (body: string[][], header?: string[][], options: Partial<TableOptions> = {}): number => {
   const lc = getLineCounter();
   const opts = getFullOptions(options);
-  const { wrapperFn, drawOuter, drawRowLines, alignCols, align } = opts;
+  const { wrapperFn, drawOuter, alignCols, align } = opts;
 
   const {
     cells: { header: pHeader, body: pBody },
@@ -130,7 +136,7 @@ export const printTable = (body: string[][], header: string[][], options: Partia
     lc.log(out.align(wrapperFn(str), align, 0, ' ', false));
   };
 
-  if (pHeader) {
+  if (pHeader.length) {
     if (drawOuter) printLine(empty(numCols, ''), tableChars.hTop);
     for (let index in pHeader) {
       const row = pHeader[index];
@@ -152,4 +158,56 @@ export const printTable = (body: string[][], header: string[][], options: Partia
   }
   if (drawOuter) printLine(empty(numCols, ''), tableChars.bBot);
   return lc.get();
+};
+
+const getAllKeys = (objects) => {
+  const allKeys = {};
+  objects.forEach((obj) => {
+    Object.keys(obj).forEach((key) => {
+      allKeys[key] = true;
+    });
+  });
+  return Object.keys(allKeys);
+};
+
+/**
+ * printObjectsTable
+ *
+ * Print a table of given objects
+ *
+ * ```typescript
+ * const objs = [
+ *   // objs
+ *   { a: '1', b: '2', c: '3' },
+ *   { a: '0', c: '2' },
+ *   { b: '4' },
+ *   { a: '6' }
+ * ];
+ * const header = {
+ *   a: 'Col A',
+ *   b: 'Col B',
+ *   c: 'Col C'
+ * };
+ * printObjectsTable(objs, header);
+ *
+ * // ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
+ * // ┃ Col A ┃ Col B ┃ Col C ┃
+ * // ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
+ * // │ 1     │ 2     │ 3     │
+ * // ├───────┼───────┼───────┤
+ * // │ 0     │       │ 2     │
+ * // ├───────┼───────┼───────┤
+ * // │       │ 4     │       │
+ * // ├───────┼───────┼───────┤
+ * // │ 6     │       │       │
+ * // └───────┴───────┴───────┘
+ * ```
+ */
+export const printObjectsTable = (objects: Object[], headers: Object = {}, options: Partial<TableOptions> = {}) => {
+  const allKeys = getAllKeys(objects);
+
+  const header = [allKeys.map((key) => headers[key] || key)];
+  const body = objects.map((obj) => allKeys.map((key) => obj[key]));
+
+  return printTable(body, header, options);
 };

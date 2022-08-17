@@ -398,6 +398,10 @@ interface TableOptions {
      * Array with alignment for each column: left, right or center
      */
     alignCols: ('left' | 'right' | 'center')[];
+    /**
+     * Change rows into columns and vice versa
+     */
+    transpose: boolean;
 }
 /**
  * printTable
@@ -417,17 +421,51 @@ interface TableOptions {
  * // └──────┴─────┘
  * ```
  */
-declare const printTable: (body: string[][], header: string[][], options?: Partial<TableOptions>) => number;
+declare const printTable: (body: string[][], header?: string[][], options?: Partial<TableOptions>) => number;
+/**
+ * printObjectsTable
+ *
+ * Print a table of given objects
+ *
+ * ```typescript
+ * const objs = [
+ *   // objs
+ *   { a: '1', b: '2', c: '3' },
+ *   { a: '0', c: '2' },
+ *   { b: '4' },
+ *   { a: '6' }
+ * ];
+ * const header = {
+ *   a: 'Col A',
+ *   b: 'Col B',
+ *   c: 'Col C'
+ * };
+ * printObjectsTable(objs, header);
+ *
+ * // ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
+ * // ┃ Col A ┃ Col B ┃ Col C ┃
+ * // ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
+ * // │ 1     │ 2     │ 3     │
+ * // ├───────┼───────┼───────┤
+ * // │ 0     │       │ 2     │
+ * // ├───────┼───────┼───────┤
+ * // │       │ 4     │       │
+ * // ├───────┼───────┼───────┤
+ * // │ 6     │       │       │
+ * // └───────┴───────┴───────┘
+ * ```
+ */
+declare const printObjectsTable: (objects: Object[], headers?: Object, options?: Partial<TableOptions>) => number;
 
-declare type tableText = string | string[];
+declare type Text = string | string[];
 
 declare const utils: {
-    getLines: (text: tableText) => string[];
-    getNumLines: (text: tableText) => number;
-    getLinesWidth: (text: tableText) => number;
+    getLines: (text: Text) => string[];
+    getNumLines: (text: Text) => number;
+    getLinesWidth: (text: Text) => number;
     getLogLines: (item: any) => string[];
-    getNumLogLines: (item: tableText) => number;
-    getLogLinesWidth: (item: tableText) => number;
+    getNumLogLines: (item: Text) => number;
+    getLogLinesWidth: (item: Text) => number;
     joinLines: (lines: string[]) => string;
 };
 /**
@@ -688,4 +726,4 @@ declare namespace chlk {
   };
 }
 
-export { $$, AlignType, ExplodedPath, LogUtils, PathUtils, TableOptions, align, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTerminalWidth, getTotalFrames, gm, left, loading, moveUp, out, pad, printTable, processLogContents, right, utils, wrap };
+export { $$, AlignType, ExplodedPath, LogUtils, PathUtils, TableOptions, align, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTerminalWidth, getTotalFrames, gm, left, loading, moveUp, out, pad, printObjectsTable, printTable, processLogContents, right, utils, wrap };

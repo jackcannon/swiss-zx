@@ -54,6 +54,14 @@ Uses `swiss-ak`
   - [out.wrap](#outwrap)
   - [out.moveUp](#outmoveup)
   - [out.loading](#outloading)
+  - [out.utils](#oututils)
+    - [out.utils.getLines](#oututilsgetlines)
+    - [out.utils.getNumLines](#oututilsgetnumlines)
+    - [out.utils.getLinesWidth](#oututilsgetlineswidth)
+    - [out.utils.getLogLines](#oututilsgetloglines)
+    - [out.utils.getNumLogLines](#oututilsgetnumloglines)
+    - [out.utils.getLogLinesWidth](#oututilsgetloglineswidth)
+    - [out.utils.joinLines](#oututilsjoinlines)
 - [os](#os)
   - [closeFinder](#closefinder)
 - [chlk](#chlk)
@@ -95,6 +103,7 @@ Uses `swiss-ak`
 - [printTable](#printtable)
   - [printTable](#printtable-1)
     - [printTable Options](#printtable-options)
+  - [printObjectsTable](#printobjectstable)
   - [getTerminalWidth](#getterminalwidth)
 
 # Install
@@ -605,6 +614,50 @@ loader.stop();
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+## out.utils
+
+### out.utils.getLines
+
+Split multi-line text into an array of lines
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### out.utils.getNumLines
+
+Get how many lines a string or array of lines has
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### out.utils.getLinesWidth
+
+Get how wide a string or array of lines has
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### out.utils.getLogLines
+
+Split a log-formatted multi-line text into an array of lines
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### out.utils.getNumLogLines
+
+Get how many lines a log-formatted string or array of lines has
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### out.utils.getLogLinesWidth
+
+Get how wide a log-formatted string or array of lines has
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### out.utils.joinLines
+
+Join an array of lines into a single multi-line string
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 # os
 
 ## closeFinder
@@ -899,6 +952,42 @@ printTable(body, header);
 | colWidths       | `[]`                 | Preferred width (in number of characters) of each column                   |
 | align           | `'left'`             | How the table should be aligned on the screen                              |
 | alignCols       | `['left']`           | How each column should be aligned (values repeated for all columns)        |
+| transpose       | `false`              | Change rows into columns and vice versa                                    |
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## printObjectsTable
+
+Print a table of given objects
+
+```typescript
+const objs = [
+  // objs
+  { a: '1', b: '2', c: '3' },
+  { a: '0', c: '2' },
+  { b: '4' },
+  { a: '6' }
+];
+const header = {
+  a: 'Col A',
+  b: 'Col B',
+  c: 'Col C'
+};
+const options = {}; // same as printTable options
+printObjectsTable(objs, header, options);
+
+// ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
+// ┃ Col A ┃ Col B ┃ Col C ┃
+// ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
+// │ 1     │ 2     │ 3     │
+// ├───────┼───────┼───────┤
+// │ 0     │       │ 2     │
+// ├───────┼───────┼───────┤
+// │       │ 4     │       │
+// ├───────┼───────┼───────┤
+// │ 6     │       │       │
+// └───────┴───────┴───────┘
+```
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
