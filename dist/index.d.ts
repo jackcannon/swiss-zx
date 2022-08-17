@@ -343,138 +343,6 @@ declare const getLineCounter: () => {
     clear(): number;
 };
 
-declare type tableText = string | string[];
-
-declare const utils: {
-    getLines: (text: tableText) => string[];
-    getNumLines: (text: tableText) => number;
-    getLinesWidth: (text: tableText) => number;
-    getLogLines: (item: any) => string[];
-    getNumLogLines: (item: tableText) => number;
-    getLogLinesWidth: (item: tableText) => number;
-    joinLines: (lines: string[]) => string;
-};
-/**
- * out.pad
- *
- * Pad before and after the given text with the given character.
- *
- * ```typescript
- * pad('foo', 3, 1, '-'); // '---foo-'
- * pad('bar', 10, 5, '_'); // '__________bar_____'
- * ```
- */
-declare const pad: (line: string, start: number, end: number, replaceChar?: string) => string;
-/**
- * out.center
- *
- * Align the given text to the center within the given width of characters/columns
- *
- * ```typescript
- * center('foo', 10); // '   foo    '
- * center('something long', 10); // 'something long'
- * center('lines\n1\n3', 5);
- * // 'lines' +
- * // '  1  ' +
- * // '  2  '
- * ```
- */
-declare const center: (item: any, width?: number, replaceChar?: string) => string;
-/**
- * out.left
- *
- * Align the given text to the left within the given width of characters/columns
- *
- * ```typescript
- * left('foo', 10); // 'foo       '
- * left('something long', 10); // 'something long'
- * left('lines\n1\n3', 5);
- * // 'lines' +
- * // '1    ' +
- * // '2    '
- * ```
- */
-declare const left: (item: any, width?: number, replaceChar?: string) => string;
-/**
- * out.right
- *
- * Align the given text to the right within the given width of characters/columns
- *
- * ```typescript
- * right('foo', 10); // '       foo'
- * right('something long', 10); // 'something long'
- * right('lines\n1\n3', 5);
- * // 'lines' +
- * // '    1' +
- * // '    2'
- * ```
- */
-declare const right: (item: any, width?: number, replaceChar?: string) => string;
-/**
- * out.wrap
- *
- * Wrap the given text to the given width of characters/columns
- *
- * ```typescript
- * wrap('This is a sentence', 15);
- * // 'This is' +
- * // 'a sentence'
- * ```
- */
-declare const wrap: (item: any, width?: number) => string;
-/**
- * out.moveUp
- *
- * Move the terminal cursor up X lines, clearing each row.
- *
- * Useful for replacing previous lines of output
- *
- * ```typescript
- * moveUp(1);
- * ```
- */
-declare const moveUp: (lines?: number) => void;
-/**
- * out.loading
- *
- * Display an animated loading indicator
- *
- * ```typescript
- * const loader = out.loading();
- * // ...
- * loader.stop();
- * ```
- */
-declare const loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
-    stop: () => void;
-};
-
-declare const out_utils: typeof utils;
-declare const out_pad: typeof pad;
-declare const out_center: typeof center;
-declare const out_left: typeof left;
-declare const out_right: typeof right;
-declare const out_wrap: typeof wrap;
-declare const out_moveUp: typeof moveUp;
-declare const out_loading: typeof loading;
-declare namespace out {
-  export {
-    out_utils as utils,
-    out_pad as pad,
-    out_center as center,
-    out_left as left,
-    out_right as right,
-    out_wrap as wrap,
-    out_moveUp as moveUp,
-    out_loading as loading,
-  };
-}
-
-/**
- * Close all Mac OS X Finder windows.
- */
-declare const closeFinder: () => Promise<void>;
-
 /**
  * getTerminalWidth
  *
@@ -515,12 +383,24 @@ interface TableOptions {
      */
     drawColLines: boolean;
     /**
-     * How each column should be aligned
+     * Preferred width (in number of characters) of each column
+     * TODO - update docs
+     */
+    colWidths: number[];
+    /**
+     * How the table should be aligned on the screen
      *
      * left, right or center
      * TODO - update docs
      */
-    align: ('left' | 'right' | 'center')[];
+    align: 'left' | 'right' | 'center';
+    /**
+     * How each column should be aligned
+     *
+     * Array with alignment for each column: left, right or center
+     * TODO - update docs
+     */
+    alignCols: ('left' | 'right' | 'center')[];
 }
 /**
  * printTable
@@ -540,7 +420,155 @@ interface TableOptions {
  * // └──────┴─────┘
  * ```
  */
-declare const printTable: (body: string[][], header: string[][], opts?: Partial<TableOptions>) => number;
+declare const printTable: (body: string[][], header: string[][], options?: Partial<TableOptions>) => number;
+
+declare type tableText = string | string[];
+
+declare const utils: {
+    getLines: (text: tableText) => string[];
+    getNumLines: (text: tableText) => number;
+    getLinesWidth: (text: tableText) => number;
+    getLogLines: (item: any) => string[];
+    getNumLogLines: (item: tableText) => number;
+    getLogLinesWidth: (item: tableText) => number;
+    joinLines: (lines: string[]) => string;
+};
+/**
+ * out.pad
+ *
+ * Pad before and after the given text with the given character.
+ *
+ * ```typescript
+ * pad('foo', 3, 1, '-'); // '---foo-'
+ * pad('bar', 10, 5, '_'); // '__________bar_____'
+ * ```
+ */
+declare const pad: (line: string, start: number, end: number, replaceChar?: string) => string;
+declare type AlignType = 'left' | 'right' | 'center';
+declare type AlignFunction = (item: any, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+/**
+ * out.center
+ *
+ * Align the given text to the center within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * center('foo', 10); // '   foo    '
+ * center('something long', 10); // 'something long'
+ * center('lines\n1\n3', 5);
+ * // 'lines' +
+ * // '  1  ' +
+ * // '  2  '
+ * ```
+ */
+declare const center: AlignFunction;
+/**
+ * out.left
+ *
+ * Align the given text to the left within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * left('foo', 10); // 'foo       '
+ * left('something long', 10); // 'something long'
+ * left('lines\n1\n3', 5);
+ * // 'lines' +
+ * // '1    ' +
+ * // '2    '
+ * ```
+ */
+declare const left: AlignFunction;
+/**
+ * out.right
+ *
+ * Align the given text to the right within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * right('foo', 10); // '       foo'
+ * right('something long', 10); // 'something long'
+ * right('lines\n1\n3', 5);
+ * // 'lines' +
+ * // '    1' +
+ * // '    2'
+ * ```
+ */
+declare const right: AlignFunction;
+/**
+ * TODO - add docs
+ */
+declare const align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+/**
+ * out.wrap
+ *
+ * Wrap the given text to the given width of characters/columns
+ *
+ * ```typescript
+ * wrap('This is a sentence', 15);
+ * // 'This is' +
+ * // 'a sentence'
+ * ```
+ */
+declare const wrap: (item: any, width?: number, forceWidth?: boolean) => string;
+/**
+ * out.moveUp
+ *
+ * Move the terminal cursor up X lines, clearing each row.
+ *
+ * Useful for replacing previous lines of output
+ *
+ * ```typescript
+ * moveUp(1);
+ * ```
+ */
+declare const moveUp: (lines?: number) => void;
+/**
+ * out.loading
+ *
+ * Display an animated loading indicator
+ *
+ * ```typescript
+ * const loader = out.loading();
+ * // ...
+ * loader.stop();
+ * ```
+ */
+declare const loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
+    stop: () => void;
+};
+
+declare const out_utils: typeof utils;
+declare const out_pad: typeof pad;
+type out_AlignType = AlignType;
+declare const out_center: typeof center;
+declare const out_left: typeof left;
+declare const out_right: typeof right;
+declare const out_align: typeof align;
+declare const out_wrap: typeof wrap;
+declare const out_moveUp: typeof moveUp;
+declare const out_loading: typeof loading;
+declare namespace out {
+  export {
+    out_utils as utils,
+    out_pad as pad,
+    out_AlignType as AlignType,
+    out_center as center,
+    out_left as left,
+    out_right as right,
+    out_align as align,
+    out_wrap as wrap,
+    out_moveUp as moveUp,
+    out_loading as loading,
+  };
+}
+
+/**
+ * Close all Mac OS X Finder windows.
+ */
+declare const closeFinder: () => Promise<void>;
 
 /**
  * LogUtils.getLogStr
@@ -650,4 +678,4 @@ declare namespace chlk {
   };
 }
 
-export { $$, ExplodedPath, LogUtils, PathUtils, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTerminalWidth, getTotalFrames, gm, left, loading, moveUp, out, pad, printTable, processLogContents, right, utils, wrap };
+export { $$, AlignType, ExplodedPath, LogUtils, PathUtils, TableOptions, align, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTerminalWidth, getTotalFrames, gm, left, loading, moveUp, out, pad, printTable, processLogContents, right, utils, wrap };

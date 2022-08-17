@@ -99,6 +99,7 @@ import Fuse from "fuse.js";
 // src/tools/out.ts
 var out_exports = {};
 __export(out_exports, {
+  align: () => align,
   center: () => center,
   left: () => left,
   loading: () => loading,
@@ -135,7 +136,7 @@ var getLog = (prefix, wrapper = fn2.noact) => (...args) => {
 };
 
 // src/tools/printTable.ts
-import { fn as fn4 } from "swiss-ak";
+import { fn as fn4, ArrayUtils as ArrayUtils3 } from "swiss-ak";
 
 // src/tools/lineCounter.ts
 var getLineCounter = () => {
@@ -173,7 +174,7 @@ var getLineCounter = () => {
 };
 
 // src/utils/processTableInput.ts
-import { zip, fn as fn3 } from "swiss-ak";
+import { zip, fn as fn3, ArrayUtils } from "swiss-ak";
 var empty = (numCols, char = "") => new Array(numCols).fill(char);
 var processCells = (cells, processFn, ...args) => ({
   header: processFn(cells.header, ...args),
@@ -181,9 +182,10 @@ var processCells = (cells, processFn, ...args) => ({
 });
 var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => "" + cell));
 var splitCellsIntoLines = (rows) => rows.map((row) => row.map((cell) => utils.getLines(cell)));
-var getDesiredColumnWidths = (cells, numCols) => {
+var getDesiredColumnWidths = (cells, numCols, preferredWidths) => {
   const transposed = zip(...[...cells.header, ...cells.body]);
-  const currColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
+  const actualColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
+  const currColWidths = preferredWidths.length ? ArrayUtils.repeat(numCols, ...preferredWidths) : actualColWidths;
   const currTotalWidth = currColWidths.reduce(fn3.reduces.combine) + (numCols + 1) * 3;
   const diff = currTotalWidth - getTerminalWidth();
   const colWidths = [...currColWidths];
@@ -198,14 +200,97 @@ var wrapCells = (rows, colWidths) => rows.map((row) => {
   return wrapped.map((cell) => [...cell, ...empty(maxHeight)].slice(0, maxHeight));
 });
 var seperateLinesIntoRows = (rows) => rows.map((row) => zip(...row));
-var processInput = (cells) => {
+var processInput = (cells, opts) => {
   const numCols = Math.max(...[...cells.header || [], ...cells.body].map((row) => row.length));
   const everyCell = processCells(cells, ensureStringForEveryCell, numCols);
   const linedCells = processCells(everyCell, splitCellsIntoLines);
-  const colWidths = getDesiredColumnWidths(linedCells, numCols);
+  const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths);
   const wrappedCells = processCells(linedCells, wrapCells, colWidths);
   const seperatedRows = processCells(wrappedCells, seperateLinesIntoRows);
   return { cells: seperatedRows, numCols, colWidths };
+};
+
+// src/utils/tableCharacters.ts
+import { ArrayUtils as ArrayUtils2 } from "swiss-ak";
+var tableCharactersBasic = () => ({
+  hTop: ["\u2501", "\u250F", "\u2533", "\u2513"],
+  hNor: [" ", "\u2503", "\u2503", "\u2503"],
+  hSep: ["\u2501", "\u2523", "\u254B", "\u252B"],
+  hBot: ["\u2501", "\u2517", "\u253B", "\u251B"],
+  mSep: ["\u2501", "\u2521", "\u2547", "\u2529"],
+  bTop: ["\u2500", "\u250C", "\u252C", "\u2510"],
+  bNor: [" ", "\u2502", "\u2502", "\u2502"],
+  bSep: ["\u2500", "\u251C", "\u253C", "\u2524"],
+  bBot: ["\u2500", "\u2514", "\u2534", "\u2518"]
+});
+var ovAllCharact = (orig, char) => ArrayUtils2.repeat(4, char);
+var ovSeperators = (orig, char) => [orig[0], char, char, char];
+var ovOuterChars = (orig, char) => [orig[0], char, orig[2], char];
+var getTableCharacters = (opts) => {
+  let mapped = tableCharactersBasic();
+  const normalRows = ["hNor", "bNor"];
+  const outerRows = ["hTop", "hBot", "bTop", "bBot"];
+  const rowTypes = Object.keys(mapped);
+  if (opts.overrideChar) {
+    for (const rowType of rowTypes) {
+      if (normalRows.includes(rowType)) {
+        mapped[rowType] = ovSeperators(mapped[rowType], opts.overrideChar);
+      } else {
+        mapped[rowType] = ovAllCharact(mapped[rowType], opts.overrideChar);
+      }
+    }
+  }
+  if (opts.overrideVerChar || !opts.drawColLines) {
+    const ovrd = opts.overrideVerChar || " ";
+    for (const rowType of rowTypes) {
+      if (normalRows.includes(rowType)) {
+        mapped[rowType] = ovSeperators(mapped[rowType], ovrd);
+      } else {
+        mapped[rowType] = ovAllCharact(mapped[rowType], mapped[rowType][0]);
+      }
+    }
+  }
+  if (opts.overrideHorChar || !opts.drawRowLines) {
+    const ovrd = opts.overrideHorChar;
+    const copyVertsFrom = ["hNor", "hNor", "hNor", "hNor", "hNor", "bNor", "bNor", "bNor", "bNor"];
+    for (const rowIndex in rowTypes) {
+      const rowType = rowTypes[rowIndex];
+      if (normalRows.includes(rowType)) {
+      } else {
+        if (opts.overrideHorChar) {
+          mapped[rowType] = ovAllCharact(mapped[rowType], ovrd);
+        } else {
+          mapped[rowType] = [...mapped[copyVertsFrom[rowIndex]]];
+        }
+      }
+    }
+  }
+  if (!opts.drawOuter) {
+    for (const rowType of rowTypes) {
+      if (outerRows.includes(rowType)) {
+        mapped[rowType] = ovAllCharact(mapped[rowType], " ");
+      } else {
+        mapped[rowType] = ovOuterChars(mapped[rowType], " ");
+      }
+    }
+  }
+  console.log(mapped);
+  const result = {
+    hTop: {},
+    hNor: {},
+    hSep: {},
+    hBot: {},
+    mSep: {},
+    bTop: {},
+    bNor: {},
+    bSep: {},
+    bBot: {}
+  };
+  for (const colType of Object.keys(mapped)) {
+    const [norm, strt, sepr, endc] = mapped[colType];
+    result[colType] = { norm, strt, sepr, endc };
+  }
+  return result;
 };
 
 // src/tools/printTable.ts
@@ -213,78 +298,73 @@ var getTerminalWidth = () => {
   var _a;
   return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) ? process.stdout.columns : 100;
 };
-var getFullOptions = (opts) => {
-  const drawColLines = opts.drawColLines === void 0 ? true : opts.drawColLines;
-  return {
-    overrideChar: "",
-    overrideHorChar: opts.overrideChar || "",
-    align: ["left"],
-    ...opts,
-    wrapperFn: typeof opts.wrapperFn !== "function" ? fn4.noact : opts.wrapperFn,
-    drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
-    drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
-    drawColLines,
-    overrideVerChar: drawColLines ? opts.overrideChar || "" : " "
-  };
-};
+var getFullOptions = (opts) => ({
+  overrideChar: "",
+  overrideHorChar: opts.overrideChar || "",
+  overrideVerChar: opts.overrideChar || "",
+  align: "left",
+  alignCols: ["left"],
+  colWidths: [],
+  ...opts,
+  wrapperFn: typeof opts.wrapperFn !== "function" ? fn4.noact : opts.wrapperFn,
+  drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
+  drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
+  drawColLines: opts.drawColLines === void 0 ? true : opts.drawColLines
+});
 var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
-var printTable = (body, header, opts = {}) => {
-  const { wrapperFn, overrideChar, overrideHorChar, overrideVerChar, drawOuter, drawRowLines, drawColLines } = getFullOptions(opts);
-  console.log("drawColLines", drawColLines, JSON.stringify(overrideVerChar));
-  console.log("drawRowLines", drawRowLines);
+var printTable = (body, header, options = {}) => {
   const lc = getLineCounter();
+  const opts = getFullOptions(options);
+  const { wrapperFn, drawOuter, drawRowLines, alignCols, align: align2 } = opts;
   const {
     cells: { header: pHeader, body: pBody },
     numCols,
     colWidths
-  } = processInput({ header, body });
-  const printLine = (row = empty2(numCols), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
-    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
-    const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
-    const joinC = orientOverride || overrideChar || joinChar;
-    const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
-    const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
-    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
+  } = processInput({ header, body }, opts);
+  const alignColumns = ArrayUtils3.repeat(numCols, ...alignCols);
+  const tableChars = getTableCharacters(opts);
+  const printLine = (row = empty2(numCols), chars = tableChars.bNor, textWrapperFn) => {
+    const { norm, strt, sepr, endc } = chars;
+    let padded = row.map((cell, col) => align(cell || "", alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn)
       padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(`${padC}${joinC}${padC}`);
-    const str = `${startC}${padC}${inner}${padC}${endC}`;
-    lc.log(wrapperFn(str));
+    const inner = padded.join(`${norm}${sepr}${norm}`);
+    const str = `${strt}${norm}${inner}${norm}${endc}`;
+    lc.log(align(wrapperFn(str), align2, 0, " ", false));
   };
   if (pHeader) {
     if (drawOuter)
-      printLine(empty2(numCols, ""), "\u2501", "\u2533", "\u250F", "\u2513", true);
+      printLine(empty2(numCols, ""), tableChars.hTop);
     for (let index in pHeader) {
       const row = pHeader[index];
-      if (drawRowLines && Number(index) !== 0)
-        printLine(empty2(numCols, ""), "\u2501", "\u254B", "\u2523", "\u252B", true);
+      if (Number(index) !== 0)
+        printLine(empty2(numCols, ""), tableChars.hSep);
       for (let line of row) {
-        printLine(line, " ", "\u2503", void 0, void 0, false, chalk.bold);
+        printLine(line, tableChars.hNor, chalk.bold);
       }
     }
-    printLine(empty2(numCols, ""), "\u2501", "\u2547", "\u2521", "\u2529", true);
+    printLine(empty2(numCols, ""), tableChars.mSep);
   } else {
     if (drawOuter)
-      printLine(empty2(numCols, ""), "\u2500", "\u252C", "\u250C", "\u2510", true);
+      printLine(empty2(numCols, ""), tableChars.bTop);
   }
   for (let index in pBody) {
     const row = pBody[index];
-    if (drawRowLines && Number(index) !== 0)
-      printLine(empty2(numCols, ""), "\u2500", "\u253C", "\u251C", "\u2524", true);
+    if (Number(index) !== 0)
+      printLine(empty2(numCols, ""), tableChars.bSep);
     for (let line of row) {
-      printLine(line);
+      printLine(line, tableChars.bNor);
     }
   }
   if (drawOuter)
-    printLine(empty2(numCols, ""), "\u2500", "\u2534", "\u2514", "\u2518", true);
+    printLine(empty2(numCols, ""), tableChars.bBot);
   return lc.get();
 };
 
 // src/tools/out.ts
 var NEW_LINE = "\n";
 var anyTextToString = (text2) => text2 instanceof Array ? joinLines(text2) : text2;
-var trim = (text2) => text2.trim();
-var getLines = (text2) => anyTextToString(text2).split(NEW_LINE).map((line) => line.trim());
+var getLines = (text2) => anyTextToString(text2).split(NEW_LINE);
 var getNumLines = (text2) => getLines(text2).length;
 var getLinesWidth = (text2) => Math.max(...getLines(text2).map((line) => stringWidth(line)));
 var getLogLines = (item) => getLines(getLogStr(item));
@@ -301,10 +381,27 @@ var utils = {
   joinLines
 };
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var center = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar)).join(NEW_LINE);
-var left = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, 0, width - stringWidth(line), replaceChar)).join(NEW_LINE);
-var right = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, width - stringWidth(line), 0, replaceChar)).join(NEW_LINE);
-var wrap = (item, width = getTerminalWidth()) => getLogLines(item).map(trim).map((line) => {
+var correctWidth = (width) => width <= 0 || width === Infinity ? getTerminalWidth() : Math.min(width, getTerminalWidth());
+var center = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map(
+  (line) => pad(
+    line,
+    Math.floor((correctWidth(width) - stringWidth(line)) / 2),
+    forceWidth ? Math.ceil((correctWidth(width) - stringWidth(line)) / 2) : 0,
+    replaceChar
+  )
+).join(NEW_LINE);
+var left = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, 0, forceWidth ? correctWidth(width) - stringWidth(line) : 0, replaceChar)).join(NEW_LINE);
+var right = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, correctWidth(width) - stringWidth(line), 0, replaceChar)).join(NEW_LINE);
+var alignFunc = {
+  left,
+  center,
+  right
+};
+var align = (item, direction, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => {
+  const func = alignFunc[direction] || alignFunc.left;
+  return func(item, width, replaceChar, forceWidth);
+};
+var wrap = (item, width = getTerminalWidth(), forceWidth = true) => getLogLines(item).map((line) => {
   if (stringWidth(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
@@ -320,7 +417,7 @@ var wrap = (item, width = getTerminalWidth()) => getLogLines(item).map(trim).map
     }
     const remaining = words.slice(rowStartIndex);
     rows.push(remaining);
-    return rows.map((row) => row.join("").trim()).filter((x) => x);
+    return rows.map((row) => row.join("")).map((row) => left(row, width, " ", forceWidth));
   }
   return line;
 }).flat().join(NEW_LINE);
@@ -987,6 +1084,7 @@ export {
   $$,
   LogUtils_exports as LogUtils,
   PathUtils_exports as PathUtils,
+  align,
   ask,
   center,
   chlk_exports as chlk,

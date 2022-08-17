@@ -28,6 +28,7 @@ __export(src_exports, {
   $$: () => $$,
   LogUtils: () => LogUtils_exports,
   PathUtils: () => PathUtils_exports,
+  align: () => align,
   ask: () => ask,
   center: () => center,
   chlk: () => chlk_exports,
@@ -143,13 +144,14 @@ var $$ = {
 
 // src/tools/ask.ts
 var import_zx4 = require("zx");
-var import_swiss_ak6 = require("swiss-ak");
+var import_swiss_ak7 = require("swiss-ak");
 var import_prompts = __toESM(require("prompts"));
 var import_fuse = __toESM(require("fuse.js"));
 
 // src/tools/out.ts
 var out_exports = {};
 __export(out_exports, {
+  align: () => align,
   center: () => center,
   left: () => left,
   loading: () => loading,
@@ -159,7 +161,7 @@ __export(out_exports, {
   utils: () => utils,
   wrap: () => wrap
 });
-var import_swiss_ak5 = require("swiss-ak");
+var import_swiss_ak6 = require("swiss-ak");
 var import_string_width = __toESM(require("string-width"));
 
 // src/tools/LogUtils.ts
@@ -186,7 +188,7 @@ var getLog = (prefix, wrapper = import_swiss_ak2.fn.noact) => (...args) => {
 };
 
 // src/tools/printTable.ts
-var import_swiss_ak4 = require("swiss-ak");
+var import_swiss_ak5 = require("swiss-ak");
 
 // src/tools/lineCounter.ts
 var getLineCounter = () => {
@@ -232,9 +234,10 @@ var processCells = (cells, processFn, ...args) => ({
 });
 var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => "" + cell));
 var splitCellsIntoLines = (rows) => rows.map((row) => row.map((cell) => utils.getLines(cell)));
-var getDesiredColumnWidths = (cells, numCols) => {
+var getDesiredColumnWidths = (cells, numCols, preferredWidths) => {
   const transposed = (0, import_swiss_ak3.zip)(...[...cells.header, ...cells.body]);
-  const currColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
+  const actualColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
+  const currColWidths = preferredWidths.length ? import_swiss_ak3.ArrayUtils.repeat(numCols, ...preferredWidths) : actualColWidths;
   const currTotalWidth = currColWidths.reduce(import_swiss_ak3.fn.reduces.combine) + (numCols + 1) * 3;
   const diff = currTotalWidth - getTerminalWidth();
   const colWidths = [...currColWidths];
@@ -249,14 +252,97 @@ var wrapCells = (rows, colWidths) => rows.map((row) => {
   return wrapped.map((cell) => [...cell, ...empty(maxHeight)].slice(0, maxHeight));
 });
 var seperateLinesIntoRows = (rows) => rows.map((row) => (0, import_swiss_ak3.zip)(...row));
-var processInput = (cells) => {
+var processInput = (cells, opts) => {
   const numCols = Math.max(...[...cells.header || [], ...cells.body].map((row) => row.length));
   const everyCell = processCells(cells, ensureStringForEveryCell, numCols);
   const linedCells = processCells(everyCell, splitCellsIntoLines);
-  const colWidths = getDesiredColumnWidths(linedCells, numCols);
+  const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths);
   const wrappedCells = processCells(linedCells, wrapCells, colWidths);
   const seperatedRows = processCells(wrappedCells, seperateLinesIntoRows);
   return { cells: seperatedRows, numCols, colWidths };
+};
+
+// src/utils/tableCharacters.ts
+var import_swiss_ak4 = require("swiss-ak");
+var tableCharactersBasic = () => ({
+  hTop: ["\u2501", "\u250F", "\u2533", "\u2513"],
+  hNor: [" ", "\u2503", "\u2503", "\u2503"],
+  hSep: ["\u2501", "\u2523", "\u254B", "\u252B"],
+  hBot: ["\u2501", "\u2517", "\u253B", "\u251B"],
+  mSep: ["\u2501", "\u2521", "\u2547", "\u2529"],
+  bTop: ["\u2500", "\u250C", "\u252C", "\u2510"],
+  bNor: [" ", "\u2502", "\u2502", "\u2502"],
+  bSep: ["\u2500", "\u251C", "\u253C", "\u2524"],
+  bBot: ["\u2500", "\u2514", "\u2534", "\u2518"]
+});
+var ovAllCharact = (orig, char) => import_swiss_ak4.ArrayUtils.repeat(4, char);
+var ovSeperators = (orig, char) => [orig[0], char, char, char];
+var ovOuterChars = (orig, char) => [orig[0], char, orig[2], char];
+var getTableCharacters = (opts) => {
+  let mapped = tableCharactersBasic();
+  const normalRows = ["hNor", "bNor"];
+  const outerRows = ["hTop", "hBot", "bTop", "bBot"];
+  const rowTypes = Object.keys(mapped);
+  if (opts.overrideChar) {
+    for (const rowType of rowTypes) {
+      if (normalRows.includes(rowType)) {
+        mapped[rowType] = ovSeperators(mapped[rowType], opts.overrideChar);
+      } else {
+        mapped[rowType] = ovAllCharact(mapped[rowType], opts.overrideChar);
+      }
+    }
+  }
+  if (opts.overrideVerChar || !opts.drawColLines) {
+    const ovrd = opts.overrideVerChar || " ";
+    for (const rowType of rowTypes) {
+      if (normalRows.includes(rowType)) {
+        mapped[rowType] = ovSeperators(mapped[rowType], ovrd);
+      } else {
+        mapped[rowType] = ovAllCharact(mapped[rowType], mapped[rowType][0]);
+      }
+    }
+  }
+  if (opts.overrideHorChar || !opts.drawRowLines) {
+    const ovrd = opts.overrideHorChar;
+    const copyVertsFrom = ["hNor", "hNor", "hNor", "hNor", "hNor", "bNor", "bNor", "bNor", "bNor"];
+    for (const rowIndex in rowTypes) {
+      const rowType = rowTypes[rowIndex];
+      if (normalRows.includes(rowType)) {
+      } else {
+        if (opts.overrideHorChar) {
+          mapped[rowType] = ovAllCharact(mapped[rowType], ovrd);
+        } else {
+          mapped[rowType] = [...mapped[copyVertsFrom[rowIndex]]];
+        }
+      }
+    }
+  }
+  if (!opts.drawOuter) {
+    for (const rowType of rowTypes) {
+      if (outerRows.includes(rowType)) {
+        mapped[rowType] = ovAllCharact(mapped[rowType], " ");
+      } else {
+        mapped[rowType] = ovOuterChars(mapped[rowType], " ");
+      }
+    }
+  }
+  console.log(mapped);
+  const result = {
+    hTop: {},
+    hNor: {},
+    hSep: {},
+    hBot: {},
+    mSep: {},
+    bTop: {},
+    bNor: {},
+    bSep: {},
+    bBot: {}
+  };
+  for (const colType of Object.keys(mapped)) {
+    const [norm, strt, sepr, endc] = mapped[colType];
+    result[colType] = { norm, strt, sepr, endc };
+  }
+  return result;
 };
 
 // src/tools/printTable.ts
@@ -264,84 +350,79 @@ var getTerminalWidth = () => {
   var _a;
   return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) ? process.stdout.columns : 100;
 };
-var getFullOptions = (opts) => {
-  const drawColLines = opts.drawColLines === void 0 ? true : opts.drawColLines;
-  return {
-    overrideChar: "",
-    overrideHorChar: opts.overrideChar || "",
-    align: ["left"],
-    ...opts,
-    wrapperFn: typeof opts.wrapperFn !== "function" ? import_swiss_ak4.fn.noact : opts.wrapperFn,
-    drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
-    drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
-    drawColLines,
-    overrideVerChar: drawColLines ? opts.overrideChar || "" : " "
-  };
-};
+var getFullOptions = (opts) => ({
+  overrideChar: "",
+  overrideHorChar: opts.overrideChar || "",
+  overrideVerChar: opts.overrideChar || "",
+  align: "left",
+  alignCols: ["left"],
+  colWidths: [],
+  ...opts,
+  wrapperFn: typeof opts.wrapperFn !== "function" ? import_swiss_ak5.fn.noact : opts.wrapperFn,
+  drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
+  drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
+  drawColLines: opts.drawColLines === void 0 ? true : opts.drawColLines
+});
 var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
-var printTable = (body, header, opts = {}) => {
-  const { wrapperFn, overrideChar, overrideHorChar, overrideVerChar, drawOuter, drawRowLines, drawColLines } = getFullOptions(opts);
-  console.log("drawColLines", drawColLines, JSON.stringify(overrideVerChar));
-  console.log("drawRowLines", drawRowLines);
+var printTable = (body, header, options = {}) => {
   const lc = getLineCounter();
+  const opts = getFullOptions(options);
+  const { wrapperFn, drawOuter, drawRowLines, alignCols, align: align2 } = opts;
   const {
     cells: { header: pHeader, body: pBody },
     numCols,
     colWidths
-  } = processInput({ header, body });
-  const printLine = (row = empty2(numCols), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
-    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
-    const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
-    const joinC = orientOverride || overrideChar || joinChar;
-    const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
-    const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
-    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
+  } = processInput({ header, body }, opts);
+  const alignColumns = import_swiss_ak5.ArrayUtils.repeat(numCols, ...alignCols);
+  const tableChars = getTableCharacters(opts);
+  const printLine = (row = empty2(numCols), chars = tableChars.bNor, textWrapperFn) => {
+    const { norm, strt, sepr, endc } = chars;
+    let padded = row.map((cell, col) => align(cell || "", alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn)
       padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(`${padC}${joinC}${padC}`);
-    const str = `${startC}${padC}${inner}${padC}${endC}`;
-    lc.log(wrapperFn(str));
+    const inner = padded.join(`${norm}${sepr}${norm}`);
+    const str = `${strt}${norm}${inner}${norm}${endc}`;
+    lc.log(align(wrapperFn(str), align2, 0, " ", false));
   };
   if (pHeader) {
     if (drawOuter)
-      printLine(empty2(numCols, ""), "\u2501", "\u2533", "\u250F", "\u2513", true);
+      printLine(empty2(numCols, ""), tableChars.hTop);
     for (let index in pHeader) {
       const row = pHeader[index];
-      if (drawRowLines && Number(index) !== 0)
-        printLine(empty2(numCols, ""), "\u2501", "\u254B", "\u2523", "\u252B", true);
+      if (Number(index) !== 0)
+        printLine(empty2(numCols, ""), tableChars.hSep);
       for (let line of row) {
-        printLine(line, " ", "\u2503", void 0, void 0, false, chalk.bold);
+        printLine(line, tableChars.hNor, chalk.bold);
       }
     }
-    printLine(empty2(numCols, ""), "\u2501", "\u2547", "\u2521", "\u2529", true);
+    printLine(empty2(numCols, ""), tableChars.mSep);
   } else {
     if (drawOuter)
-      printLine(empty2(numCols, ""), "\u2500", "\u252C", "\u250C", "\u2510", true);
+      printLine(empty2(numCols, ""), tableChars.bTop);
   }
   for (let index in pBody) {
     const row = pBody[index];
-    if (drawRowLines && Number(index) !== 0)
-      printLine(empty2(numCols, ""), "\u2500", "\u253C", "\u251C", "\u2524", true);
+    if (Number(index) !== 0)
+      printLine(empty2(numCols, ""), tableChars.bSep);
     for (let line of row) {
-      printLine(line);
+      printLine(line, tableChars.bNor);
     }
   }
   if (drawOuter)
-    printLine(empty2(numCols, ""), "\u2500", "\u2534", "\u2514", "\u2518", true);
+    printLine(empty2(numCols, ""), tableChars.bBot);
   return lc.get();
 };
 
 // src/tools/out.ts
 var NEW_LINE = "\n";
 var anyTextToString = (text2) => text2 instanceof Array ? joinLines(text2) : text2;
-var trim = (text2) => text2.trim();
-var getLines = (text2) => anyTextToString(text2).split(NEW_LINE).map((line) => line.trim());
+var getLines = (text2) => anyTextToString(text2).split(NEW_LINE);
 var getNumLines = (text2) => getLines(text2).length;
 var getLinesWidth = (text2) => Math.max(...getLines(text2).map((line) => (0, import_string_width.default)(line)));
 var getLogLines = (item) => getLines(getLogStr(item));
 var getNumLogLines = (item) => getNumLines(getLogStr(item));
 var getLogLinesWidth = (item) => getLinesWidth(getLogStr(item));
-var joinLines = (lines) => lines.map(import_swiss_ak5.fn.maps.toString).join(NEW_LINE);
+var joinLines = (lines) => lines.map(import_swiss_ak6.fn.maps.toString).join(NEW_LINE);
 var utils = {
   getLines,
   getNumLines,
@@ -352,10 +433,27 @@ var utils = {
   joinLines
 };
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var center = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, Math.floor((width - (0, import_string_width.default)(line)) / 2), Math.ceil((width - (0, import_string_width.default)(line)) / 2), replaceChar)).join(NEW_LINE);
-var left = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, 0, width - (0, import_string_width.default)(line), replaceChar)).join(NEW_LINE);
-var right = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, width - (0, import_string_width.default)(line), 0, replaceChar)).join(NEW_LINE);
-var wrap = (item, width = getTerminalWidth()) => getLogLines(item).map(trim).map((line) => {
+var correctWidth = (width) => width <= 0 || width === Infinity ? getTerminalWidth() : Math.min(width, getTerminalWidth());
+var center = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map(
+  (line) => pad(
+    line,
+    Math.floor((correctWidth(width) - (0, import_string_width.default)(line)) / 2),
+    forceWidth ? Math.ceil((correctWidth(width) - (0, import_string_width.default)(line)) / 2) : 0,
+    replaceChar
+  )
+).join(NEW_LINE);
+var left = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, 0, forceWidth ? correctWidth(width) - (0, import_string_width.default)(line) : 0, replaceChar)).join(NEW_LINE);
+var right = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, correctWidth(width) - (0, import_string_width.default)(line), 0, replaceChar)).join(NEW_LINE);
+var alignFunc = {
+  left,
+  center,
+  right
+};
+var align = (item, direction, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => {
+  const func = alignFunc[direction] || alignFunc.left;
+  return func(item, width, replaceChar, forceWidth);
+};
+var wrap = (item, width = getTerminalWidth(), forceWidth = true) => getLogLines(item).map((line) => {
   if ((0, import_string_width.default)(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
@@ -371,7 +469,7 @@ var wrap = (item, width = getTerminalWidth()) => getLogLines(item).map(trim).map
     }
     const remaining = words.slice(rowStartIndex);
     rows.push(remaining);
-    return rows.map((row) => row.join("").trim()).filter((x) => x);
+    return rows.map((row) => row.join("")).map((row) => left(row, width, " ", forceWidth));
   }
   return line;
 }).flat().join(NEW_LINE);
@@ -396,7 +494,7 @@ var loading = (action = loadingDefault, lines = 1, symbols = [".  ", ".. ", "...
     if (count)
       moveUp(lines);
     action(symbols[count++ % symbols.length]);
-    await (0, import_swiss_ak5.wait)(500);
+    await (0, import_swiss_ak6.wait)(500);
     return runLoop();
   };
   runLoop();
@@ -601,7 +699,7 @@ var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, c
     moveUp(lines);
     lines = text2.split("\n").length;
     console.log(import_zx4.chalk.blackBright(text2));
-    await (0, import_swiss_ak6.wait)((0, import_swiss_ak6.seconds)(1));
+    await (0, import_swiss_ak7.wait)((0, import_swiss_ak7.seconds)(1));
   }
   moveUp(lines);
   if (complete) {
@@ -627,7 +725,7 @@ var rename = async (bef, aft) => {
   }
   return isConfirmed;
 };
-var fileExplorer = async (startDir, filter = import_swiss_ak6.fn.result(true), questionText = "Choose a file:") => {
+var fileExplorer = async (startDir, filter = import_swiss_ak7.fn.result(true), questionText = "Choose a file:") => {
   const fnDir = gray5;
   const fnFiles = gray3;
   const runExplorer = async (dir) => {
@@ -678,7 +776,7 @@ var ask = {
 };
 
 // src/tools/ffmpeg.ts
-var import_swiss_ak7 = require("swiss-ak");
+var import_swiss_ak8 = require("swiss-ak");
 var getProbeValue = async (file, propertyName) => (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
 var getProbe = async (file, props) => {
   const full = await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
@@ -708,7 +806,7 @@ var ffmpeg = async (command = () => $`ffmpeg -progress pr.txt`, progressFileName
   await $`echo "" > ${progressFileName}`;
   const ffmpegProcess = command();
   const tail = $`tail -f ${progressFileName}`.nothrow();
-  const bar = (0, import_swiss_ak7.getProgressBar)(totalFrames, {
+  const bar = (0, import_swiss_ak8.getProgressBar)(totalFrames, {
     showCount: true,
     showPercent: true,
     wrapperFn: chalk.magenta,
@@ -741,7 +839,7 @@ var arrayToNLList = (arr) => {
 };
 
 // src/tools/gm.ts
-var import_swiss_ak8 = require("swiss-ak");
+var import_swiss_ak9 = require("swiss-ak");
 var supportedFlags = {
   "black-threshold": {
     name: "black-threshold",
@@ -877,7 +975,7 @@ var printFlagsTable = (flagsObjArray, overrideHeader, extraRow) => {
         ...flagsObjArray.map(
           (obj) => {
             var _a;
-            return obj[flagName] === void 0 ? "" : getLogStr((((_a = supportedFlags[flagName]) == null ? void 0 : _a.processOutput) || import_swiss_ak8.fn.noact)(obj[flagName]));
+            return obj[flagName] === void 0 ? "" : getLogStr((((_a = supportedFlags[flagName]) == null ? void 0 : _a.processOutput) || import_swiss_ak9.fn.noact)(obj[flagName]));
           }
         )
       ],
@@ -977,7 +1075,7 @@ var askFlags = async (name, previousFlagsObj = {}) => {
 var flagsObjToArray = (obj) => {
   return Object.entries(obj).map(([name, value]) => {
     var _a;
-    return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || import_swiss_ak8.fn.noact)(value)];
+    return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || import_swiss_ak9.fn.noact)(value)];
   }).flat().filter((x) => x !== void 0 && x !== true);
 };
 var formaliseCompositeFlags = (flags) => {
@@ -1039,6 +1137,7 @@ var closeFinder = async () => {
   $$,
   LogUtils,
   PathUtils,
+  align,
   ask,
   center,
   chlk,

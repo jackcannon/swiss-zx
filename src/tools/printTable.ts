@@ -1,8 +1,9 @@
-import { Partial, zip, fn } from 'swiss-ak';
+import { Partial, zip, fn, ArrayUtils } from 'swiss-ak';
 import stringWidth from 'string-width';
 import { getLineCounter } from './lineCounter';
 import * as out from './out';
 import { processInput } from '../utils/processTableInput';
+import { getTableCharacters } from '../utils/tableCharacters';
 
 /**
  * getTerminalWidth
@@ -13,7 +14,7 @@ import { processInput } from '../utils/processTableInput';
  */
 export const getTerminalWidth = () => (process?.stdout?.columns ? process.stdout.columns : 100);
 
-interface TableOptions {
+export interface TableOptions {
   /**
    * Function to wrap each line of the table in (e.g. chalk.blue)
    */
@@ -52,53 +53,43 @@ interface TableOptions {
   drawColLines: boolean;
 
   /**
-   * How each column should be aligned
+   * Preferred width (in number of characters) of each column
+   * TODO - update docs
+   */
+  colWidths: number[];
+
+  /**
+   * How the table should be aligned on the screen
    *
    * left, right or center
    * TODO - update docs
    */
-  align: ('left' | 'right' | 'center')[];
+  align: 'left' | 'right' | 'center';
+
+  /**
+   * How each column should be aligned
+   *
+   * Array with alignment for each column: left, right or center
+   * TODO - update docs
+   */
+  alignCols: ('left' | 'right' | 'center')[];
 }
 
-const getFullOptions = (opts: Partial<TableOptions>): TableOptions => {
-  const drawColLines = opts.drawColLines === undefined ? true : opts.drawColLines;
-  return {
-    overrideChar: '',
-    overrideHorChar: opts.overrideChar || '',
-    overrideVerChar: drawColLines ? opts.overrideChar || '' : ' ',
-    align: ['left'],
-    ...opts,
-    wrapperFn: typeof opts.wrapperFn !== 'function' ? fn.noact : opts.wrapperFn,
-    drawOuter: opts.drawOuter === undefined ? true : opts.drawOuter,
-    drawRowLines: opts.drawRowLines === undefined ? true : opts.drawRowLines,
-    drawColLines: opts.drawColLines === undefined ? true : opts.drawColLines
-  };
-};
+const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
+  overrideChar: '',
+  overrideHorChar: opts.overrideChar || '',
+  overrideVerChar: opts.overrideChar || '',
+  align: 'left',
+  alignCols: ['left'],
+  colWidths: [],
+  ...opts,
+  wrapperFn: typeof opts.wrapperFn !== 'function' ? fn.noact : opts.wrapperFn,
+  drawOuter: opts.drawOuter === undefined ? true : opts.drawOuter,
+  drawRowLines: opts.drawRowLines === undefined ? true : opts.drawRowLines,
+  drawColLines: opts.drawColLines === undefined ? true : opts.drawColLines
+});
 
 const empty = (numCols: number, char: string = '') => new Array(numCols).fill(char);
-
-const tableCharIndexes = {
-  NORM: 0,
-  STRT: 1,
-  SEPR: 2,
-  ENDC: 3,
-  BLNK: 4
-};
-const tableChars = {
-  hTop: ['━', '┏', '┳', '┓'],
-  hNor: [' ', '┃', '┃', '┃'],
-  hSep: ['━', '┣', '╋', '┫'],
-  hBot: ['━', '┗', '┻', '┛'],
-
-  mSep: ['━', '┡', '╇', '┩'],
-
-  bTop: ['─', '┌', '┬', '┐'],
-  bNor: [' ', '│', '│', '│'],
-  bSep: ['─', '├', '┼', '┤'],
-  bBot: ['─', '└', '┴', '┘']
-};
-
-const getTableCharacters = (opts: TableOptions) => ({});
 
 /**
  * printTable
@@ -118,63 +109,50 @@ const getTableCharacters = (opts: TableOptions) => ({});
  * // └──────┴─────┘
  * ```
  */
-export const printTable = (body: string[][], header: string[][], opts: Partial<TableOptions> = {}): number => {
-  const { wrapperFn, drawOuter, drawRowLines, drawColLines } = getFullOptions(opts);
-  let { overrideChar, overrideHorChar, overrideVerChar } = getFullOptions(opts);
-
-  console.log('drawColLines', drawColLines, JSON.stringify(overrideVerChar));
-  console.log('drawRowLines', drawRowLines);
-
+export const printTable = (body: string[][], header: string[][], options: Partial<TableOptions> = {}): number => {
   const lc = getLineCounter();
+  const opts = getFullOptions(options);
+  const { wrapperFn, drawOuter, drawRowLines, alignCols, align } = opts;
 
   const {
     cells: { header: pHeader, body: pBody },
     numCols,
     colWidths
-  } = processInput({ header, body });
+  } = processInput({ header, body }, opts);
 
-  const printLine = (
-    row = empty(numCols),
-    padChar = ' ',
-    joinChar = '│',
-    startChar = joinChar,
-    endChar = joinChar,
-    isHor = false,
-    textWrapperFn?
-  ) => {
-    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
-    const padC = (isHor ? overrideHorChar : undefined) || overrideChar || padChar;
-    const joinC = orientOverride || overrideChar || joinChar;
-    const startC = drawOuter ? orientOverride || overrideChar || startChar : '';
-    const endC = drawOuter ? orientOverride || overrideChar || endChar : '';
+  const alignColumns = ArrayUtils.repeat(numCols, ...alignCols);
+  const tableChars = getTableCharacters(opts);
 
-    let padded = row.map((cell, col) => out.left(cell || '', colWidths[col], padC));
+  const printLine = (row = empty(numCols), chars = tableChars.bNor, textWrapperFn?: Function) => {
+    const { norm, strt, sepr, endc } = chars;
+
+    let padded = row.map((cell, col) => out.align(cell || '', alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn) padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(`${padC}${joinC}${padC}`);
-    const str = `${startC}${padC}${inner}${padC}${endC}`;
-    lc.log(wrapperFn(str));
+    const inner = padded.join(`${norm}${sepr}${norm}`);
+    const str = `${strt}${norm}${inner}${norm}${endc}`;
+    lc.log(out.align(wrapperFn(str), align, 0, ' ', false));
   };
 
   if (pHeader) {
-    if (drawOuter) printLine(empty(numCols, ''), '━', '┳', '┏', '┓', true);
+    if (drawOuter) printLine(empty(numCols, ''), tableChars.hTop);
     for (let index in pHeader) {
       const row = pHeader[index];
-      if (drawRowLines && Number(index) !== 0) printLine(empty(numCols, ''), '━', '╋', '┣', '┫', true);
+      if (Number(index) !== 0) printLine(empty(numCols, ''), tableChars.hSep);
       for (let line of row) {
-        printLine(line as string[], ' ', '┃', undefined, undefined, false, chalk.bold);
+        printLine(line as string[], tableChars.hNor, chalk.bold);
       }
     }
-    printLine(empty(numCols, ''), '━', '╇', '┡', '┩', true);
+    printLine(empty(numCols, ''), tableChars.mSep);
   } else {
-    if (drawOuter) printLine(empty(numCols, ''), '─', '┬', '┌', '┐', true);
+    if (drawOuter) printLine(empty(numCols, ''), tableChars.bTop);
   }
   for (let index in pBody) {
     const row = pBody[index];
-    if (drawRowLines && Number(index) !== 0) printLine(empty(numCols, ''), '─', '┼', '├', '┤', true);
+    if (Number(index) !== 0) printLine(empty(numCols, ''), tableChars.bSep);
     for (let line of row) {
-      printLine(line as string[]);
+      printLine(line as string[], tableChars.bNor);
     }
   }
-  if (drawOuter) printLine(empty(numCols, ''), '─', '┴', '└', '┘', true);
+  if (drawOuter) printLine(empty(numCols, ''), tableChars.bBot);
   return lc.get();
 };

@@ -7,12 +7,8 @@ import { tableText } from '../utils/processTableInput';
 const NEW_LINE = '\n';
 
 const anyTextToString = (text: tableText): string => (text instanceof Array ? joinLines(text) : text);
-const trim = (text: string) => text.trim();
 
-const getLines = (text: tableText): string[] =>
-  anyTextToString(text)
-    .split(NEW_LINE)
-    .map((line) => line.trim());
+const getLines = (text: tableText): string[] => anyTextToString(text).split(NEW_LINE);
 const getNumLines = (text: tableText): number => getLines(text).length;
 const getLinesWidth = (text: tableText): number => Math.max(...getLines(text).map((line) => stringWidth(line)));
 
@@ -45,10 +41,17 @@ export const utils = {
 export const pad = (line: string, start: number, end: number, replaceChar: string = ' '): string =>
   `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
 
+export type AlignType = 'left' | 'right' | 'center';
+type AlignFunction = (item: any, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+
+const correctWidth = (width: number): number => (width <= 0 || width === Infinity ? getTerminalWidth() : Math.min(width, getTerminalWidth()));
+
 /**
  * out.center
  *
  * Align the given text to the center within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
  *
  * ```typescript
  * center('foo', 10); // '   foo    '
@@ -59,16 +62,24 @@ export const pad = (line: string, start: number, end: number, replaceChar: strin
  * // '  2  '
  * ```
  */
-export const center = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' '): string =>
+export const center: AlignFunction = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true): string =>
   getLogLines(item)
-    .map(trim)
-    .map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar))
+    .map((line) =>
+      pad(
+        line,
+        Math.floor((correctWidth(width) - stringWidth(line)) / 2),
+        forceWidth ? Math.ceil((correctWidth(width) - stringWidth(line)) / 2) : 0,
+        replaceChar
+      )
+    )
     .join(NEW_LINE);
 
 /**
  * out.left
  *
  * Align the given text to the left within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
  *
  * ```typescript
  * left('foo', 10); // 'foo       '
@@ -79,16 +90,17 @@ export const center = (item: any, width: number = getTerminalWidth(), replaceCha
  * // '2    '
  * ```
  */
-export const left = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' '): string =>
+export const left: AlignFunction = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true): string =>
   getLogLines(item)
-    .map(trim)
-    .map((line) => pad(line, 0, width - stringWidth(line), replaceChar))
+    .map((line) => pad(line, 0, forceWidth ? correctWidth(width) - stringWidth(line) : 0, replaceChar))
     .join(NEW_LINE);
 
 /**
  * out.right
  *
  * Align the given text to the right within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
  *
  * ```typescript
  * right('foo', 10); // '       foo'
@@ -99,11 +111,23 @@ export const left = (item: any, width: number = getTerminalWidth(), replaceChar:
  * // '    2'
  * ```
  */
-export const right = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' '): string =>
+export const right: AlignFunction = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true): string =>
   getLogLines(item)
-    .map(trim)
-    .map((line) => pad(line, width - stringWidth(line), 0, replaceChar))
+    .map((line) => pad(line, correctWidth(width) - stringWidth(line), 0, replaceChar))
     .join(NEW_LINE);
+
+const alignFunc = {
+  left,
+  center,
+  right
+};
+/**
+ * TODO - add docs
+ */
+export const align = (item: any, direction: AlignType, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true) => {
+  const func = alignFunc[direction] || alignFunc.left;
+  return func(item, width, replaceChar, forceWidth);
+};
 
 /**
  * out.wrap
@@ -116,9 +140,8 @@ export const right = (item: any, width: number = getTerminalWidth(), replaceChar
  * // 'a sentence'
  * ```
  */
-export const wrap = (item: any, width: number = getTerminalWidth()): string =>
+export const wrap = (item: any, width: number = getTerminalWidth(), forceWidth: boolean = true): string =>
   getLogLines(item)
-    .map(trim)
     .map((line) => {
       if (stringWidth(line) > width) {
         const words: string[] = line.split(/(?<=#?[ -]+)/g);
@@ -141,7 +164,7 @@ export const wrap = (item: any, width: number = getTerminalWidth()): string =>
         const remaining = words.slice(rowStartIndex);
         rows.push(remaining);
 
-        return rows.map((row) => row.join('').trim()).filter((x) => x);
+        return rows.map((row) => row.join('')).map((row) => left(row, width, ' ', forceWidth));
       }
 
       return line;
