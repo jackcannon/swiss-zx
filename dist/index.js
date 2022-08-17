@@ -39,6 +39,7 @@ __export(src_exports, {
   getLogStr: () => getLogStr,
   getProbe: () => getProbe,
   getProbeValue: () => getProbeValue,
+  getTerminalWidth: () => getTerminalWidth,
   getTotalFrames: () => getTotalFrames,
   gm: () => gm,
   left: () => left,
@@ -49,6 +50,7 @@ __export(src_exports, {
   printTable: () => printTable,
   processLogContents: () => processLogContents,
   right: () => right,
+  utils: () => utils,
   wrap: () => wrap
 });
 module.exports = __toCommonJS(src_exports);
@@ -141,7 +143,7 @@ var $$ = {
 
 // src/tools/ask.ts
 var import_zx4 = require("zx");
-var import_swiss_ak4 = require("swiss-ak");
+var import_swiss_ak6 = require("swiss-ak");
 var import_prompts = __toESM(require("prompts"));
 var import_fuse = __toESM(require("fuse.js"));
 
@@ -154,8 +156,11 @@ __export(out_exports, {
   moveUp: () => moveUp,
   pad: () => pad,
   right: () => right,
+  utils: () => utils,
   wrap: () => wrap
 });
+var import_swiss_ak5 = require("swiss-ak");
+var import_string_width = __toESM(require("string-width"));
 
 // src/tools/LogUtils.ts
 var LogUtils_exports = {};
@@ -180,20 +185,177 @@ var getLog = (prefix, wrapper = import_swiss_ak2.fn.noact) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
-// src/tools/out.ts
-var import_string_width = __toESM(require("string-width"));
-var import_swiss_ak3 = require("swiss-ak");
-var getDefaultColumns = () => {
-  var _a;
-  return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) || 100;
+// src/tools/printTable.ts
+var import_swiss_ak4 = require("swiss-ak");
+
+// src/tools/lineCounter.ts
+var getLineCounter = () => {
+  let lineCount = 0;
+  return {
+    log(...args) {
+      const added = utils.getNumLines(args.map(getLogStr).join(" "));
+      lineCount += added;
+      console.log(...args);
+      return added;
+    },
+    wrap: (newLines = 1, func, ...args) => {
+      const result = func(...args);
+      if (newLines === void 0) {
+        const resultNum = Number(result);
+        lineCount += Number.isNaN(resultNum) ? 1 : resultNum;
+      } else {
+        lineCount += newLines;
+      }
+      return result;
+    },
+    add(newLines) {
+      lineCount += newLines;
+      return lineCount;
+    },
+    get() {
+      return lineCount;
+    },
+    clear() {
+      moveUp(lineCount);
+      lineCount = 0;
+      return lineCount;
+    }
+  };
 };
-var getLines = (text2) => text2.split("\n").map((line) => line.trim());
-var getOutputLines = (item) => getLines(getLogStr(item));
+
+// src/utils/processTableInput.ts
+var import_swiss_ak3 = require("swiss-ak");
+var empty = (numCols, char = "") => new Array(numCols).fill(char);
+var processCells = (cells, processFn, ...args) => ({
+  header: processFn(cells.header, ...args),
+  body: processFn(cells.body, ...args)
+});
+var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => "" + cell));
+var splitCellsIntoLines = (rows) => rows.map((row) => row.map((cell) => utils.getLines(cell)));
+var getDesiredColumnWidths = (cells, numCols) => {
+  const transposed = (0, import_swiss_ak3.zip)(...[...cells.header, ...cells.body]);
+  const currColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
+  const currTotalWidth = currColWidths.reduce(import_swiss_ak3.fn.reduces.combine) + (numCols + 1) * 3;
+  const diff = currTotalWidth - getTerminalWidth();
+  const colWidths = [...currColWidths];
+  for (let i = 0; i < diff; i++) {
+    colWidths[colWidths.indexOf(Math.max(...colWidths))]--;
+  }
+  return colWidths;
+};
+var wrapCells = (rows, colWidths) => rows.map((row) => {
+  const wrapped = row.map((cell, colIndex) => utils.getLines(wrap(utils.joinLines(cell), colWidths[colIndex])));
+  const maxHeight = Math.max(...wrapped.map((cell) => cell.length));
+  return wrapped.map((cell) => [...cell, ...empty(maxHeight)].slice(0, maxHeight));
+});
+var seperateLinesIntoRows = (rows) => rows.map((row) => (0, import_swiss_ak3.zip)(...row));
+var processInput = (cells) => {
+  const numCols = Math.max(...[...cells.header || [], ...cells.body].map((row) => row.length));
+  const everyCell = processCells(cells, ensureStringForEveryCell, numCols);
+  const linedCells = processCells(everyCell, splitCellsIntoLines);
+  const colWidths = getDesiredColumnWidths(linedCells, numCols);
+  const wrappedCells = processCells(linedCells, wrapCells, colWidths);
+  const seperatedRows = processCells(wrappedCells, seperateLinesIntoRows);
+  return { cells: seperatedRows, numCols, colWidths };
+};
+
+// src/tools/printTable.ts
+var getTerminalWidth = () => {
+  var _a;
+  return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) ? process.stdout.columns : 100;
+};
+var getFullOptions = (opts) => {
+  const drawColLines = opts.drawColLines === void 0 ? true : opts.drawColLines;
+  return {
+    overrideChar: "",
+    overrideHorChar: opts.overrideChar || "",
+    align: ["left"],
+    ...opts,
+    wrapperFn: typeof opts.wrapperFn !== "function" ? import_swiss_ak4.fn.noact : opts.wrapperFn,
+    drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
+    drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
+    drawColLines,
+    overrideVerChar: drawColLines ? opts.overrideChar || "" : " "
+  };
+};
+var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
+var printTable = (body, header, opts = {}) => {
+  const { wrapperFn, overrideChar, overrideHorChar, overrideVerChar, drawOuter, drawRowLines, drawColLines } = getFullOptions(opts);
+  console.log("drawColLines", drawColLines, JSON.stringify(overrideVerChar));
+  console.log("drawRowLines", drawRowLines);
+  const lc = getLineCounter();
+  const {
+    cells: { header: pHeader, body: pBody },
+    numCols,
+    colWidths
+  } = processInput({ header, body });
+  const printLine = (row = empty2(numCols), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
+    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
+    const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
+    const joinC = orientOverride || overrideChar || joinChar;
+    const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
+    const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
+    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
+    if (textWrapperFn)
+      padded = padded.map((x) => textWrapperFn(x));
+    const inner = padded.join(`${padC}${joinC}${padC}`);
+    const str = `${startC}${padC}${inner}${padC}${endC}`;
+    lc.log(wrapperFn(str));
+  };
+  if (pHeader) {
+    if (drawOuter)
+      printLine(empty2(numCols, ""), "\u2501", "\u2533", "\u250F", "\u2513", true);
+    for (let index in pHeader) {
+      const row = pHeader[index];
+      if (drawRowLines && Number(index) !== 0)
+        printLine(empty2(numCols, ""), "\u2501", "\u254B", "\u2523", "\u252B", true);
+      for (let line of row) {
+        printLine(line, " ", "\u2503", void 0, void 0, false, chalk.bold);
+      }
+    }
+    printLine(empty2(numCols, ""), "\u2501", "\u2547", "\u2521", "\u2529", true);
+  } else {
+    if (drawOuter)
+      printLine(empty2(numCols, ""), "\u2500", "\u252C", "\u250C", "\u2510", true);
+  }
+  for (let index in pBody) {
+    const row = pBody[index];
+    if (drawRowLines && Number(index) !== 0)
+      printLine(empty2(numCols, ""), "\u2500", "\u253C", "\u251C", "\u2524", true);
+    for (let line of row) {
+      printLine(line);
+    }
+  }
+  if (drawOuter)
+    printLine(empty2(numCols, ""), "\u2500", "\u2534", "\u2514", "\u2518", true);
+  return lc.get();
+};
+
+// src/tools/out.ts
+var NEW_LINE = "\n";
+var anyTextToString = (text2) => text2 instanceof Array ? joinLines(text2) : text2;
+var trim = (text2) => text2.trim();
+var getLines = (text2) => anyTextToString(text2).split(NEW_LINE).map((line) => line.trim());
+var getNumLines = (text2) => getLines(text2).length;
+var getLinesWidth = (text2) => Math.max(...getLines(text2).map((line) => (0, import_string_width.default)(line)));
+var getLogLines = (item) => getLines(getLogStr(item));
+var getNumLogLines = (item) => getNumLines(getLogStr(item));
+var getLogLinesWidth = (item) => getLinesWidth(getLogStr(item));
+var joinLines = (lines) => lines.map(import_swiss_ak5.fn.maps.toString).join(NEW_LINE);
+var utils = {
+  getLines,
+  getNumLines,
+  getLinesWidth,
+  getLogLines,
+  getNumLogLines,
+  getLogLinesWidth,
+  joinLines
+};
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var center = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, Math.floor((width - (0, import_string_width.default)(line)) / 2), Math.ceil((width - (0, import_string_width.default)(line)) / 2), replaceChar)).join("\n");
-var left = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, 0, width - (0, import_string_width.default)(line), replaceChar)).join("\n");
-var right = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, width - (0, import_string_width.default)(line), 0, replaceChar)).join("\n");
-var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line) => {
+var center = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, Math.floor((width - (0, import_string_width.default)(line)) / 2), Math.ceil((width - (0, import_string_width.default)(line)) / 2), replaceChar)).join(NEW_LINE);
+var left = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, 0, width - (0, import_string_width.default)(line), replaceChar)).join(NEW_LINE);
+var right = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, width - (0, import_string_width.default)(line), 0, replaceChar)).join(NEW_LINE);
+var wrap = (item, width = getTerminalWidth()) => getLogLines(item).map(trim).map((line) => {
   if ((0, import_string_width.default)(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
@@ -212,7 +374,7 @@ var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line
     return rows.map((row) => row.join("").trim()).filter((x) => x);
   }
   return line;
-}).flat().join("\n");
+}).flat().join(NEW_LINE);
 var moveUp = (lines = 1) => {
   var _a;
   if ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.clearLine) {
@@ -234,7 +396,7 @@ var loading = (action = loadingDefault, lines = 1, symbols = [".  ", ".. ", "...
     if (count)
       moveUp(lines);
     action(symbols[count++ % symbols.length]);
-    await (0, import_swiss_ak3.wait)(500);
+    await (0, import_swiss_ak5.wait)(500);
     return runLoop();
   };
   runLoop();
@@ -439,7 +601,7 @@ var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, c
     moveUp(lines);
     lines = text2.split("\n").length;
     console.log(import_zx4.chalk.blackBright(text2));
-    await (0, import_swiss_ak4.wait)((0, import_swiss_ak4.seconds)(1));
+    await (0, import_swiss_ak6.wait)((0, import_swiss_ak6.seconds)(1));
   }
   moveUp(lines);
   if (complete) {
@@ -465,7 +627,7 @@ var rename = async (bef, aft) => {
   }
   return isConfirmed;
 };
-var fileExplorer = async (startDir, filter = import_swiss_ak4.fn.result(true), questionText = "Choose a file:") => {
+var fileExplorer = async (startDir, filter = import_swiss_ak6.fn.result(true), questionText = "Choose a file:") => {
   const fnDir = gray5;
   const fnFiles = gray3;
   const runExplorer = async (dir) => {
@@ -516,7 +678,7 @@ var ask = {
 };
 
 // src/tools/ffmpeg.ts
-var import_swiss_ak5 = require("swiss-ak");
+var import_swiss_ak7 = require("swiss-ak");
 var getProbeValue = async (file, propertyName) => (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
 var getProbe = async (file, props) => {
   const full = await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
@@ -546,10 +708,9 @@ var ffmpeg = async (command = () => $`ffmpeg -progress pr.txt`, progressFileName
   await $`echo "" > ${progressFileName}`;
   const ffmpegProcess = command();
   const tail = $`tail -f ${progressFileName}`.nothrow();
-  const bar = (0, import_swiss_ak5.getProgressBar)(totalFrames, {
+  const bar = (0, import_swiss_ak7.getProgressBar)(totalFrames, {
     showCount: true,
     showPercent: true,
-    chalk,
     wrapperFn: chalk.magenta,
     ...progressBarOpts
   });
@@ -570,94 +731,6 @@ var ffmpeg = async (command = () => $`ffmpeg -progress pr.txt`, progressFileName
   await ffmpegProcess;
 };
 
-// src/tools/lineCounter.ts
-var getLineCounter = () => {
-  let lineCount = 0;
-  return {
-    log(...args) {
-      const added = args.map(getLogStr).join(" ").split("\n").length;
-      lineCount += added;
-      console.log(...args);
-      return added;
-    },
-    wrap: (newLines = 1, func, ...args) => {
-      const result = func(...args);
-      if (newLines === void 0) {
-        const resultNum = Number(result);
-        lineCount += Number.isNaN(resultNum) ? 1 : resultNum;
-      } else {
-        lineCount += newLines;
-      }
-      return result;
-    },
-    add(newLines) {
-      lineCount += newLines;
-      return lineCount;
-    },
-    get() {
-      return lineCount;
-    },
-    clear() {
-      moveUp(lineCount);
-      lineCount = 0;
-      return lineCount;
-    }
-  };
-};
-
-// src/tools/printTable.ts
-var import_swiss_ak6 = require("swiss-ak");
-var import_string_width2 = __toESM(require("string-width"));
-var getFullOptions = (opts) => ({
-  overrideChar: "",
-  overrideHorChar: opts.overrideChar || "",
-  overrideVerChar: opts.overrideChar || "",
-  ...opts,
-  wrapperFn: typeof opts.wrapperFn !== "function" ? import_swiss_ak6.fn.noact : opts.wrapperFn,
-  drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter
-});
-var printTable = (body, header, opts = {}) => {
-  const { wrapperFn, overrideChar, overrideHorChar, overrideVerChar, drawOuter } = getFullOptions(opts);
-  const lc = getLineCounter();
-  const allRows = () => [...header || [], ...body];
-  const numCols = Math.max(...allRows().map((row) => row.length));
-  const empty = (char = "") => new Array(numCols).fill(char);
-  const correctRow = (row) => [...row, ...empty()].slice(0, numCols).map((cell) => "" + cell);
-  header = header && header.map(correctRow);
-  body = body.map(correctRow);
-  const colWidths = (0, import_swiss_ak6.zip)(...allRows()).map((col) => Math.max(...col.map((s) => (0, import_string_width2.default)(s || ""))));
-  const printRow = (row = empty(), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
-    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
-    const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
-    const joinC = orientOverride || overrideChar || joinChar;
-    const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
-    const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
-    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
-    if (textWrapperFn)
-      padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(`${padC}${joinC}${padC}`);
-    const str = `${startC}${padC}${inner}${padC}${endC}`;
-    lc.log(wrapperFn(str));
-  };
-  if (header) {
-    if (drawOuter)
-      printRow(empty(""), "\u2501", "\u2533", "\u250F", "\u2513", true);
-    for (let row of header) {
-      printRow(row, " ", "\u2503", void 0, void 0, false, chalk.bold);
-    }
-    printRow(empty(""), "\u2501", "\u2547", "\u2521", "\u2529", true);
-  } else {
-    if (drawOuter)
-      printRow(empty(""), "\u2500", "\u252C", "\u250C", "\u2510", true);
-  }
-  for (let row of body) {
-    printRow(row);
-  }
-  if (drawOuter)
-    printRow(empty(""), "\u2500", "\u2534", "\u2514", "\u2518", true);
-  return lc.get();
-};
-
 // src/utils/arrayToNLList.ts
 var arrayToNLList = (arr) => {
   let joinArr = arr;
@@ -668,41 +741,130 @@ var arrayToNLList = (arr) => {
 };
 
 // src/tools/gm.ts
+var import_swiss_ak8 = require("swiss-ak");
 var supportedFlags = {
-  compose: [
-    "Screen",
-    "Over",
-    "In",
-    "Out",
-    "Atop",
-    "Xor",
-    "Plus",
-    "Minus",
-    "Add",
-    "Subtract",
-    "Difference",
-    "Divide",
-    "Multiply",
-    "Bumpmap",
-    "Copy",
-    "CopyRed",
-    "CopyGreen",
-    "CopyBlue",
-    "CopyOpacity",
-    "CopyCyan",
-    "CopyMagenta",
-    "CopyYellow",
-    "CopyBlack"
-  ],
-  displace: "string",
-  dissolve: "number",
-  geometry: "string",
-  gravity: ["Center", "North", "NorthEast", "East", "SouthEast", "South", "SouthWest", "West", "NorthWest"],
-  negate: "boolean",
-  quality: "number",
-  resize: "string",
-  rotate: "number",
-  size: "string"
+  "black-threshold": {
+    name: "black-threshold",
+    type: "number",
+    description: "pixels below the threshold become black",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  },
+  compose: {
+    name: "compose",
+    type: "string",
+    options: [
+      "Screen",
+      "Over",
+      "In",
+      "Out",
+      "Atop",
+      "Xor",
+      "Plus",
+      "Minus",
+      "Add",
+      "Subtract",
+      "Difference",
+      "Divide",
+      "Multiply",
+      "Bumpmap",
+      "Copy",
+      "CopyRed",
+      "CopyGreen",
+      "CopyBlue",
+      "CopyOpacity",
+      "CopyCyan",
+      "CopyMagenta",
+      "CopyYellow",
+      "CopyBlack"
+    ],
+    canOverrideOpts: false,
+    description: "the type of image composition"
+  },
+  displace: {
+    name: "displace",
+    type: "string",
+    description: "shift image pixels as defined by a displacement map",
+    hint: "<horizontal scale>x<vertical scale>"
+  },
+  dissolve: {
+    name: "dissolve",
+    type: "number",
+    description: "dissolve an image into another by the given percent",
+    hint: "%"
+  },
+  flip: {
+    name: "flip",
+    type: "boolean",
+    description: 'create a "mirror image" - vertical'
+  },
+  flop: {
+    name: "flop",
+    type: "boolean",
+    description: 'create a "mirror image" - horizontal'
+  },
+  geometry: {
+    name: "geometry",
+    type: "string",
+    description: "Specify dimension, offset, and resize options.",
+    hint: "<width>x<height>{+-}<x>{+-}<y>{%}{@}{!}{^}{<}{>} e.g. 100x100+10+10, +10+10"
+  },
+  gravity: {
+    name: "gravity",
+    type: "string",
+    options: ["Center", "North", "NorthEast", "East", "SouthEast", "South", "SouthWest", "West", "NorthWest"],
+    canOverrideOpts: false,
+    description: "direction primitive gravitates to when annotating the image."
+  },
+  monochrome: {
+    name: "monochrome",
+    type: "boolean",
+    description: "transform the image to black and white"
+  },
+  negate: {
+    name: "negate",
+    type: "boolean",
+    description: "replace every pixel with its complementary color"
+  },
+  quality: {
+    name: "quality",
+    type: "number",
+    description: "JPEG/MIFF/PNG/TIFF compression level",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  },
+  resize: {
+    name: "resize",
+    type: "string",
+    description: "resize an image",
+    hint: "<width>x<height>{%}{@}{!}{<}{>} e.g. 100x200"
+  },
+  rotate: {
+    name: "rotate",
+    type: "number",
+    description: "rotate the image - clockwise",
+    hint: "degrees (0-360)"
+  },
+  size: {
+    name: "size",
+    type: "string",
+    description: "width and height of the image",
+    hint: "<width>x<height>"
+  },
+  threshold: {
+    name: "threshold",
+    type: "number",
+    description: "pixels above the threshold become white, pixels below the threshold become black",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  },
+  "white-threshold": {
+    name: "white-threshold",
+    type: "number",
+    description: "pixels above the threshold become white",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  }
 };
 var printFlagsTable = (flagsObjArray, overrideHeader, extraRow) => {
   const lc = getLineCounter();
@@ -710,7 +872,15 @@ var printFlagsTable = (flagsObjArray, overrideHeader, extraRow) => {
   const header = overrideHeader || [["Flag", ...flagsObjArray.map((v, i) => `#${i + 1}`)]];
   const body = allFlagNames.length === 0 ? [["none"]] : allFlagNames.map((flagName) => {
     return [
-      [flagName, ...flagsObjArray.map((obj) => obj[flagName] === void 0 ? "" : getLogStr(obj[flagName]))],
+      [
+        flagName,
+        ...flagsObjArray.map(
+          (obj) => {
+            var _a;
+            return obj[flagName] === void 0 ? "" : getLogStr((((_a = supportedFlags[flagName]) == null ? void 0 : _a.processOutput) || import_swiss_ak8.fn.noact)(obj[flagName]));
+          }
+        )
+      ],
       ["", ""]
     ];
   }).flat().slice(0, -1);
@@ -760,20 +930,25 @@ var askFlags = async (name, previousFlagsObj = {}) => {
       const opts = actionType === "add" ? addableFlags : selectedFlagNames;
       const flagName = await lc.wrap(1, () => ask.select(`${name}: What flag would you like to ${actionType}?`, opts)) + "";
       const flagConfig = supportedFlags[flagName];
+      const { description, hint, processOutput } = flagConfig;
       const previousValue = selectedFlags[flagName] || previousFlagsObj[flagName];
+      lc.log(gray3(`${flagName}: ${description}`));
+      if (hint)
+        lc.log(gray2(`		Hint: ${hint}`));
       const valueQuestion = `${name}: What value would you like for -${flagName} flag?`;
       let flagValue = void 0;
-      if (flagConfig instanceof Array) {
-        flagValue = await lc.wrap(1, () => ask.select(valueQuestion, flagConfig, previousValue));
-      }
-      if (flagConfig === "string") {
-        flagValue = await lc.wrap(1, () => ask.text(valueQuestion, previousValue || "")) || void 0;
-      }
-      if (flagConfig === "number") {
-        flagValue = await lc.wrap(1, () => ask.number(valueQuestion, previousValue || 0));
-      }
-      if (flagConfig === "boolean") {
-        flagValue = true;
+      if (flagConfig.options instanceof Array) {
+        flagValue = await lc.wrap(1, () => ask.select(valueQuestion, flagConfig.options, previousValue));
+      } else {
+        if (flagConfig.type === "string") {
+          flagValue = await lc.wrap(1, () => ask.text(valueQuestion, previousValue || "")) || void 0;
+        }
+        if (flagConfig.type === "number") {
+          flagValue = await lc.wrap(1, () => ask.number(valueQuestion, previousValue || 0));
+        }
+        if (flagConfig.type === "boolean") {
+          flagValue = true;
+        }
       }
       if (flagValue !== void 0) {
         selectedFlags[flagName] = flagValue;
@@ -800,7 +975,10 @@ var askFlags = async (name, previousFlagsObj = {}) => {
   return selectedFlags;
 };
 var flagsObjToArray = (obj) => {
-  return Object.entries(obj).map(([name, value]) => ["-" + name, value]).flat().filter((x) => x !== void 0 && x !== true);
+  return Object.entries(obj).map(([name, value]) => {
+    var _a;
+    return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || import_swiss_ak8.fn.noact)(value)];
+  }).flat().filter((x) => x !== void 0 && x !== true);
 };
 var formaliseCompositeFlags = (flags) => {
   const hasObjs = Object.values(flags).some((val) => typeof val === "object");
@@ -872,6 +1050,7 @@ var closeFinder = async () => {
   getLogStr,
   getProbe,
   getProbeValue,
+  getTerminalWidth,
   getTotalFrames,
   gm,
   left,
@@ -882,5 +1061,6 @@ var closeFinder = async () => {
   printTable,
   processLogContents,
   right,
+  utils,
   wrap
 });

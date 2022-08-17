@@ -92,7 +92,7 @@ var $$ = {
 
 // src/tools/ask.ts
 import { chalk as chalk4 } from "zx";
-import { seconds, wait as wait2, fn as fn3 } from "swiss-ak";
+import { seconds, wait as wait2, fn as fn6 } from "swiss-ak";
 import prompts from "prompts";
 import Fuse from "fuse.js";
 
@@ -105,8 +105,11 @@ __export(out_exports, {
   moveUp: () => moveUp,
   pad: () => pad,
   right: () => right,
+  utils: () => utils,
   wrap: () => wrap
 });
+import { wait, fn as fn5 } from "swiss-ak";
+import stringWidth from "string-width";
 
 // src/tools/LogUtils.ts
 var LogUtils_exports = {};
@@ -131,20 +134,177 @@ var getLog = (prefix, wrapper = fn2.noact) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
-// src/tools/out.ts
-import stringWidth from "string-width";
-import { wait } from "swiss-ak";
-var getDefaultColumns = () => {
-  var _a;
-  return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) || 100;
+// src/tools/printTable.ts
+import { fn as fn4 } from "swiss-ak";
+
+// src/tools/lineCounter.ts
+var getLineCounter = () => {
+  let lineCount = 0;
+  return {
+    log(...args) {
+      const added = utils.getNumLines(args.map(getLogStr).join(" "));
+      lineCount += added;
+      console.log(...args);
+      return added;
+    },
+    wrap: (newLines = 1, func, ...args) => {
+      const result = func(...args);
+      if (newLines === void 0) {
+        const resultNum = Number(result);
+        lineCount += Number.isNaN(resultNum) ? 1 : resultNum;
+      } else {
+        lineCount += newLines;
+      }
+      return result;
+    },
+    add(newLines) {
+      lineCount += newLines;
+      return lineCount;
+    },
+    get() {
+      return lineCount;
+    },
+    clear() {
+      moveUp(lineCount);
+      lineCount = 0;
+      return lineCount;
+    }
+  };
 };
-var getLines = (text2) => text2.split("\n").map((line) => line.trim());
-var getOutputLines = (item) => getLines(getLogStr(item));
+
+// src/utils/processTableInput.ts
+import { zip, fn as fn3 } from "swiss-ak";
+var empty = (numCols, char = "") => new Array(numCols).fill(char);
+var processCells = (cells, processFn, ...args) => ({
+  header: processFn(cells.header, ...args),
+  body: processFn(cells.body, ...args)
+});
+var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => "" + cell));
+var splitCellsIntoLines = (rows) => rows.map((row) => row.map((cell) => utils.getLines(cell)));
+var getDesiredColumnWidths = (cells, numCols) => {
+  const transposed = zip(...[...cells.header, ...cells.body]);
+  const currColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
+  const currTotalWidth = currColWidths.reduce(fn3.reduces.combine) + (numCols + 1) * 3;
+  const diff = currTotalWidth - getTerminalWidth();
+  const colWidths = [...currColWidths];
+  for (let i = 0; i < diff; i++) {
+    colWidths[colWidths.indexOf(Math.max(...colWidths))]--;
+  }
+  return colWidths;
+};
+var wrapCells = (rows, colWidths) => rows.map((row) => {
+  const wrapped = row.map((cell, colIndex) => utils.getLines(wrap(utils.joinLines(cell), colWidths[colIndex])));
+  const maxHeight = Math.max(...wrapped.map((cell) => cell.length));
+  return wrapped.map((cell) => [...cell, ...empty(maxHeight)].slice(0, maxHeight));
+});
+var seperateLinesIntoRows = (rows) => rows.map((row) => zip(...row));
+var processInput = (cells) => {
+  const numCols = Math.max(...[...cells.header || [], ...cells.body].map((row) => row.length));
+  const everyCell = processCells(cells, ensureStringForEveryCell, numCols);
+  const linedCells = processCells(everyCell, splitCellsIntoLines);
+  const colWidths = getDesiredColumnWidths(linedCells, numCols);
+  const wrappedCells = processCells(linedCells, wrapCells, colWidths);
+  const seperatedRows = processCells(wrappedCells, seperateLinesIntoRows);
+  return { cells: seperatedRows, numCols, colWidths };
+};
+
+// src/tools/printTable.ts
+var getTerminalWidth = () => {
+  var _a;
+  return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) ? process.stdout.columns : 100;
+};
+var getFullOptions = (opts) => {
+  const drawColLines = opts.drawColLines === void 0 ? true : opts.drawColLines;
+  return {
+    overrideChar: "",
+    overrideHorChar: opts.overrideChar || "",
+    align: ["left"],
+    ...opts,
+    wrapperFn: typeof opts.wrapperFn !== "function" ? fn4.noact : opts.wrapperFn,
+    drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter,
+    drawRowLines: opts.drawRowLines === void 0 ? true : opts.drawRowLines,
+    drawColLines,
+    overrideVerChar: drawColLines ? opts.overrideChar || "" : " "
+  };
+};
+var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
+var printTable = (body, header, opts = {}) => {
+  const { wrapperFn, overrideChar, overrideHorChar, overrideVerChar, drawOuter, drawRowLines, drawColLines } = getFullOptions(opts);
+  console.log("drawColLines", drawColLines, JSON.stringify(overrideVerChar));
+  console.log("drawRowLines", drawRowLines);
+  const lc = getLineCounter();
+  const {
+    cells: { header: pHeader, body: pBody },
+    numCols,
+    colWidths
+  } = processInput({ header, body });
+  const printLine = (row = empty2(numCols), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
+    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
+    const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
+    const joinC = orientOverride || overrideChar || joinChar;
+    const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
+    const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
+    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
+    if (textWrapperFn)
+      padded = padded.map((x) => textWrapperFn(x));
+    const inner = padded.join(`${padC}${joinC}${padC}`);
+    const str = `${startC}${padC}${inner}${padC}${endC}`;
+    lc.log(wrapperFn(str));
+  };
+  if (pHeader) {
+    if (drawOuter)
+      printLine(empty2(numCols, ""), "\u2501", "\u2533", "\u250F", "\u2513", true);
+    for (let index in pHeader) {
+      const row = pHeader[index];
+      if (drawRowLines && Number(index) !== 0)
+        printLine(empty2(numCols, ""), "\u2501", "\u254B", "\u2523", "\u252B", true);
+      for (let line of row) {
+        printLine(line, " ", "\u2503", void 0, void 0, false, chalk.bold);
+      }
+    }
+    printLine(empty2(numCols, ""), "\u2501", "\u2547", "\u2521", "\u2529", true);
+  } else {
+    if (drawOuter)
+      printLine(empty2(numCols, ""), "\u2500", "\u252C", "\u250C", "\u2510", true);
+  }
+  for (let index in pBody) {
+    const row = pBody[index];
+    if (drawRowLines && Number(index) !== 0)
+      printLine(empty2(numCols, ""), "\u2500", "\u253C", "\u251C", "\u2524", true);
+    for (let line of row) {
+      printLine(line);
+    }
+  }
+  if (drawOuter)
+    printLine(empty2(numCols, ""), "\u2500", "\u2534", "\u2514", "\u2518", true);
+  return lc.get();
+};
+
+// src/tools/out.ts
+var NEW_LINE = "\n";
+var anyTextToString = (text2) => text2 instanceof Array ? joinLines(text2) : text2;
+var trim = (text2) => text2.trim();
+var getLines = (text2) => anyTextToString(text2).split(NEW_LINE).map((line) => line.trim());
+var getNumLines = (text2) => getLines(text2).length;
+var getLinesWidth = (text2) => Math.max(...getLines(text2).map((line) => stringWidth(line)));
+var getLogLines = (item) => getLines(getLogStr(item));
+var getNumLogLines = (item) => getNumLines(getLogStr(item));
+var getLogLinesWidth = (item) => getLinesWidth(getLogStr(item));
+var joinLines = (lines) => lines.map(fn5.maps.toString).join(NEW_LINE);
+var utils = {
+  getLines,
+  getNumLines,
+  getLinesWidth,
+  getLogLines,
+  getNumLogLines,
+  getLogLinesWidth,
+  joinLines
+};
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var center = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar)).join("\n");
-var left = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, 0, width - stringWidth(line), replaceChar)).join("\n");
-var right = (item, width = getDefaultColumns(), replaceChar = " ") => getOutputLines(item).map((line) => pad(line, width - stringWidth(line), 0, replaceChar)).join("\n");
-var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line) => {
+var center = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar)).join(NEW_LINE);
+var left = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, 0, width - stringWidth(line), replaceChar)).join(NEW_LINE);
+var right = (item, width = getTerminalWidth(), replaceChar = " ") => getLogLines(item).map(trim).map((line) => pad(line, width - stringWidth(line), 0, replaceChar)).join(NEW_LINE);
+var wrap = (item, width = getTerminalWidth()) => getLogLines(item).map(trim).map((line) => {
   if (stringWidth(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
@@ -163,7 +323,7 @@ var wrap = (item, width = getDefaultColumns()) => getOutputLines(item).map((line
     return rows.map((row) => row.join("").trim()).filter((x) => x);
   }
   return line;
-}).flat().join("\n");
+}).flat().join(NEW_LINE);
 var moveUp = (lines = 1) => {
   var _a;
   if ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.clearLine) {
@@ -416,7 +576,7 @@ var rename = async (bef, aft) => {
   }
   return isConfirmed;
 };
-var fileExplorer = async (startDir, filter = fn3.result(true), questionText = "Choose a file:") => {
+var fileExplorer = async (startDir, filter = fn6.result(true), questionText = "Choose a file:") => {
   const fnDir = gray5;
   const fnFiles = gray3;
   const runExplorer = async (dir) => {
@@ -500,7 +660,6 @@ var ffmpeg = async (command = () => $`ffmpeg -progress pr.txt`, progressFileName
   const bar = getProgressBar(totalFrames, {
     showCount: true,
     showPercent: true,
-    chalk,
     wrapperFn: chalk.magenta,
     ...progressBarOpts
   });
@@ -521,94 +680,6 @@ var ffmpeg = async (command = () => $`ffmpeg -progress pr.txt`, progressFileName
   await ffmpegProcess;
 };
 
-// src/tools/lineCounter.ts
-var getLineCounter = () => {
-  let lineCount = 0;
-  return {
-    log(...args) {
-      const added = args.map(getLogStr).join(" ").split("\n").length;
-      lineCount += added;
-      console.log(...args);
-      return added;
-    },
-    wrap: (newLines = 1, func, ...args) => {
-      const result = func(...args);
-      if (newLines === void 0) {
-        const resultNum = Number(result);
-        lineCount += Number.isNaN(resultNum) ? 1 : resultNum;
-      } else {
-        lineCount += newLines;
-      }
-      return result;
-    },
-    add(newLines) {
-      lineCount += newLines;
-      return lineCount;
-    },
-    get() {
-      return lineCount;
-    },
-    clear() {
-      moveUp(lineCount);
-      lineCount = 0;
-      return lineCount;
-    }
-  };
-};
-
-// src/tools/printTable.ts
-import { zip, fn as fn4 } from "swiss-ak";
-import stringWidth2 from "string-width";
-var getFullOptions = (opts) => ({
-  overrideChar: "",
-  overrideHorChar: opts.overrideChar || "",
-  overrideVerChar: opts.overrideChar || "",
-  ...opts,
-  wrapperFn: typeof opts.wrapperFn !== "function" ? fn4.noact : opts.wrapperFn,
-  drawOuter: opts.drawOuter === void 0 ? true : opts.drawOuter
-});
-var printTable = (body, header, opts = {}) => {
-  const { wrapperFn, overrideChar, overrideHorChar, overrideVerChar, drawOuter } = getFullOptions(opts);
-  const lc = getLineCounter();
-  const allRows = () => [...header || [], ...body];
-  const numCols = Math.max(...allRows().map((row) => row.length));
-  const empty = (char = "") => new Array(numCols).fill(char);
-  const correctRow = (row) => [...row, ...empty()].slice(0, numCols).map((cell) => "" + cell);
-  header = header && header.map(correctRow);
-  body = body.map(correctRow);
-  const colWidths = zip(...allRows()).map((col) => Math.max(...col.map((s) => stringWidth2(s || ""))));
-  const printRow = (row = empty(), padChar = " ", joinChar = "\u2502", startChar = joinChar, endChar = joinChar, isHor = false, textWrapperFn) => {
-    const orientOverride = isHor ? overrideHorChar : overrideVerChar;
-    const padC = (isHor ? overrideHorChar : void 0) || overrideChar || padChar;
-    const joinC = orientOverride || overrideChar || joinChar;
-    const startC = drawOuter ? orientOverride || overrideChar || startChar : "";
-    const endC = drawOuter ? orientOverride || overrideChar || endChar : "";
-    let padded = row.map((cell, col) => left(cell || "", colWidths[col], padC));
-    if (textWrapperFn)
-      padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(`${padC}${joinC}${padC}`);
-    const str = `${startC}${padC}${inner}${padC}${endC}`;
-    lc.log(wrapperFn(str));
-  };
-  if (header) {
-    if (drawOuter)
-      printRow(empty(""), "\u2501", "\u2533", "\u250F", "\u2513", true);
-    for (let row of header) {
-      printRow(row, " ", "\u2503", void 0, void 0, false, chalk.bold);
-    }
-    printRow(empty(""), "\u2501", "\u2547", "\u2521", "\u2529", true);
-  } else {
-    if (drawOuter)
-      printRow(empty(""), "\u2500", "\u252C", "\u250C", "\u2510", true);
-  }
-  for (let row of body) {
-    printRow(row);
-  }
-  if (drawOuter)
-    printRow(empty(""), "\u2500", "\u2534", "\u2514", "\u2518", true);
-  return lc.get();
-};
-
 // src/utils/arrayToNLList.ts
 var arrayToNLList = (arr) => {
   let joinArr = arr;
@@ -619,41 +690,130 @@ var arrayToNLList = (arr) => {
 };
 
 // src/tools/gm.ts
+import { fn as fn7 } from "swiss-ak";
 var supportedFlags = {
-  compose: [
-    "Screen",
-    "Over",
-    "In",
-    "Out",
-    "Atop",
-    "Xor",
-    "Plus",
-    "Minus",
-    "Add",
-    "Subtract",
-    "Difference",
-    "Divide",
-    "Multiply",
-    "Bumpmap",
-    "Copy",
-    "CopyRed",
-    "CopyGreen",
-    "CopyBlue",
-    "CopyOpacity",
-    "CopyCyan",
-    "CopyMagenta",
-    "CopyYellow",
-    "CopyBlack"
-  ],
-  displace: "string",
-  dissolve: "number",
-  geometry: "string",
-  gravity: ["Center", "North", "NorthEast", "East", "SouthEast", "South", "SouthWest", "West", "NorthWest"],
-  negate: "boolean",
-  quality: "number",
-  resize: "string",
-  rotate: "number",
-  size: "string"
+  "black-threshold": {
+    name: "black-threshold",
+    type: "number",
+    description: "pixels below the threshold become black",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  },
+  compose: {
+    name: "compose",
+    type: "string",
+    options: [
+      "Screen",
+      "Over",
+      "In",
+      "Out",
+      "Atop",
+      "Xor",
+      "Plus",
+      "Minus",
+      "Add",
+      "Subtract",
+      "Difference",
+      "Divide",
+      "Multiply",
+      "Bumpmap",
+      "Copy",
+      "CopyRed",
+      "CopyGreen",
+      "CopyBlue",
+      "CopyOpacity",
+      "CopyCyan",
+      "CopyMagenta",
+      "CopyYellow",
+      "CopyBlack"
+    ],
+    canOverrideOpts: false,
+    description: "the type of image composition"
+  },
+  displace: {
+    name: "displace",
+    type: "string",
+    description: "shift image pixels as defined by a displacement map",
+    hint: "<horizontal scale>x<vertical scale>"
+  },
+  dissolve: {
+    name: "dissolve",
+    type: "number",
+    description: "dissolve an image into another by the given percent",
+    hint: "%"
+  },
+  flip: {
+    name: "flip",
+    type: "boolean",
+    description: 'create a "mirror image" - vertical'
+  },
+  flop: {
+    name: "flop",
+    type: "boolean",
+    description: 'create a "mirror image" - horizontal'
+  },
+  geometry: {
+    name: "geometry",
+    type: "string",
+    description: "Specify dimension, offset, and resize options.",
+    hint: "<width>x<height>{+-}<x>{+-}<y>{%}{@}{!}{^}{<}{>} e.g. 100x100+10+10, +10+10"
+  },
+  gravity: {
+    name: "gravity",
+    type: "string",
+    options: ["Center", "North", "NorthEast", "East", "SouthEast", "South", "SouthWest", "West", "NorthWest"],
+    canOverrideOpts: false,
+    description: "direction primitive gravitates to when annotating the image."
+  },
+  monochrome: {
+    name: "monochrome",
+    type: "boolean",
+    description: "transform the image to black and white"
+  },
+  negate: {
+    name: "negate",
+    type: "boolean",
+    description: "replace every pixel with its complementary color"
+  },
+  quality: {
+    name: "quality",
+    type: "number",
+    description: "JPEG/MIFF/PNG/TIFF compression level",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  },
+  resize: {
+    name: "resize",
+    type: "string",
+    description: "resize an image",
+    hint: "<width>x<height>{%}{@}{!}{<}{>} e.g. 100x200"
+  },
+  rotate: {
+    name: "rotate",
+    type: "number",
+    description: "rotate the image - clockwise",
+    hint: "degrees (0-360)"
+  },
+  size: {
+    name: "size",
+    type: "string",
+    description: "width and height of the image",
+    hint: "<width>x<height>"
+  },
+  threshold: {
+    name: "threshold",
+    type: "number",
+    description: "pixels above the threshold become white, pixels below the threshold become black",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  },
+  "white-threshold": {
+    name: "white-threshold",
+    type: "number",
+    description: "pixels above the threshold become white",
+    hint: "%",
+    processOutput: (value) => `${value}%`
+  }
 };
 var printFlagsTable = (flagsObjArray, overrideHeader, extraRow) => {
   const lc = getLineCounter();
@@ -661,7 +821,15 @@ var printFlagsTable = (flagsObjArray, overrideHeader, extraRow) => {
   const header = overrideHeader || [["Flag", ...flagsObjArray.map((v, i) => `#${i + 1}`)]];
   const body = allFlagNames.length === 0 ? [["none"]] : allFlagNames.map((flagName) => {
     return [
-      [flagName, ...flagsObjArray.map((obj) => obj[flagName] === void 0 ? "" : getLogStr(obj[flagName]))],
+      [
+        flagName,
+        ...flagsObjArray.map(
+          (obj) => {
+            var _a;
+            return obj[flagName] === void 0 ? "" : getLogStr((((_a = supportedFlags[flagName]) == null ? void 0 : _a.processOutput) || fn7.noact)(obj[flagName]));
+          }
+        )
+      ],
       ["", ""]
     ];
   }).flat().slice(0, -1);
@@ -711,20 +879,25 @@ var askFlags = async (name, previousFlagsObj = {}) => {
       const opts = actionType === "add" ? addableFlags : selectedFlagNames;
       const flagName = await lc.wrap(1, () => ask.select(`${name}: What flag would you like to ${actionType}?`, opts)) + "";
       const flagConfig = supportedFlags[flagName];
+      const { description, hint, processOutput } = flagConfig;
       const previousValue = selectedFlags[flagName] || previousFlagsObj[flagName];
+      lc.log(gray3(`${flagName}: ${description}`));
+      if (hint)
+        lc.log(gray2(`		Hint: ${hint}`));
       const valueQuestion = `${name}: What value would you like for -${flagName} flag?`;
       let flagValue = void 0;
-      if (flagConfig instanceof Array) {
-        flagValue = await lc.wrap(1, () => ask.select(valueQuestion, flagConfig, previousValue));
-      }
-      if (flagConfig === "string") {
-        flagValue = await lc.wrap(1, () => ask.text(valueQuestion, previousValue || "")) || void 0;
-      }
-      if (flagConfig === "number") {
-        flagValue = await lc.wrap(1, () => ask.number(valueQuestion, previousValue || 0));
-      }
-      if (flagConfig === "boolean") {
-        flagValue = true;
+      if (flagConfig.options instanceof Array) {
+        flagValue = await lc.wrap(1, () => ask.select(valueQuestion, flagConfig.options, previousValue));
+      } else {
+        if (flagConfig.type === "string") {
+          flagValue = await lc.wrap(1, () => ask.text(valueQuestion, previousValue || "")) || void 0;
+        }
+        if (flagConfig.type === "number") {
+          flagValue = await lc.wrap(1, () => ask.number(valueQuestion, previousValue || 0));
+        }
+        if (flagConfig.type === "boolean") {
+          flagValue = true;
+        }
       }
       if (flagValue !== void 0) {
         selectedFlags[flagName] = flagValue;
@@ -751,7 +924,10 @@ var askFlags = async (name, previousFlagsObj = {}) => {
   return selectedFlags;
 };
 var flagsObjToArray = (obj) => {
-  return Object.entries(obj).map(([name, value]) => ["-" + name, value]).flat().filter((x) => x !== void 0 && x !== true);
+  return Object.entries(obj).map(([name, value]) => {
+    var _a;
+    return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || fn7.noact)(value)];
+  }).flat().filter((x) => x !== void 0 && x !== true);
 };
 var formaliseCompositeFlags = (flags) => {
   const hasObjs = Object.values(flags).some((val) => typeof val === "object");
@@ -822,6 +998,7 @@ export {
   getLogStr,
   getProbe,
   getProbeValue,
+  getTerminalWidth,
   getTotalFrames,
   gm,
   left,
@@ -832,5 +1009,6 @@ export {
   printTable,
   processLogContents,
   right,
+  utils,
   wrap
 };

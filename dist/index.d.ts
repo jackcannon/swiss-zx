@@ -121,99 +121,6 @@ declare namespace PathUtils {
   };
 }
 
-declare type lines = number;
-/**
- * getLineCounter
- *
- * Get line counter for counter output lines
- *
- * ```typescript
- * const lc = getLineCounter();
- * lc.log('hello'); // 1
- * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
- * lc.add(1); // 3
- * lc.get(); // 3
- * lc.clear(); // 0
- * ```
- */
-declare const getLineCounter: () => {
-    /**
-     * lc.log
-     *
-     * Same as console.log, but adds to the lc counter
-     *
-     * ```typescript
-     * const lc = getLineCounter();
-     * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
-     * lc.add(1); // 3
-     * lc.get(); // 3
-     * lc.clear(); // 0
-     * ```
-     */
-    log(...args: any[]): lines;
-    /**
-     * lc.wrap
-     *
-     * Wraps a function, and adds a given number (of the result of the function) to the line counter
-     *
-     * ```typescript
-     * const lc = getLineCounter();
-     * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
-     * lc.add(1); // 3
-     * lc.get(); // 3
-     * lc.clear(); // 0
-     * ```
-     */
-    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined, func: (...args: A) => number | T, ...args: A) => T;
-    /**
-     * lc.add
-     *
-     * Adds a given number to the line counter
-     *
-     * ```typescript
-     * const lc = getLineCounter();
-     * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
-     * lc.add(1); // 3
-     * lc.get(); // 3
-     * lc.clear(); // 0
-     * ```
-     */
-    add(newLines: lines): lines;
-    /**
-     * lc.get
-     *
-     * returns the line counter
-     *
-     * ```typescript
-     * const lc = getLineCounter();
-     * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
-     * lc.add(1); // 3
-     * lc.get(); // 3
-     * lc.clear(); // 0
-     * ```
-     */
-    get(): lines;
-    /**
-     * lc.clear
-     *
-     * clears the line counter, and moves the cursor up by the value of the line counter
-     *
-     * ```typescript
-     * const lc = getLineCounter();
-     * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
-     * lc.add(1); // 3
-     * lc.get(); // 3
-     * lc.clear(); // 0
-     * ```
-     */
-    clear(): lines;
-};
-
 interface PromptChoiceObject<T = string> {
     title?: string;
     value?: T;
@@ -227,7 +134,7 @@ declare const ask: {
     select: <T_1 extends unknown>(message: string, choices: PromptChoice<T_1>[], initial?: T_1) => Promise<T_1>;
     multiselect: <T_2 extends unknown>(message: string, choices: PromptChoice<T_2>[], initial?: T_2) => Promise<T_2[]>;
     validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I | Promise<I>, validateFn: (input: Awaited<I>) => boolean | string) => Promise<I>;
-    imitate: (done: boolean, questionText: string, resultText?: string) => lines;
+    imitate: (done: boolean, questionText: string, resultText?: string) => number;
     loading: (questionText: string) => {
         stop: () => void;
     };
@@ -281,17 +188,32 @@ declare const getTotalFrames: (list?: string[]) => Promise<number>;
  */
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
 
+interface SupportedFlag {
+    name: string;
+    type: 'string' | 'number' | 'boolean';
+    options?: string[];
+    canOverrideOpts?: boolean;
+    processOutput?: (value: any) => any;
+    description: string;
+    hint?: string;
+}
 interface FlagsObj {
+    'black-threshold'?: number;
     compose?: string;
     displace?: string;
     dissolve?: number;
+    flip?: boolean;
+    flop?: boolean;
     geometry?: string;
     gravity?: string;
+    monochrome?: boolean;
     negate?: boolean;
     quality?: number;
     resize?: string;
     rotate?: number;
     size?: string;
+    threshold?: number;
+    'white-threshold'?: number;
 }
 interface CompositeFlags {
     change?: FlagsObj;
@@ -302,36 +224,136 @@ declare const gm: {
     composite: (changePath: string, basePath: string, outPath?: string, maskPath?: string, flags?: CompositeFlags | FlagsObj) => Promise<ProcessOutput>;
     ask: {
         flags: (name: string, previousFlagsObj?: FlagsObj) => Promise<{
+            'black-threshold'?: number;
             compose?: string;
             displace?: string;
             dissolve?: number;
+            flip?: boolean;
+            flop?: boolean;
             geometry?: string;
             gravity?: string;
+            monochrome?: boolean;
             negate?: boolean;
             quality?: number;
             resize?: string;
             rotate?: number;
             size?: string;
+            threshold?: number;
+            'white-threshold'?: number;
         }>;
     };
     utils: {
         supportedFlags: {
-            compose: string[];
-            displace: string;
-            dissolve: string;
-            geometry: string;
-            gravity: string[];
-            negate: string;
-            quality: string;
-            resize: string;
-            rotate: string;
-            size: string;
+            [key: string]: SupportedFlag;
         };
         printFlagsTable: (flagsObjArray: FlagsObj[], overrideHeader: string[][], extraRow?: any) => number;
         flagsObjToArray: (obj: FlagsObj) => any[];
     };
 };
 
+/**
+ * getLineCounter
+ *
+ * Get line counter for counter output lines
+ *
+ * ```typescript
+ * const lc = getLineCounter();
+ * lc.log('hello'); // 1
+ * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+ * lc.add(1); // 3
+ * lc.get(); // 3
+ * lc.clear(); // 0
+ * ```
+ */
+declare const getLineCounter: () => {
+    /**
+     * lc.log
+     *
+     * Same as console.log, but adds to the lc counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
+    log(...args: any[]): number;
+    /**
+     * lc.wrap
+     *
+     * Wraps a function, and adds a given number (of the result of the function) to the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
+    wrap: <A extends unknown[], T extends unknown>(newLines: number | undefined, func: (...args: A) => number | T, ...args: A) => T;
+    /**
+     * lc.add
+     *
+     * Adds a given number to the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
+    add(newLines: number): number;
+    /**
+     * lc.get
+     *
+     * returns the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
+    get(): number;
+    /**
+     * lc.clear
+     *
+     * clears the line counter, and moves the cursor up by the value of the line counter
+     *
+     * ```typescript
+     * const lc = getLineCounter();
+     * lc.log('hello'); // 1
+     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.add(1); // 3
+     * lc.get(); // 3
+     * lc.clear(); // 0
+     * ```
+     */
+    clear(): number;
+};
+
+declare type tableText = string | string[];
+
+declare const utils: {
+    getLines: (text: tableText) => string[];
+    getNumLines: (text: tableText) => number;
+    getLinesWidth: (text: tableText) => number;
+    getLogLines: (item: any) => string[];
+    getNumLogLines: (item: tableText) => number;
+    getLogLinesWidth: (item: tableText) => number;
+    joinLines: (lines: string[]) => string;
+};
 /**
  * out.pad
  *
@@ -427,6 +449,7 @@ declare const loading: (action?: (s: string) => any, lines?: number, symbols?: s
     stop: () => void;
 };
 
+declare const out_utils: typeof utils;
 declare const out_pad: typeof pad;
 declare const out_center: typeof center;
 declare const out_left: typeof left;
@@ -436,6 +459,7 @@ declare const out_moveUp: typeof moveUp;
 declare const out_loading: typeof loading;
 declare namespace out {
   export {
+    out_utils as utils,
     out_pad as pad,
     out_center as center,
     out_left as left,
@@ -451,6 +475,14 @@ declare namespace out {
  */
 declare const closeFinder: () => Promise<void>;
 
+/**
+ * getTerminalWidth
+ *
+ * Get maximum terminal width (columns)
+ *
+ * TODO - add to README
+ */
+declare const getTerminalWidth: () => number;
 interface TableOptions {
     /**
      * Function to wrap each line of the table in (e.g. chalk.blue)
@@ -472,6 +504,23 @@ interface TableOptions {
      * Whether to draw the outer border of the table
      */
     drawOuter: boolean;
+    /**
+     * Whether to draw lines between rows (other than separating header and body);
+     * TODO - update docs
+     */
+    drawRowLines: boolean;
+    /**
+     * Whether to draw lines between columns
+     * TODO - update docs
+     */
+    drawColLines: boolean;
+    /**
+     * How each column should be aligned
+     *
+     * left, right or center
+     * TODO - update docs
+     */
+    align: ('left' | 'right' | 'center')[];
 }
 /**
  * printTable
@@ -601,4 +650,4 @@ declare namespace chlk {
   };
 }
 
-export { $$, ExplodedPath, LogUtils, PathUtils, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, left, lines, loading, moveUp, out, pad, printTable, processLogContents, right, wrap };
+export { $$, ExplodedPath, LogUtils, PathUtils, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTerminalWidth, getTotalFrames, gm, left, loading, moveUp, out, pad, printTable, processLogContents, right, utils, wrap };

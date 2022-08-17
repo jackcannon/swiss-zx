@@ -1,7 +1,5 @@
 import { getLogStr } from './LogUtils';
-import { moveUp } from './out';
-
-export type lines = number;
+import { moveUp, utils } from './out';
 
 /**
  * getLineCounter
@@ -18,7 +16,7 @@ export type lines = number;
  * ```
  */
 export const getLineCounter = () => {
-  let lineCount: lines = 0;
+  let lineCount: number = 0;
 
   return {
     /**
@@ -35,8 +33,8 @@ export const getLineCounter = () => {
      * lc.clear(); // 0
      * ```
      */
-    log(...args: any[]): lines {
-      const added = args.map(getLogStr).join(' ').split('\n').length;
+    log(...args: any[]): number {
+      const added = utils.getNumLines(args.map(getLogStr).join(' '));
       lineCount += added;
       console.log(...args);
       return added;
@@ -56,7 +54,7 @@ export const getLineCounter = () => {
      * lc.clear(); // 0
      * ```
      */
-    wrap: <A extends unknown[], T extends unknown>(newLines: lines | undefined = 1, func: (...args: A) => T | number, ...args: A): T => {
+    wrap: <A extends unknown[], T extends unknown>(newLines: number | undefined = 1, func: (...args: A) => T | number, ...args: A): T => {
       const result = func(...args);
 
       if (newLines === undefined) {
@@ -82,7 +80,7 @@ export const getLineCounter = () => {
      * lc.clear(); // 0
      * ```
      */
-    add(newLines: lines): lines {
+    add(newLines: number): number {
       lineCount += newLines;
       return lineCount;
     },
@@ -101,7 +99,7 @@ export const getLineCounter = () => {
      * lc.clear(); // 0
      * ```
      */
-    get(): lines {
+    get(): number {
       return lineCount;
     },
 
@@ -119,7 +117,7 @@ export const getLineCounter = () => {
      * lc.clear(); // 0
      * ```
      */
-    clear(): lines {
+    clear(): number {
       moveUp(lineCount);
       lineCount = 0;
       return lineCount;

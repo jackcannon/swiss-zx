@@ -7,7 +7,6 @@ import { $$ } from './$$';
 import { moveUp, loading as loadingOut } from './out';
 import * as chlk from './chlk';
 import { ExplodedPath, explodePath } from './PathUtils';
-import { lines } from './lineCounter';
 
 const PROMPT_VALUE_PROPERTY = 'SWISS_ZX_PROMPT_VALUE';
 
@@ -234,7 +233,7 @@ const validate = async <T extends unknown, I extends unknown>(
  * ask.imitate(true, 'What is your name?', 'Jack');
  * ```
  */
-const imitate = (done: boolean, questionText: string, resultText?: string): lines => {
+const imitate = (done: boolean, questionText: string, resultText?: string): number => {
   const prefix = done ? chalk.green('✔') : chalk.cyan('?');
   const question = chalk.whiteBright.bold(questionText);
   const joiner = chalk.gray(done ? '…' : '›');

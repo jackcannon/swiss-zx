@@ -102,7 +102,6 @@ export const ffmpeg = async (
   const bar = getProgressBar(totalFrames, {
     showCount: true,
     showPercent: true,
-    chalk,
     wrapperFn: chalk.magenta,
     ...progressBarOpts
   });

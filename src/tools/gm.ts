@@ -4,60 +4,167 @@ import { printTable } from './printTable';
 import * as out from './out';
 import { ask } from './ask';
 import { arrayToNLList } from '../utils/arrayToNLList';
+import * as chlk from './chlk';
+import { fn } from 'swiss-ak';
+
+interface SupportedFlag {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+  options?: string[];
+  canOverrideOpts?: boolean;
+  processOutput?: (value: any) => any;
+  description: string;
+  hint?: string;
+}
 
 /**
  * gm.utils.supportedFlags
  *
  * An object containing the supported flags and their types (or options).
  */
-const supportedFlags = {
-  compose: [
-    'Screen', // special case
-    'Over',
-    'In',
-    'Out',
-    'Atop',
-    'Xor',
-    'Plus',
-    'Minus',
-    'Add',
-    'Subtract',
-    'Difference',
-    'Divide',
-    'Multiply',
-    'Bumpmap',
-    'Copy',
-    'CopyRed',
-    'CopyGreen',
-    'CopyBlue',
-    'CopyOpacity',
-    'CopyCyan',
-    'CopyMagenta',
-    'CopyYellow',
-    'CopyBlack'
-  ],
-  displace: 'string',
-  dissolve: 'number',
-  geometry: 'string',
-  gravity: ['Center', 'North', 'NorthEast', 'East', 'SouthEast', 'South', 'SouthWest', 'West', 'NorthWest'],
-  negate: 'boolean',
-  quality: 'number',
-  resize: 'string',
-  rotate: 'number',
-  size: 'string'
+const supportedFlags: { [key: string]: SupportedFlag } = {
+  'black-threshold': {
+    name: 'black-threshold',
+    type: 'number',
+    description: 'pixels below the threshold become black',
+    hint: '%',
+    processOutput: (value) => `${value}%`
+  },
+  compose: {
+    name: 'compose',
+    type: 'string',
+    options: [
+      'Screen', // special case
+      'Over',
+      'In',
+      'Out',
+      'Atop',
+      'Xor',
+      'Plus',
+      'Minus',
+      'Add',
+      'Subtract',
+      'Difference',
+      'Divide',
+      'Multiply',
+      'Bumpmap',
+      'Copy',
+      'CopyRed',
+      'CopyGreen',
+      'CopyBlue',
+      'CopyOpacity',
+      'CopyCyan',
+      'CopyMagenta',
+      'CopyYellow',
+      'CopyBlack'
+    ],
+    canOverrideOpts: false,
+    description: 'the type of image composition'
+  },
+  displace: {
+    name: 'displace',
+    type: 'string',
+    description: 'shift image pixels as defined by a displacement map',
+    hint: '<horizontal scale>x<vertical scale>'
+  },
+  dissolve: {
+    name: 'dissolve',
+    type: 'number',
+    description: 'dissolve an image into another by the given percent',
+    hint: '%'
+  },
+  flip: {
+    name: 'flip',
+    type: 'boolean',
+    description: 'create a "mirror image" - vertical'
+  },
+  flop: {
+    name: 'flop',
+    type: 'boolean',
+    description: 'create a "mirror image" - horizontal'
+  },
+  geometry: {
+    name: 'geometry',
+    type: 'string',
+    description: 'Specify dimension, offset, and resize options.',
+    hint: '<width>x<height>{+-}<x>{+-}<y>{%}{@}{!}{^}{<}{>} e.g. 100x100+10+10, +10+10'
+  },
+  gravity: {
+    name: 'gravity',
+    type: 'string',
+    options: ['Center', 'North', 'NorthEast', 'East', 'SouthEast', 'South', 'SouthWest', 'West', 'NorthWest'],
+    canOverrideOpts: false,
+    description: 'direction primitive gravitates to when annotating the image.'
+  },
+  monochrome: {
+    name: 'monochrome',
+    type: 'boolean',
+    description: 'transform the image to black and white'
+  },
+  negate: {
+    name: 'negate',
+    type: 'boolean',
+    description: 'replace every pixel with its complementary color'
+  },
+  quality: {
+    name: 'quality',
+    type: 'number',
+    description: 'JPEG/MIFF/PNG/TIFF compression level',
+    hint: '%',
+    processOutput: (value) => `${value}%`
+  },
+  resize: {
+    name: 'resize',
+    type: 'string',
+    description: 'resize an image',
+    hint: '<width>x<height>{%}{@}{!}{<}{>} e.g. 100x200'
+  },
+  rotate: {
+    name: 'rotate',
+    type: 'number',
+    // options: ['90', '180', '270'],
+    description: 'rotate the image - clockwise',
+    hint: 'degrees (0-360)'
+  },
+  size: {
+    name: 'size',
+    type: 'string',
+    description: 'width and height of the image',
+    hint: '<width>x<height>'
+  },
+  threshold: {
+    name: 'threshold',
+    type: 'number',
+    description: 'pixels above the threshold become white, pixels below the threshold become black',
+    hint: '%',
+    processOutput: (value) => `${value}%`
+  },
+  'white-threshold': {
+    name: 'white-threshold',
+    type: 'number',
+    description: 'pixels above the threshold become white',
+    hint: '%',
+    processOutput: (value) => `${value}%`
+  }
 };
 
 interface FlagsObj {
+  'black-threshold'?: number;
   compose?: string;
   displace?: string;
   dissolve?: number;
+  flip?: boolean;
+  flop?: boolean;
   geometry?: string;
   gravity?: string;
+  monochrome?: boolean;
   negate?: boolean;
   quality?: number;
   resize?: string;
   rotate?: number;
   size?: string;
+  threshold?: number;
+  'white-threshold'?: number;
 }
 
 interface CompositeFlags {
@@ -82,7 +189,12 @@ const printFlagsTable = (flagsObjArray: FlagsObj[], overrideHeader: string[][], 
       : allFlagNames
           .map((flagName) => {
             return [
-              [flagName, ...flagsObjArray.map((obj) => (obj[flagName] === undefined ? '' : getLogStr(obj[flagName])))],
+              [
+                flagName,
+                ...flagsObjArray.map((obj) =>
+                  obj[flagName] === undefined ? '' : getLogStr((supportedFlags[flagName]?.processOutput || fn.noact)(obj[flagName]))
+                )
+              ],
               ['', '']
             ];
           })
@@ -153,21 +265,26 @@ const askFlags = async (name: string, previousFlagsObj: FlagsObj = {}) => {
       const flagName = (await lc.wrap(1, () => ask.select(`${name}: What flag would you like to ${actionType}?`, opts))) + '';
 
       const flagConfig = supportedFlags[flagName];
+      const { description, hint, processOutput } = flagConfig;
       const previousValue = selectedFlags[flagName] || previousFlagsObj[flagName];
+
+      lc.log(chlk.gray3(`${flagName}: ${description}`));
+      if (hint) lc.log(chlk.gray2(`		Hint: ${hint}`));
 
       const valueQuestion = `${name}: What value would you like for -${flagName} flag?`;
       let flagValue = undefined;
-      if (flagConfig instanceof Array) {
-        flagValue = await lc.wrap(1, () => ask.select(valueQuestion, flagConfig, previousValue));
-      }
-      if (flagConfig === 'string') {
-        flagValue = (await lc.wrap(1, () => ask.text(valueQuestion, previousValue || ''))) || undefined;
-      }
-      if (flagConfig === 'number') {
-        flagValue = await lc.wrap(1, () => ask.number(valueQuestion, previousValue || 0));
-      }
-      if (flagConfig === 'boolean') {
-        flagValue = true;
+      if (flagConfig.options instanceof Array) {
+        flagValue = await lc.wrap(1, () => ask.select(valueQuestion, flagConfig.options, previousValue));
+      } else {
+        if (flagConfig.type === 'string') {
+          flagValue = (await lc.wrap(1, () => ask.text(valueQuestion, previousValue || ''))) || undefined;
+        }
+        if (flagConfig.type === 'number') {
+          flagValue = await lc.wrap(1, () => ask.number(valueQuestion, previousValue || 0));
+        }
+        if (flagConfig.type === 'boolean') {
+          flagValue = true;
+        }
       }
       if (flagValue !== undefined) {
         selectedFlags[flagName] = flagValue;
@@ -202,7 +319,7 @@ const askFlags = async (name: string, previousFlagsObj: FlagsObj = {}) => {
  */
 const flagsObjToArray = (obj: FlagsObj) => {
   return Object.entries(obj)
-    .map(([name, value]) => ['-' + name, value])
+    .map(([name, value]) => ['-' + name, (supportedFlags[name]?.processOutput || fn.noact)(value)])
     .flat()
     .filter((x) => x !== undefined && x !== true);
 };

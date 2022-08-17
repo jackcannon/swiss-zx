@@ -1,10 +1,36 @@
-import { getLogStr } from './LogUtils';
+import { wait, fn } from 'swiss-ak';
 import stringWidth from 'string-width';
-import { wait } from 'swiss-ak';
+import { getLogStr } from './LogUtils';
+import { getTerminalWidth } from './printTable';
+import { tableText } from '../utils/processTableInput';
 
-const getDefaultColumns = (): number => process?.stdout?.columns || 100;
-const getLines = (text: string): string[] => text.split('\n').map((line) => line.trim());
-const getOutputLines = (item): string[] => getLines(getLogStr(item));
+const NEW_LINE = '\n';
+
+const anyTextToString = (text: tableText): string => (text instanceof Array ? joinLines(text) : text);
+const trim = (text: string) => text.trim();
+
+const getLines = (text: tableText): string[] =>
+  anyTextToString(text)
+    .split(NEW_LINE)
+    .map((line) => line.trim());
+const getNumLines = (text: tableText): number => getLines(text).length;
+const getLinesWidth = (text: tableText): number => Math.max(...getLines(text).map((line) => stringWidth(line)));
+
+const getLogLines = (item: any): string[] => getLines(getLogStr(item));
+const getNumLogLines = (item: tableText): number => getNumLines(getLogStr(item));
+const getLogLinesWidth = (item: tableText): number => getLinesWidth(getLogStr(item));
+
+const joinLines = (lines: string[]): string => lines.map(fn.maps.toString).join(NEW_LINE);
+
+export const utils = {
+  getLines,
+  getNumLines,
+  getLinesWidth,
+  getLogLines,
+  getNumLogLines,
+  getLogLinesWidth,
+  joinLines
+};
 
 /**
  * out.pad
@@ -33,10 +59,11 @@ export const pad = (line: string, start: number, end: number, replaceChar: strin
  * // '  2  '
  * ```
  */
-export const center = (item: any, width: number = getDefaultColumns(), replaceChar: string = ' '): string =>
-  getOutputLines(item)
+export const center = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' '): string =>
+  getLogLines(item)
+    .map(trim)
     .map((line) => pad(line, Math.floor((width - stringWidth(line)) / 2), Math.ceil((width - stringWidth(line)) / 2), replaceChar))
-    .join('\n');
+    .join(NEW_LINE);
 
 /**
  * out.left
@@ -52,10 +79,11 @@ export const center = (item: any, width: number = getDefaultColumns(), replaceCh
  * // '2    '
  * ```
  */
-export const left = (item: any, width: number = getDefaultColumns(), replaceChar: string = ' '): string =>
-  getOutputLines(item)
+export const left = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' '): string =>
+  getLogLines(item)
+    .map(trim)
     .map((line) => pad(line, 0, width - stringWidth(line), replaceChar))
-    .join('\n');
+    .join(NEW_LINE);
 
 /**
  * out.right
@@ -71,10 +99,11 @@ export const left = (item: any, width: number = getDefaultColumns(), replaceChar
  * // '    2'
  * ```
  */
-export const right = (item: any, width: number = getDefaultColumns(), replaceChar: string = ' '): string =>
-  getOutputLines(item)
+export const right = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' '): string =>
+  getLogLines(item)
+    .map(trim)
     .map((line) => pad(line, width - stringWidth(line), 0, replaceChar))
-    .join('\n');
+    .join(NEW_LINE);
 
 /**
  * out.wrap
@@ -87,8 +116,9 @@ export const right = (item: any, width: number = getDefaultColumns(), replaceCha
  * // 'a sentence'
  * ```
  */
-export const wrap = (item: any, width: number = getDefaultColumns()): string =>
-  getOutputLines(item)
+export const wrap = (item: any, width: number = getTerminalWidth()): string =>
+  getLogLines(item)
+    .map(trim)
     .map((line) => {
       if (stringWidth(line) > width) {
         const words: string[] = line.split(/(?<=#?[ -]+)/g);
@@ -117,7 +147,7 @@ export const wrap = (item: any, width: number = getDefaultColumns()): string =>
       return line;
     })
     .flat()
-    .join('\n');
+    .join(NEW_LINE);
 
 /**
  * out.moveUp
