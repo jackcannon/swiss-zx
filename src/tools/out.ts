@@ -1,7 +1,7 @@
 import { wait, fn } from 'swiss-ak';
 import stringWidth from 'string-width';
 import { getLogStr } from './LogUtils';
-import { getTerminalWidth } from './printTable';
+import { table } from './table';
 import { Text } from '../utils/processTableInput';
 
 const NEW_LINE = '\n';
@@ -79,7 +79,8 @@ export const pad = (line: string, start: number, end: number, replaceChar: strin
 export type AlignType = 'left' | 'right' | 'center';
 type AlignFunction = (item: any, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
 
-const correctWidth = (width: number): number => (width <= 0 || width === Infinity ? getTerminalWidth() : Math.min(width, getTerminalWidth()));
+const correctWidth = (width: number): number =>
+  width <= 0 || width === Infinity ? table.utils.getTerminalWidth() : Math.min(width, table.utils.getTerminalWidth());
 
 /**
  * out.center
@@ -97,7 +98,12 @@ const correctWidth = (width: number): number => (width <= 0 || width === Infinit
  * // '  2  '
  * ```
  */
-export const center: AlignFunction = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true): string =>
+export const center: AlignFunction = (
+  item: any,
+  width: number = table.utils.getTerminalWidth(),
+  replaceChar: string = ' ',
+  forceWidth: boolean = true
+): string =>
   getLogLines(item)
     .map((line) =>
       pad(
@@ -125,7 +131,12 @@ export const center: AlignFunction = (item: any, width: number = getTerminalWidt
  * // '2    '
  * ```
  */
-export const left: AlignFunction = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true): string =>
+export const left: AlignFunction = (
+  item: any,
+  width: number = table.utils.getTerminalWidth(),
+  replaceChar: string = ' ',
+  forceWidth: boolean = true
+): string =>
   getLogLines(item)
     .map((line) => pad(line, 0, forceWidth ? correctWidth(width) - stringWidth(line) : 0, replaceChar))
     .join(NEW_LINE);
@@ -146,7 +157,12 @@ export const left: AlignFunction = (item: any, width: number = getTerminalWidth(
  * // '    2'
  * ```
  */
-export const right: AlignFunction = (item: any, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true): string =>
+export const right: AlignFunction = (
+  item: any,
+  width: number = table.utils.getTerminalWidth(),
+  replaceChar: string = ' ',
+  forceWidth: boolean = true
+): string =>
   getLogLines(item)
     .map((line) => pad(line, correctWidth(width) - stringWidth(line), 0, replaceChar))
     .join(NEW_LINE);
@@ -173,7 +189,13 @@ const alignFunc = {
  * // '    2'
  * ```
  */
-export const align = (item: any, direction: AlignType, width: number = getTerminalWidth(), replaceChar: string = ' ', forceWidth: boolean = true) => {
+export const align = (
+  item: any,
+  direction: AlignType,
+  width: number = table.utils.getTerminalWidth(),
+  replaceChar: string = ' ',
+  forceWidth: boolean = true
+) => {
   const func = alignFunc[direction] || alignFunc.left;
   return func(item, width, replaceChar, forceWidth);
 };
@@ -189,7 +211,7 @@ export const align = (item: any, direction: AlignType, width: number = getTermin
  * // 'a sentence'
  * ```
  */
-export const wrap = (item: any, width: number = getTerminalWidth(), forceWidth: boolean = true): string =>
+export const wrap = (item: any, width: number = table.utils.getTerminalWidth(), forceWidth: boolean = true): string =>
   getLogLines(item)
     .map((line) => {
       if (stringWidth(line) > width) {

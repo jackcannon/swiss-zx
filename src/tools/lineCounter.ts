@@ -9,7 +9,7 @@ import { moveUp, utils } from './out';
  * ```typescript
  * const lc = getLineCounter();
  * lc.log('hello'); // 1
- * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+ * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
  * lc.add(1); // 3
  * lc.get(); // 3
  * lc.clear(); // 0
@@ -27,7 +27,7 @@ export const getLineCounter = () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -48,7 +48,7 @@ export const getLineCounter = () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -74,7 +74,7 @@ export const getLineCounter = () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -93,7 +93,7 @@ export const getLineCounter = () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -111,7 +111,7 @@ export const getLineCounter = () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0

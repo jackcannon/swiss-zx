@@ -1,11 +1,11 @@
-import { getTerminalWidth, TableOptions } from '../tools/printTable';
+import { table, TableOptions } from '../tools/table';
 import * as out from '../tools/out';
 import { Partial, zip, fn, ArrayUtils } from 'swiss-ak';
 import { getLogStr } from '../tools/LogUtils';
 
 export type Text = string | string[];
 
-type Cells = { header: Text[][]; body: Text[][] };
+export type Cells = { header: Text[][]; body: Text[][] };
 
 const empty = (numCols: number, char: string = '') => new Array(numCols).fill(char);
 
@@ -29,12 +29,17 @@ const fixMixingHeader = (cells: Cells) => {
   };
 };
 
-const transposeTable = (cells: Cells): Cells => {
-  const body = zip(...[...(cells.header || []), ...cells.body]) as string[][];
-  return {
-    header: [],
-    body
-  };
+const transposeTable = (cells: Cells, opts: TableOptions): Cells => {
+  if (opts.transpose) {
+    const body = table.utils.transpose(table.utils.concatRows(cells));
+    return { header: [], body };
+  }
+  if (opts.transposeBody) {
+    const body = table.utils.transpose(cells.body as string[][]);
+    return { header: cells.header, body };
+  }
+
+  return cells;
 };
 
 const ensureStringForEveryCell = (rows: string[][], numCols: number) =>
@@ -49,7 +54,7 @@ const getDesiredColumnWidths = (cells: Cells, numCols: number, preferredWidths: 
   const currColWidths = preferredWidths.length ? ArrayUtils.repeat(numCols, ...preferredWidths) : actualColWidths;
   const currTotalWidth = currColWidths.reduce(fn.reduces.combine) + (numCols + 1) * 3;
 
-  const diff = currTotalWidth - getTerminalWidth();
+  const diff = currTotalWidth - table.utils.getTerminalWidth();
   const colWidths = [...currColWidths];
   for (let i = 0; i < diff; i++) {
     colWidths[colWidths.indexOf(Math.max(...colWidths))]--;
@@ -69,7 +74,7 @@ const seperateLinesIntoRows = (rows: string[][][]) => rows.map((row) => zip(...r
 export const processInput = (cells: Cells, opts: TableOptions) => {
   const fixed = fixMixingHeader(cells);
 
-  const transposed = opts.transpose ? transposeTable(fixed) : fixed;
+  const transposed = transposeTable(fixed, opts);
 
   const numCols = Math.max(...[...(transposed.header || []), ...transposed.body].map((row) => row.length));
 

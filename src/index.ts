@@ -5,7 +5,7 @@ export * from './tools/gm';
 export * from './tools/lineCounter';
 export * from './tools/out';
 export * from './tools/os';
-export * from './tools/printTable';
+export * from './tools/table';
 
 export * from './tools/LogUtils';
 export * from './tools/PathUtils';

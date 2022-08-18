@@ -1,20 +1,19 @@
-import { Partial, zip, fn, ArrayUtils } from 'swiss-ak';
-import stringWidth from 'string-width';
+import { Partial, fn, ArrayUtils } from 'swiss-ak';
 import { getLineCounter } from './lineCounter';
 import * as out from './out';
 import { processInput } from '../utils/processTableInput';
 import { getTableCharacters } from '../utils/tableCharacters';
 
 /**
- * getTerminalWidth
+ * print.utils.getTerminalWidth
  *
  * Get maximum terminal width (columns)
  *
  * ```typescript
- * getTerminalWidth(); // 127
+ * print.utils.getTerminalWidth(); // 127
  * ```
  */
-export const getTerminalWidth = () => (process?.stdout?.columns ? process.stdout.columns : 100);
+const getTerminalWidth = () => (process?.stdout?.columns ? process.stdout.columns : 100);
 
 export interface TableOptions {
   /**
@@ -75,6 +74,11 @@ export interface TableOptions {
    * Change rows into columns and vice versa
    */
   transpose: boolean;
+
+  /**
+   * Change rows into columns and vice versa (body only)
+   */
+  transposeBody: boolean;
 }
 
 const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
@@ -89,20 +93,21 @@ const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
   drawOuter: typeof opts.drawOuter !== 'boolean' ? true : opts.drawOuter,
   drawRowLines: typeof opts.drawRowLines !== 'boolean' ? true : opts.drawRowLines,
   drawColLines: typeof opts.drawColLines !== 'boolean' ? true : opts.drawColLines,
-  transpose: typeof opts.transpose !== 'boolean' ? false : opts.transpose
+  transpose: typeof opts.transpose !== 'boolean' ? false : opts.transpose,
+  transposeBody: typeof opts.transposeBody !== 'boolean' ? false : opts.transposeBody
 });
 
 const empty = (numCols: number, char: string = '') => new Array(numCols).fill(char);
 
 /**
- * printTable
+ * table.print
  *
  * Print a table
  *
  * ```typescript
  * const header = [['Name', 'Age']];
  * const body = [['John', '25'], ['Jane', '26']];
- * printTable(body, header);
+ * table.print(body, header);
  *
  * // ┏━━━━━━┳━━━━━┓
  * // ┃ Name ┃ Age ┃
@@ -112,7 +117,7 @@ const empty = (numCols: number, char: string = '') => new Array(numCols).fill(ch
  * // └──────┴─────┘
  * ```
  */
-export const printTable = (body: string[][], header?: string[][], options: Partial<TableOptions> = {}): number => {
+const print = (body: any[][], header?: any[][], options: Partial<TableOptions> = {}): number => {
   const lc = getLineCounter();
   const opts = getFullOptions(options);
   const { wrapperFn, drawOuter, alignCols, align } = opts;
@@ -171,7 +176,42 @@ const getAllKeys = (objects) => {
 };
 
 /**
- * printObjectsTable
+ * table.utils.objectsToTable
+ *
+ * Process an array of objects into a table format (string[][])
+ */
+const objectsToTable = (objects: Object[], headers: Object = {}): { header: any[][]; body: any[][] } => {
+  const allKeys = getAllKeys(objects);
+
+  const header = [allKeys.map((key) => headers[key] || key)];
+  const body = objects.map((obj) => allKeys.map((key) => obj[key]));
+
+  return {
+    header,
+    body
+  };
+};
+
+/**
+ * table.utils.transpose
+ *
+ * Change rows into columns and vice versa
+ */
+const transpose = (rows: any[][]): any[][] => {
+  return ArrayUtils.zip(...rows);
+};
+
+/**
+ * table.utils.concatRows
+ *
+ * Concatenate header and body rows into one list of rows
+ */
+const concatRows = (cells: { header: any[][]; body: any[][] }): any[][] => {
+  return [...(cells.header || []), ...cells.body] as any[][];
+};
+
+/**
+ * table.printObjects
  *
  * Print a table of given objects
  *
@@ -188,7 +228,7 @@ const getAllKeys = (objects) => {
  *   b: 'Col B',
  *   c: 'Col C'
  * };
- * printObjectsTable(objs, header);
+ * table.printObjects(objs, header);
  *
  * // ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
  * // ┃ Col A ┃ Col B ┃ Col C ┃
@@ -203,11 +243,18 @@ const getAllKeys = (objects) => {
  * // └───────┴───────┴───────┘
  * ```
  */
-export const printObjectsTable = (objects: Object[], headers: Object = {}, options: Partial<TableOptions> = {}) => {
-  const allKeys = getAllKeys(objects);
+const printObjects = (objects: Object[], headers: Object = {}, options: Partial<TableOptions> = {}) => {
+  const { body, header } = objectsToTable(objects, headers);
+  return print(body, header, options);
+};
 
-  const header = [allKeys.map((key) => headers[key] || key)];
-  const body = objects.map((obj) => allKeys.map((key) => obj[key]));
-
-  return printTable(body, header, options);
+export const table = {
+  print,
+  printObjects,
+  utils: {
+    objectsToTable,
+    transpose,
+    concatRows,
+    getTerminalWidth
+  }
 };

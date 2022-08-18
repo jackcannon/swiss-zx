@@ -62,6 +62,15 @@ Uses `swiss-ak`
     - [out.utils.getNumLogLines](#oututilsgetnumloglines)
     - [out.utils.getLogLinesWidth](#oututilsgetloglineswidth)
     - [out.utils.joinLines](#oututilsjoinlines)
+- [table](#table)
+  - [table.print](#tableprint)
+    - [table.print Options](#tableprint-options)
+  - [table.printObjects](#tableprintobjects)
+  - [table.utils](#tableutils)
+    - [table.utils.getTerminalWidth](#tableutilsgetterminalwidth)
+    - [table.utils.objectsToTable](#tableutilsobjectstotable)
+    - [table.utils.transpose](#tableutilstranspose)
+    - [table.utils.concatRows](#tableutilsconcatrows)
 - [os](#os)
   - [closeFinder](#closefinder)
 - [chlk](#chlk)
@@ -100,11 +109,6 @@ Uses `swiss-ak`
   - [LogUtils.getLog](#logutilsgetlog)
 - [PathUtils](#pathutils)
   - [explodePath](#explodepath)
-- [printTable](#printtable)
-  - [printTable](#printtable-1)
-    - [printTable Options](#printtable-options)
-  - [printObjectsTable](#printobjectstable)
-  - [getTerminalWidth](#getterminalwidth)
 
 # Install
 
@@ -658,6 +662,114 @@ Join an array of lines into a single multi-line string
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+# table
+
+## table.print
+
+Print a table
+
+```typescript
+const header = [['Name', 'Age']];
+const body = [
+  ['John', '25'],
+  ['Jane', '26']
+];
+table.print(body, header);
+
+// ┏━━━━━━┳━━━━━┓
+// ┃ Name ┃ Age ┃
+// ┡━━━━━━╇━━━━━┩
+// │ John │ 25  │
+// │ Jane │ 26  │
+// └──────┴─────┘
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### table.print Options
+
+| Name            | Default              | Description                                                                |
+| --------------- | -------------------- | -------------------------------------------------------------------------- |
+| wrapperFn       | `fn.noact`           | Function to wrap each line of the table in (e.g. chalk.blue)               |
+| overrideChar    | `''` (`─`, `│`, etc) | Character to use instead of lines                                          |
+| overrideHorChar | `''` (`─`)           | Character to use instead of horizontal lines                               |
+| overrideVerChar | `''` (`│`)           | Character to use instead of vertical lines                                 |
+| drawOuter       | `true`               | Whether to draw the outer border of the table                              |
+| drawRowLines    | `true`               | Whether to draw lines between rows (other than separating header and body) |
+| drawColLines    | `true`               | Whether to draw lines between columns                                      |
+| colWidths       | `[]`                 | Preferred width (in number of characters) of each column                   |
+| align           | `'left'`             | How the table should be aligned on the screen                              |
+| alignCols       | `['left']`           | How each column should be aligned (values repeated for all columns)        |
+| transpose       | `false`              | Change rows into columns and vice versa                                    |
+| transposeBody   | `false`              | Change rows into columns and vice versa (body only)                        |
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## table.printObjects
+
+Print a table of given objects
+
+```typescript
+const objs = [
+  // objs
+  { a: '1', b: '2', c: '3' },
+  { a: '0', c: '2' },
+  { b: '4' },
+  { a: '6' }
+];
+const header = {
+  a: 'Col A',
+  b: 'Col B',
+  c: 'Col C'
+};
+const options = {}; // same as table.print options
+table.printObjects(objs, header, options);
+
+// ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
+// ┃ Col A ┃ Col B ┃ Col C ┃
+// ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
+// │ 1     │ 2     │ 3     │
+// ├───────┼───────┼───────┤
+// │ 0     │       │ 2     │
+// ├───────┼───────┼───────┤
+// │       │ 4     │       │
+// ├───────┼───────┼───────┤
+// │ 6     │       │       │
+// └───────┴───────┴───────┘
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## table.utils
+
+### table.utils.getTerminalWidth
+
+Get maximum terminal width (columns)
+
+```typescript
+table.utils.getTerminalWidth(); // 127
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### table.utils.objectsToTable
+
+Process an array of objects into a table format (string[][])
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### table.utils.transpose
+
+Change rows into columns and vice versa
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### table.utils.concatRows
+
+Concatenate header and body rows into one list of rows
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 # os
 
 ## closeFinder
@@ -735,7 +847,7 @@ Get line counter for counter output lines
 ```typescript
 const lc = getLineCounter();
 lc.log('hello'); // 1
-lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
 lc.add(1); // 3
 lc.get(); // 3
 lc.clear(); // 0
@@ -910,93 +1022,6 @@ console.log(dir); // '/path/to'
 console.log(name); // 'file'
 console.log(ext); // 'txt'
 console.log(filename); // 'file.txt'
-```
-
-[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
-
-# printTable
-
-## printTable
-
-Print a table
-
-```typescript
-const header = [['Name', 'Age']];
-const body = [
-  ['John', '25'],
-  ['Jane', '26']
-];
-printTable(body, header);
-
-// ┏━━━━━━┳━━━━━┓
-// ┃ Name ┃ Age ┃
-// ┡━━━━━━╇━━━━━┩
-// │ John │ 25  │
-// │ Jane │ 26  │
-// └──────┴─────┘
-```
-
-[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
-
-### printTable Options
-
-| Name            | Default              | Description                                                                |
-| --------------- | -------------------- | -------------------------------------------------------------------------- |
-| wrapperFn       | `fn.noact`           | Function to wrap each line of the table in (e.g. chalk.blue)               |
-| overrideChar    | `''` (`─`, `│`, etc) | Character to use instead of lines                                          |
-| overrideHorChar | `''` (`─`)           | Character to use instead of horizontal lines                               |
-| overrideVerChar | `''` (`│`)           | Character to use instead of vertical lines                                 |
-| drawOuter       | `true`               | Whether to draw the outer border of the table                              |
-| drawRowLines    | `true`               | Whether to draw lines between rows (other than separating header and body) |
-| drawColLines    | `true`               | Whether to draw lines between columns                                      |
-| colWidths       | `[]`                 | Preferred width (in number of characters) of each column                   |
-| align           | `'left'`             | How the table should be aligned on the screen                              |
-| alignCols       | `['left']`           | How each column should be aligned (values repeated for all columns)        |
-| transpose       | `false`              | Change rows into columns and vice versa                                    |
-
-[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
-
-## printObjectsTable
-
-Print a table of given objects
-
-```typescript
-const objs = [
-  // objs
-  { a: '1', b: '2', c: '3' },
-  { a: '0', c: '2' },
-  { b: '4' },
-  { a: '6' }
-];
-const header = {
-  a: 'Col A',
-  b: 'Col B',
-  c: 'Col C'
-};
-const options = {}; // same as printTable options
-printObjectsTable(objs, header, options);
-
-// ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
-// ┃ Col A ┃ Col B ┃ Col C ┃
-// ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
-// │ 1     │ 2     │ 3     │
-// ├───────┼───────┼───────┤
-// │ 0     │       │ 2     │
-// ├───────┼───────┼───────┤
-// │       │ 4     │       │
-// ├───────┼───────┼───────┤
-// │ 6     │       │       │
-// └───────┴───────┴───────┘
-```
-
-[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
-
-## getTerminalWidth
-
-Get maximum terminal width (columns)
-
-```typescript
-getTerminalWidth(); // 127
 ```
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)

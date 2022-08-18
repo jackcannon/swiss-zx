@@ -135,7 +135,7 @@ var getLog = (prefix, wrapper = fn2.noact) => (...args) => {
   console.log(processLogContents(prefix, wrapper, ...args));
 };
 
-// src/tools/printTable.ts
+// src/tools/table.ts
 import { fn as fn4, ArrayUtils as ArrayUtils3 } from "swiss-ak";
 
 // src/tools/lineCounter.ts
@@ -195,12 +195,16 @@ var fixMixingHeader = (cells) => {
     body: cells.body || []
   };
 };
-var transposeTable = (cells) => {
-  const body = zip(...[...cells.header || [], ...cells.body]);
-  return {
-    header: [],
-    body
-  };
+var transposeTable = (cells, opts) => {
+  if (opts.transpose) {
+    const body = table.utils.transpose(table.utils.concatRows(cells));
+    return { header: [], body };
+  }
+  if (opts.transposeBody) {
+    const body = table.utils.transpose(cells.body);
+    return { header: cells.header, body };
+  }
+  return cells;
 };
 var ensureStringForEveryCell = (rows, numCols) => rows.map((row) => [...row, ...empty(numCols)].slice(0, numCols).map((cell) => itemToString(cell)));
 var splitCellsIntoLines = (rows) => rows.map((row) => row.map((cell) => utils.getLines(cell)));
@@ -209,7 +213,7 @@ var getDesiredColumnWidths = (cells, numCols, preferredWidths) => {
   const actualColWidths = transposed.map((col) => Math.max(...col.map((cell) => utils.getLinesWidth(cell))));
   const currColWidths = preferredWidths.length ? ArrayUtils.repeat(numCols, ...preferredWidths) : actualColWidths;
   const currTotalWidth = currColWidths.reduce(fn3.reduces.combine) + (numCols + 1) * 3;
-  const diff = currTotalWidth - getTerminalWidth();
+  const diff = currTotalWidth - table.utils.getTerminalWidth();
   const colWidths = [...currColWidths];
   for (let i = 0; i < diff; i++) {
     colWidths[colWidths.indexOf(Math.max(...colWidths))]--;
@@ -224,7 +228,7 @@ var wrapCells = (rows, colWidths) => rows.map((row) => {
 var seperateLinesIntoRows = (rows) => rows.map((row) => zip(...row));
 var processInput = (cells, opts) => {
   const fixed = fixMixingHeader(cells);
-  const transposed = opts.transpose ? transposeTable(fixed) : fixed;
+  const transposed = transposeTable(fixed, opts);
   const numCols = Math.max(...[...transposed.header || [], ...transposed.body].map((row) => row.length));
   const everyCell = processCells(transposed, ensureStringForEveryCell, numCols);
   const linedCells = processCells(everyCell, splitCellsIntoLines);
@@ -301,7 +305,7 @@ var getTableCharacters = (opts) => {
   return mapped;
 };
 
-// src/tools/printTable.ts
+// src/tools/table.ts
 var getTerminalWidth = () => {
   var _a;
   return ((_a = process == null ? void 0 : process.stdout) == null ? void 0 : _a.columns) ? process.stdout.columns : 100;
@@ -318,10 +322,11 @@ var getFullOptions = (opts) => ({
   drawOuter: typeof opts.drawOuter !== "boolean" ? true : opts.drawOuter,
   drawRowLines: typeof opts.drawRowLines !== "boolean" ? true : opts.drawRowLines,
   drawColLines: typeof opts.drawColLines !== "boolean" ? true : opts.drawColLines,
-  transpose: typeof opts.transpose !== "boolean" ? false : opts.transpose
+  transpose: typeof opts.transpose !== "boolean" ? false : opts.transpose,
+  transposeBody: typeof opts.transposeBody !== "boolean" ? false : opts.transposeBody
 });
 var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
-var printTable = (body, header, options = {}) => {
+var print = (body, header, options = {}) => {
   const lc = getLineCounter();
   const opts = getFullOptions(options);
   const { wrapperFn, drawOuter, alignCols, align: align2 } = opts;
@@ -378,11 +383,34 @@ var getAllKeys = (objects) => {
   });
   return Object.keys(allKeys);
 };
-var printObjectsTable = (objects, headers = {}, options = {}) => {
+var objectsToTable = (objects, headers = {}) => {
   const allKeys = getAllKeys(objects);
   const header = [allKeys.map((key) => headers[key] || key)];
   const body = objects.map((obj) => allKeys.map((key) => obj[key]));
-  return printTable(body, header, options);
+  return {
+    header,
+    body
+  };
+};
+var transpose = (rows) => {
+  return ArrayUtils3.zip(...rows);
+};
+var concatRows = (cells) => {
+  return [...cells.header || [], ...cells.body];
+};
+var printObjects = (objects, headers = {}, options = {}) => {
+  const { body, header } = objectsToTable(objects, headers);
+  return print(body, header, options);
+};
+var table = {
+  print,
+  printObjects,
+  utils: {
+    objectsToTable,
+    transpose,
+    concatRows,
+    getTerminalWidth
+  }
 };
 
 // src/tools/out.ts
@@ -405,8 +433,8 @@ var utils = {
   joinLines
 };
 var pad = (line, start, end, replaceChar = " ") => `${replaceChar.repeat(Math.max(0, start))}${line}${replaceChar.repeat(Math.max(0, end))}`;
-var correctWidth = (width) => width <= 0 || width === Infinity ? getTerminalWidth() : Math.min(width, getTerminalWidth());
-var center = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map(
+var correctWidth = (width) => width <= 0 || width === Infinity ? table.utils.getTerminalWidth() : Math.min(width, table.utils.getTerminalWidth());
+var center = (item, width = table.utils.getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map(
   (line) => pad(
     line,
     Math.floor((correctWidth(width) - stringWidth(line)) / 2),
@@ -414,18 +442,18 @@ var center = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = 
     replaceChar
   )
 ).join(NEW_LINE);
-var left = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, 0, forceWidth ? correctWidth(width) - stringWidth(line) : 0, replaceChar)).join(NEW_LINE);
-var right = (item, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, correctWidth(width) - stringWidth(line), 0, replaceChar)).join(NEW_LINE);
+var left = (item, width = table.utils.getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, 0, forceWidth ? correctWidth(width) - stringWidth(line) : 0, replaceChar)).join(NEW_LINE);
+var right = (item, width = table.utils.getTerminalWidth(), replaceChar = " ", forceWidth = true) => getLogLines(item).map((line) => pad(line, correctWidth(width) - stringWidth(line), 0, replaceChar)).join(NEW_LINE);
 var alignFunc = {
   left,
   center,
   right
 };
-var align = (item, direction, width = getTerminalWidth(), replaceChar = " ", forceWidth = true) => {
+var align = (item, direction, width = table.utils.getTerminalWidth(), replaceChar = " ", forceWidth = true) => {
   const func = alignFunc[direction] || alignFunc.left;
   return func(item, width, replaceChar, forceWidth);
 };
-var wrap = (item, width = getTerminalWidth(), forceWidth = true) => getLogLines(item).map((line) => {
+var wrap = (item, width = table.utils.getTerminalWidth(), forceWidth = true) => getLogLines(item).map((line) => {
   if (stringWidth(line) > width) {
     const words = line.split(/(?<=#?[ -]+)/g);
     const rows = [];
@@ -936,33 +964,17 @@ var supportedFlags = {
     processOutput: (value) => `${value}%`
   }
 };
-var printFlagsTable = (flagsObjArray, overrideHeader, extraRow) => {
+var printFlagsTable = (flagsObjArray, overrideHeader) => {
   const lc = getLineCounter();
-  const allFlagNames = flagsObjArray.map((flagsObj) => Object.keys(flagsObj)).flat();
+  const hasFlags = Math.max(...flagsObjArray.map((flagsObj) => Object.keys(flagsObj).length)) === 0;
   const header = overrideHeader || [["Flag", ...flagsObjArray.map((v, i) => `#${i + 1}`)]];
-  const body = allFlagNames.length === 0 ? [["none"]] : allFlagNames.map((flagName) => {
-    return [
-      [
-        flagName,
-        ...flagsObjArray.map(
-          (obj) => {
-            var _a;
-            return obj[flagName] === void 0 ? "" : getLogStr((((_a = supportedFlags[flagName]) == null ? void 0 : _a.processOutput) || fn7.noact)(obj[flagName]));
-          }
-        )
-      ],
-      ["", ""]
-    ];
-  }).flat().slice(0, -1);
-  if (extraRow) {
-    const extraRowVal = extraRow(header, body);
-    body.unshift([]);
-    body.unshift(extraRowVal);
-  }
+  const bodyObjs = hasFlags ? [{ "[none]": "[none]" }] : flagsObjArray;
+  const body = table.utils.concatRows(table.utils.objectsToTable(bodyObjs, {}));
   lc.add(
-    printTable(body, header, {
+    table.print(body, header, {
       drawOuter: true,
-      wrapperFn: chalk.white
+      wrapperFn: chalk.white,
+      transposeBody: true
     })
   );
   lc.log();
@@ -1120,7 +1132,6 @@ export {
   getLogStr,
   getProbe,
   getProbeValue,
-  getTerminalWidth,
   getTotalFrames,
   gm,
   left,
@@ -1128,10 +1139,9 @@ export {
   moveUp,
   out_exports as out,
   pad,
-  printObjectsTable,
-  printTable,
   processLogContents,
   right,
+  table,
   utils,
   wrap
 };

@@ -1,5 +1,5 @@
 import { ArrayUtils } from 'swiss-ak';
-import { TableOptions } from '../tools/printTable';
+import { TableOptions } from '../tools/table';
 
 interface CharLookup<T> {
   hTop: T;

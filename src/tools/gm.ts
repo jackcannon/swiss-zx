@@ -1,6 +1,6 @@
 import { getLineCounter } from './lineCounter';
 import { getLogStr } from './LogUtils';
-import { printTable } from './printTable';
+import { table } from './table';
 import * as out from './out';
 import { ask } from './ask';
 import { arrayToNLList } from '../utils/arrayToNLList';
@@ -177,40 +177,19 @@ interface CompositeFlags {
  *
  * Prints a table of flags and their values.
  */
-const printFlagsTable = (flagsObjArray: FlagsObj[], overrideHeader: string[][], extraRow?): number => {
+const printFlagsTable = (flagsObjArray: FlagsObj[], overrideHeader: string[][]): number => {
   const lc = getLineCounter();
 
-  const allFlagNames = flagsObjArray.map((flagsObj) => Object.keys(flagsObj)).flat();
-
+  const hasFlags = Math.max(...flagsObjArray.map((flagsObj) => Object.keys(flagsObj).length)) === 0;
   const header = overrideHeader || [['Flag', ...flagsObjArray.map((v, i) => `#${i + 1}`)]];
-  const body =
-    allFlagNames.length === 0
-      ? [['none']]
-      : allFlagNames
-          .map((flagName) => {
-            return [
-              [
-                flagName,
-                ...flagsObjArray.map((obj) =>
-                  obj[flagName] === undefined ? '' : getLogStr((supportedFlags[flagName]?.processOutput || fn.noact)(obj[flagName]))
-                )
-              ],
-              ['', '']
-            ];
-          })
-          .flat()
-          .slice(0, -1);
-
-  if (extraRow) {
-    const extraRowVal = extraRow(header, body);
-    body.unshift([]);
-    body.unshift(extraRowVal);
-  }
+  const bodyObjs = hasFlags ? [{ '[none]': '[none]' }] : flagsObjArray;
+  const body = table.utils.concatRows(table.utils.objectsToTable(bodyObjs, {}));
 
   lc.add(
-    printTable(body, header, {
+    table.print(body, header, {
       drawOuter: true,
-      wrapperFn: chalk.white
+      wrapperFn: chalk.white,
+      transposeBody: true
     })
   );
 

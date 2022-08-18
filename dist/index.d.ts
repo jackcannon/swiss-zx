@@ -246,7 +246,7 @@ declare const gm: {
         supportedFlags: {
             [key: string]: SupportedFlag;
         };
-        printFlagsTable: (flagsObjArray: FlagsObj[], overrideHeader: string[][], extraRow?: any) => number;
+        printFlagsTable: (flagsObjArray: FlagsObj[], overrideHeader: string[][]) => number;
         flagsObjToArray: (obj: FlagsObj) => any[];
     };
 };
@@ -259,7 +259,7 @@ declare const gm: {
  * ```typescript
  * const lc = getLineCounter();
  * lc.log('hello'); // 1
- * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+ * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
  * lc.add(1); // 3
  * lc.get(); // 3
  * lc.clear(); // 0
@@ -274,7 +274,7 @@ declare const getLineCounter: () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -289,7 +289,7 @@ declare const getLineCounter: () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -304,7 +304,7 @@ declare const getLineCounter: () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -319,7 +319,7 @@ declare const getLineCounter: () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -334,7 +334,7 @@ declare const getLineCounter: () => {
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
-     * lc.wrap(undefined, () => printTable(['hello', 'world'])); // 1
+     * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
      * lc.add(1); // 3
      * lc.get(); // 3
      * lc.clear(); // 0
@@ -343,16 +343,6 @@ declare const getLineCounter: () => {
     clear(): number;
 };
 
-/**
- * getTerminalWidth
- *
- * Get maximum terminal width (columns)
- *
- * ```typescript
- * getTerminalWidth(); // 127
- * ```
- */
-declare const getTerminalWidth: () => number;
 interface TableOptions {
     /**
      * Function to wrap each line of the table in (e.g. chalk.blue)
@@ -402,60 +392,27 @@ interface TableOptions {
      * Change rows into columns and vice versa
      */
     transpose: boolean;
+    /**
+     * Change rows into columns and vice versa (body only)
+     */
+    transposeBody: boolean;
 }
-/**
- * printTable
- *
- * Print a table
- *
- * ```typescript
- * const header = [['Name', 'Age']];
- * const body = [['John', '25'], ['Jane', '26']];
- * printTable(body, header);
- *
- * // ┏━━━━━━┳━━━━━┓
- * // ┃ Name ┃ Age ┃
- * // ┡━━━━━━╇━━━━━┩
- * // │ John │ 25  │
- * // │ Jane │ 26  │
- * // └──────┴─────┘
- * ```
- */
-declare const printTable: (body: string[][], header?: string[][], options?: Partial<TableOptions>) => number;
-/**
- * printObjectsTable
- *
- * Print a table of given objects
- *
- * ```typescript
- * const objs = [
- *   // objs
- *   { a: '1', b: '2', c: '3' },
- *   { a: '0', c: '2' },
- *   { b: '4' },
- *   { a: '6' }
- * ];
- * const header = {
- *   a: 'Col A',
- *   b: 'Col B',
- *   c: 'Col C'
- * };
- * printObjectsTable(objs, header);
- *
- * // ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
- * // ┃ Col A ┃ Col B ┃ Col C ┃
- * // ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
- * // │ 1     │ 2     │ 3     │
- * // ├───────┼───────┼───────┤
- * // │ 0     │       │ 2     │
- * // ├───────┼───────┼───────┤
- * // │       │ 4     │       │
- * // ├───────┼───────┼───────┤
- * // │ 6     │       │       │
- * // └───────┴───────┴───────┘
- * ```
- */
-declare const printObjectsTable: (objects: Object[], headers?: Object, options?: Partial<TableOptions>) => number;
+declare const table: {
+    print: (body: any[][], header?: any[][], options?: Partial<TableOptions>) => number;
+    printObjects: (objects: Object[], headers?: Object, options?: Partial<TableOptions>) => number;
+    utils: {
+        objectsToTable: (objects: Object[], headers?: Object) => {
+            header: any[][];
+            body: any[][];
+        };
+        transpose: (rows: any[][]) => any[][];
+        concatRows: (cells: {
+            header: any[][];
+            body: any[][];
+        }) => any[][];
+        getTerminalWidth: () => number;
+    };
+};
 
 declare type Text = string | string[];
 
@@ -726,4 +683,4 @@ declare namespace chlk {
   };
 }
 
-export { $$, AlignType, ExplodedPath, LogUtils, PathUtils, TableOptions, align, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTerminalWidth, getTotalFrames, gm, left, loading, moveUp, out, pad, printObjectsTable, printTable, processLogContents, right, utils, wrap };
+export { $$, AlignType, ExplodedPath, LogUtils, PathUtils, TableOptions, align, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, left, loading, moveUp, out, pad, processLogContents, right, table, utils, wrap };
