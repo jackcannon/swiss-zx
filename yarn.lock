@@ -841,10 +841,10 @@ sucrase@^3.20.3:
     pirates "^4.0.1"
     ts-interface-checker "^0.1.9"
 
-swiss-ak@^1.9.0:
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-1.9.0.tgz#575c512cf90682061ff182f896517f609f50977c"
-  integrity sha512-h3WQFCHrATTMr7wPXS5lLRpjjTDsFEXPYpWUawnsLB1LemHDAzbNpqbkplqz5DmmoXzlorW21T2zPy32uYUruw==
+swiss-ak@^1.10.2:
+  version "1.10.2"
+  resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-1.10.2.tgz#7b60bff61dd4645a2ab046fde21ee4dc06ee9d21"
+  integrity sha512-TkLyl2ApLv/0FJ+g8oL9UFu6R4DymDy0/0W2CdIhOKPrL+tU3X5IFGbCyfTimUVGR/xw2OPutavJ7+QRc2Ot3w==
 
 thenify-all@^1.0.0:
   version "1.6.0"
