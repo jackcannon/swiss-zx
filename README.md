@@ -20,7 +20,7 @@ Uses `swiss-ak`
   - [$$.cat](#cat)
   - [$$.grep](#grep)
   - [$$.find](#find)
-  - [find Options](#find-options)
+    - [find Options](#find-options)
   - [$$.findDirs](#finddirs)
   - [$$.findFiles](#findfiles)
   - [$$.rsync](#rsync)
@@ -36,25 +36,38 @@ Uses `swiss-ak`
   - [ask.autotext](#askautotext)
   - [ask.number](#asknumber)
   - [ask.boolean](#askboolean)
+  - [ask.booleanAlt](#askbooleanalt)
   - [ask.select](#askselect)
   - [ask.multiselect](#askmultiselect)
+  - [ask.crud](#askcrud)
   - [ask.validate](#askvalidate)
   - [ask.imitate](#askimitate)
+  - [ask.prefill](#askprefill)
   - [ask.loading](#askloading)
   - [ask.pause](#askpause)
   - [ask.countdown](#askcountdown)
   - [ask.rename](#askrename)
   - [ask.fileExplorer](#askfileexplorer)
+  - [ask.multiFileExplorer](#askmultifileexplorer)
+  - [ask.section](#asksection)
+  - [ask.utils](#askutils)
+    - [ask.utils.itemsToPromptObjects](#askutilsitemstopromptobjects)
+- [Breadcrumb](#breadcrumb)
+  - [getBreadcrumb](#getbreadcrumb)
 - [out](#out)
   - [out.pad](#outpad)
   - [out.center](#outcenter)
   - [out.left](#outleft)
   - [out.right](#outright)
+  - [out.justify](#outjustify)
   - [out.align](#outalign)
   - [out.wrap](#outwrap)
   - [out.moveUp](#outmoveup)
   - [out.loading](#outloading)
+  - [out.limitToLength](#outlimittolength)
+  - [out.truncate](#outtruncate)
   - [out.utils](#oututils)
+    - [out.utils.getTerminalWidth](#oututilsgetterminalwidth)
     - [out.utils.getLines](#oututilsgetlines)
     - [out.utils.getNumLines](#oututilsgetnumlines)
     - [out.utils.getLinesWidth](#oututilsgetlineswidth)
@@ -62,12 +75,12 @@ Uses `swiss-ak`
     - [out.utils.getNumLogLines](#oututilsgetnumloglines)
     - [out.utils.getLogLinesWidth](#oututilsgetloglineswidth)
     - [out.utils.joinLines](#oututilsjoinlines)
+    - [out.utils.hasColor](#oututilshascolor)
 - [table](#table)
   - [table.print](#tableprint)
     - [table.print Options](#tableprint-options)
   - [table.printObjects](#tableprintobjects)
   - [table.utils](#tableutils)
-    - [table.utils.getTerminalWidth](#tableutilsgetterminalwidth)
     - [table.utils.objectsToTable](#tableutilsobjectstotable)
     - [table.utils.transpose](#tableutilstranspose)
     - [table.utils.concatRows](#tableutilsconcatrows)
@@ -82,6 +95,7 @@ Uses `swiss-ak`
   - [gray5](#gray5)
   - [grays](#grays)
   - [gray](#gray)
+- [clr](#clr)
 - [lineCounter](#linecounter)
   - [getLineCounter](#getlinecounter)
     - [lc.log](#lclog)
@@ -89,11 +103,15 @@ Uses `swiss-ak`
     - [lc.add](#lcadd)
     - [lc.get](#lcget)
     - [lc.clear](#lcclear)
+    - [lc.clearBack](#lcclearback)
+    - [lc.checkpoint](#lccheckpoint)
+    - [lc.clearToCheckpoint](#lccleartocheckpoint)
 - [ffmpeg](#ffmpeg)
   - [getProbeValue](#getprobevalue)
   - [getProbe](#getprobe)
   - [getTotalFrames](#gettotalframes)
   - [ffmpeg](#ffmpeg-1)
+  - [toFFmpegTimeFormat](#toffmpegtimeformat)
 - [gm](#gm)
   - [gm.convert](#gmconvert)
   - [gm.composite](#gmcomposite)
@@ -109,6 +127,8 @@ Uses `swiss-ak`
   - [LogUtils.getLog](#logutilsgetlog)
 - [PathUtils](#pathutils)
   - [explodePath](#explodepath)
+- [progressBarUtils](#progressbarutils)
+  - [getColouredProgressBarOpts](#getcolouredprogressbaropts)
 
 # Install
 
@@ -254,17 +274,17 @@ await $$.find('.', { type: 'f' }); // ['a', 'b']
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
-## find Options
+### find Options
 
-| Name                  | Required | Example      | Description                                                                                                                                                |
-| --------------------- | :------: | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| type                  |    ✖     | `'f'`        | Type of item to find<br><br>d = directory<br>f = regular file<br>b = block special<br>c = character special<br>l = symbolic link<br>p = FIFO<br>s = socket |
-| maxdepth              |    ✖     | `1`          | Maximum depth to search                                                                                                                                    |
-| name                  |    ✖     | `'file.png'` | Name of file/directory to find                                                                                                                             |
-| regex                 |    ✖     | `.*file.*`   | Regular expression to match                                                                                                                                |
-| removePath            |    ✖     | `false`      | If true, removes the path from the result (so you just get the file/directory name)                                                                        |
-| contentsOnly          |    ✖     | `false`      | If true, removes trailing slashes from the results.                                                                                                        |
-| removeTrailingSlashes |    ✖     | `false`      | If true, includes files that start with a dot.                                                                                                             |
+| Name                  | Required | Example      | Description                                                                                                                                                             |
+| --------------------- | :------: | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type                  |    ✖     | `'f'`        | Type of item to find<br><br>d = directory<br>f = regular file<br>b = block special<br>c = character special<br>l = symbolic link<br>p = FIFO<br>s = socket              |
+| maxdepth              |    ✖     | `1`          | Maximum depth to search                                                                                                                                                 |
+| name                  |    ✖     | `'file.png'` | Name of file/directory to find                                                                                                                                          |
+| regex                 |    ✖     | `.*file.*`   | Regular expression to match<br><br>**IMPORTANT:** use String.raw to make sure the backslashes are escaped<br><br>`` const regex = String.raw`^.*\.js$` // '^.*\.js$' `` |
+| removePath            |    ✖     | `false`      | If true, removes the path from the result (so you just get the file/directory name)                                                                                     |
+| contentsOnly          |    ✖     | `false`      | If true, removes trailing slashes from the results.                                                                                                                     |
+| removeTrailingSlashes |    ✖     | `false`      | If true, includes files that start with a dot.                                                                                                                          |
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
@@ -412,6 +432,18 @@ const isCool = await ask.boolean('Is this cool?'); // true
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+## ask.booleanAlt
+
+Get a boolean input from the user (yes or no)
+
+Alternative interface to ask.boolean
+
+```typescript
+const isCool = await ask.boolean('Is this cool?'); // true
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 ## ask.select
 
 Get the user to select an option from a list.
@@ -428,6 +460,18 @@ Get the user to select multiple options from a list.
 
 ```typescript
 const colours = await ask.multiselect('Whats your favourite colours?', ['red', 'green', 'blue']); // ['red', 'green']
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## ask.crud
+
+Get the user to select a CRUD (**C**reate, **R**ead, **U**pdate and **D**elete) action
+
+Values returned are: 'none' | 'create' | 'update' | 'delete' | 'delete-all'
+
+```typescript
+const action = await ask.crud('What do you want to do next?'); // 'none'
 ```
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
@@ -451,6 +495,24 @@ Imitate the display of a prompt
 
 ```typescript
 ask.imitate(true, 'What is your name?', 'Jack');
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## ask.prefill
+
+Auto-fills an ask prompt with the provided value, if defined.
+
+Continues to display the 'prompt', but already 'submitted'
+
+Good for keeping skipping parts of forms, but providing context and keeping display consistent
+
+```typescript
+let data = {};
+const name1 = ask.prefill(data.name, 'What is your name?', ask.text); // User input
+
+data = { name: 'Jack' };
+const name2 = ask.prefill(data.name, 'What is your name?', ask.text); // Jack
 ```
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
@@ -507,6 +569,85 @@ const file = await ask.fileExplorer('Select a file');
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+## ask.multiFileExplorer
+
+Like fileExplorer but allows multiple selections within a single directory
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## ask.section
+
+Allows information to be displayed before a question, and follow up questions to be asked, while only leaving the 'footprint' of a single question afterwards.
+
+```typescript
+const ans1 = await ask.text('Question 1:');
+const ans2 = await ask.section(
+  'Question 2:',
+  (lc: LineCounter) => {
+    lc.log('Some information');
+  },
+  (qst) => ask.text(qst),
+  () => ask.text('Question 2b:')
+);
+```
+
+During the section, it looks like this:
+
+```
+Question 1: answer1
+┄┄┄┄┄◦┄┄┄┄┄┄┄◦┄┄┄┄┄┄┄◦┄┄┄┄┄┄┄◦┄┄┄┄┄┄
+Some information
+┄┄┄┄┄◦┄┄┄┄┄┄┄◦┄┄┄┄┄┄┄◦┄┄┄┄┄┄┄◦┄┄┄┄┄┄
+Question 2: answer2
+Question 2b: answer2b
+```
+
+After the last question in the section has been submitted, it looks like this:
+
+```
+Question 1: answer1
+Question 2a: [ answer2, answer2b ]
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## ask.utils
+
+### ask.utils.itemsToPromptObjects
+
+Take an array of items and convert them to an array of prompt objects
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+# Breadcrumb
+
+Provides a consistent format and style for questions/prompts
+
+```typescript
+const bread = getBreadcrumb();
+bread(); // ''
+bread('a'); // 'a'
+bread('a', 'b'); // 'a › b'
+bread('a', 'b', 'c'); // 'a › b › c'
+
+const sub = bread.sub('a', 'b');
+sub(); // 'a › b'
+sub('c'); // 'a › b › c'
+sub('c', 'd'); // 'a › b › c › d'
+
+const subsub = sub.sub('c', 'd');
+subsub(); // 'a › b › c › d'
+subsub('e'); // 'a › b › c › d › e'
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## getBreadcrumb
+
+Returns an empty breadcrumb object
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 # out
 
 ## out.pad
@@ -527,9 +668,9 @@ Align the given text to the center within the given width of characters/columns
 ```typescript
 out.center('foo', 10); // '   foo    '
 out.center('something long', 10); // 'something long'
-out.center('lines\n1\n3', 5);
-// 'lines' +
-// '  1  ' +
+out.center('lines\n1\n2', 5);
+// 'lines' + '\n' +
+// '  1  ' + '\n' +
 // '  2  '
 ```
 
@@ -542,9 +683,9 @@ Align the given text to the left within the given width of characters/columns
 ```typescript
 out.left('foo', 10); // 'foo       '
 out.left('something long', 10); // 'something long'
-out.left('lines\n1\n3', 5);
-// 'lines' +
-// '1    ' +
+out.left('lines\n1\n2', 5);
+// 'lines' + '\n' +
+// '1    ' + '\n' +
 // '2    '
 ```
 
@@ -557,10 +698,27 @@ Align the given text to the right within the given width of characters/columns
 ```typescript
 out.right('foo', 10); // '       foo'
 out.right('something long', 10); // 'something long'
-out.right('lines\n1\n3', 5);
-// 'lines' +
-// '    1' +
+out.right('lines\n1\n2', 5);
+// 'lines' + '\n' +
+// '    1' + '\n' +
 // '    2'
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## out.justify
+
+Evenly space the text horizontally across the given width.
+
+Giving a width of 0 will use the terminal width
+
+```typescript
+const lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit';
+out.justify(out.wrap(lorem, 20), 20);
+// 'Lorem  ipsum   dolor' + '\n' +
+// 'sit            amet,' + '\n' +
+// 'consectetur         ' + '\n' +
+// 'adipiscing      elit'
 ```
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
@@ -574,9 +732,9 @@ Giving a width of 0 will use the terminal width
 ```typescript
 out.align('foo', 'left', 10); // 'foo       '
 out.align('something long', 'center', 10); // 'something long'
-out.align('lines\n1\n3', 'right', 5);
-// 'lines' +
-// '    1' +
+out.align('lines\n1\n2', 'right', 5);
+// 'lines' + '\n' +
+// '    1' + '\n' +
 // '    2'
 ```
 
@@ -588,7 +746,7 @@ Wrap the given text to the given width of characters/columns
 
 ```typescript
 wrap('This is a sentence', 15);
-// 'This is' +
+// 'This is' + '\n' +
 // 'a sentence'
 ```
 
@@ -618,7 +776,37 @@ loader.stop();
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+## out.limitToLength
+
+Limit the length of a string to the given length
+
+```typescript
+out.limitToLength('This is a very long sentence', 12); // 'This is a ve'
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## out.truncate
+
+Limit the length of a string to the given length, and add an ellipsis if necessary
+
+```typescript
+out.truncate('This is a very long sentence', 15); // 'This is a ve...'
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 ## out.utils
+
+### out.utils.getTerminalWidth
+
+Get maximum terminal width (columns)
+
+```typescript
+print.utils.getTerminalWidth(); // 127
+```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
 ### out.utils.getLines
 
@@ -662,6 +850,12 @@ Join an array of lines into a single multi-line string
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+### out.utils.hasColor
+
+Determine whether a given string contains any chalk-ed colours
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 # table
 
 ## table.print
@@ -702,6 +896,7 @@ table.print(body, header);
 | alignCols       | `['left']`           | How each column should be aligned (values repeated for all columns)        |
 | transpose       | `false`              | Change rows into columns and vice versa                                    |
 | transposeBody   | `false`              | Change rows into columns and vice versa (body only)                        |
+| margin          | `0`                  | How much spacing to leave around the outside of the table                  |
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
@@ -741,16 +936,6 @@ table.printObjects(objs, header, options);
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
 ## table.utils
-
-### table.utils.getTerminalWidth
-
-Get maximum terminal width (columns)
-
-```typescript
-table.utils.getTerminalWidth(); // 127
-```
-
-[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
 ### table.utils.objectsToTable
 
@@ -838,6 +1023,12 @@ gray(2); // gray2
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+# clr
+
+A collection of shortcuts and aliases for chalk functions
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 # lineCounter
 
 ## getLineCounter
@@ -885,6 +1076,24 @@ clears the line counter, and moves the cursor up by the value of the line counte
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
+### lc.clearBack
+
+Clears a given number of lines, and updates the line counter
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### lc.checkpoint
+
+Records a 'checkpoint' that can be returned to later
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+### lc.clearToCheckpoint
+
+Clear lines up to a previously recorded checkpoint
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
 # ffmpeg
 
 ## getProbeValue
@@ -919,12 +1128,18 @@ const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
 
 ## ffmpeg
 
-Wrapper for ffmpeg command
+Wrapper for ffmpeg command that provides progress bar to track progress
 
 ```typescript
 const progBarOpts = {}; // Same options as getProgressBar
 await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
 ```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+## toFFmpegTimeFormat
+
+Convert a number of milliseconds to a time format usable by FFmpeg.
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
 
@@ -1010,18 +1225,30 @@ Get a log function for a given prefix
 
 'Explodes' a path into its components
 
+- path: The full original path as it was passed in.
 - dir: the directory path of the given path
+- folders: the ancestral folders of the given dir as an array
 - name: the name of the file, not including the extension
 - ext: the extension of the file, not including the dot
 - filename: the full name of the file, including the extension (and dot)
 
 ```typescript
-const { dir, name, ext, filename } = explodePath('/path/to/file.txt');
+const { path, dir, folders, name, ext, filename } = explodePath('/path/to/file.txt');
 
+console.log(path); // '/path/to/file.txt'
 console.log(dir); // '/path/to'
+console.log(folders); // [ 'path', 'to' ]
 console.log(name); // 'file'
 console.log(ext); // 'txt'
 console.log(filename); // 'file.txt'
 ```
+
+[↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)
+
+# progressBarUtils
+
+## getColouredProgressBarOpts
+
+Helper for providing a consistent set of options for a progress bar, and colouring them appropriately
 
 [↑ Back to top ↑](#swiss-zx-swiss-army-knife-for-zx)

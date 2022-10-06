@@ -1,6 +1,8 @@
 import 'zx/globals';
-import { $, fs as fsO } from 'zx';
-import { fn, retry, retryOr, tryOr } from 'swiss-ak';
+import { $, fs as fsO, cd as cdO } from 'zx';
+import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'swiss-ak';
+import { FindOptions } from '../utils/types';
+import { ExplodedPath, explodePath } from './PathUtils';
 
 $.verbose = false;
 
@@ -49,6 +51,15 @@ const trailSlash = (path: string) => removeTrailSlash(path) + '/';
  * ```
  */
 const removeDoubleSlashes = (path: string) => path.replace(/\/\//g, '/');
+
+// todo docs
+const cd = async (dir: string = '.'): Promise<void> => {
+  cdO(dir);
+  await $`cd ${dir}`;
+};
+
+// todo docs
+const pwd = async (): Promise<string> => intoLines(await $`pwd`)[0];
 
 /**
  * $$.ls
@@ -138,54 +149,12 @@ const cat = (item: string) => $`cat ${item}`;
  */
 const grep = async (pattern: string, file: string) => intoLines(await $`grep ${pattern} ${file}`);
 
-type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
-
-interface FindOptions {
-  /**
-   * Type of item to find
-   *
-   * * d = directory
-   * * f = regular file
-   * * b = block special
-   * * c = character special
-   * * l = symbolic link
-   * * p = FIFO
-   * * s = socket
-   */
-  type?: FindType;
-  /**
-   * Maximum depth to search
-   */
-  maxdepth?: number;
-  /**
-   * Name of file/directory to find
-   */
-  name?: string;
-  /**
-   * Regular expression to match
-   */
-  regex?: string;
-  /**
-   * If true, removes the path from the result (so you just get the file/directory name)
-   */
-  removePath?: boolean;
-  /**
-   * If true, ensures the provided path has a trailing slash.
-   */
-  contentsOnly?: boolean;
-  /**
-   * If true, removes trailing slashes from the results.
-   */
-  removeTrailingSlashes?: boolean;
-  /**
-   * If true, includes files that start with a dot.
-   */
-  showHidden?: boolean;
-}
 const convertFindOptionsToFlags = (options: FindOptions) => {
-  const { type, maxdepth, name, regex, removePath } = options;
+  const { type, mindepth, maxdepth, name, regex, removePath } = options;
   const flags = [];
+  // TODO simplify this
   if (type) flags.push('-type', type);
+  if (mindepth) flags.push('-mindepth', mindepth + '');
   if (maxdepth) flags.push('-maxdepth', maxdepth + '');
   if (name) flags.push('-name', name);
   if (regex) flags.push('-regex', regex);
@@ -204,6 +173,10 @@ const convertFindOptionsToFlags = (options: FindOptions) => {
 const find = async (dir: string = '.', options: FindOptions = {}): Promise<string[]> => {
   // google zx doesn't allow for unquoted arguments, so we need work around to conditionally add -execdir
   let result;
+
+  if (dir === '.') {
+    dir = await $$.pwd();
+  }
 
   const newDir = options.contentsOnly ? trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
@@ -250,16 +223,72 @@ const findDirs = (dir: string = '.', options: FindOptions = {}): Promise<string[
 const findFiles = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
   find(dir, { type: 'f', maxdepth: 1, removePath: true, contentsOnly: true, ...options });
 
+export interface ModifiedFile extends ExplodedPath {
+  lastModified: ms;
+}
+// todo docs
+const findModified = async (dir: string = '.', options: FindOptions = {}): Promise<ModifiedFile[]> => {
+  const newDir = options.contentsOnly ? trailSlash(dir) : dir;
+  const flags = convertFindOptionsToFlags(options);
+
+  const pruneRegex = options.showHidden ? '.*(\\.Trash|\\.DS_Store).*' : '.*(/\\.|\\.Trash|\\.DS_Store).*';
+
+  const result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print0 \\) | xargs -0 stat -f "%m %N"`;
+
+  return intoLines(result)
+    .map(removeDoubleSlashes)
+    .filter((str) => !str.includes('.Trash'))
+    .map((line) => {
+      const [_blank, lastModified, file] = line.split(/^([0-9]+)\s/);
+      return { lastModified: seconds(Number(lastModified)), file };
+    })
+    .filter(({ file }) => !['.', '.DS_Store'].includes(file))
+    .map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: removeDoubleSlashes(file), ...rest }) : fn.noact)
+    .map(({ lastModified, file }) => ({
+      lastModified,
+      ...explodePath(file.replace(/^\./, removeTrailSlash(dir)))
+    }));
+};
+
+// todo docs
+const lastModified = async (path: string): Promise<number> => {
+  let list = await findModified(path, { type: 'f' });
+  if (list.length === 0) list = await findModified(path);
+  const max = Math.max(...list.map(({ lastModified }) => lastModified));
+  return max;
+};
+
 /**
  * $$.rsync
  *
  * Wrapper for rsync command
  *
  * ```typescript
- * await $$.rsync('example1', 'example2') // same as $`rsync -crut 'example1' 'example2'`
+ * await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2'`
  * ```
  */
-const rsync = (a: string, b: string, flags: string[] = []) => $`rsync -crut ${a} ${b} ${flags}`;
+const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts?: Partial<ProgressBarOptions>) => {
+  if (progressBarOpts) {
+    const out = $`rsync -rut ${a} ${b} ${flags} --progress`;
+    let progressBar = getProgressBar(undefined, progressBarOpts);
+    progressBar.start();
+
+    for await (const chunk of out.stdout) {
+      const match = chunk.toString().match(/to\-check=([0-9]+)\/([0-9]+)/);
+
+      if (!match) continue;
+      const [_m, num, max] = match.map(Number);
+      const prog = max - num;
+
+      if (progressBar?.max === undefined) progressBar = getProgressBar(max, progressBarOpts);
+
+      progressBar.set(prog);
+    }
+    return await out;
+  } else {
+    return $`rsync -rut ${a} ${b} ${flags}`;
+  }
+};
 
 /**
  * $$.sync
@@ -267,10 +296,11 @@ const rsync = (a: string, b: string, flags: string[] = []) => $`rsync -crut ${a}
  * Helper function for syncing files
  *
  * ```typescript
- * await $$.sync('example1', 'example2') // same as $`rsync -crut 'example1' 'example2' --delete`
+ * await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2' --delete`
  * ```
  */
-const sync = (a: string, b: string) => rsync(trailSlash(a), trailSlash(b), ['--delete']);
+const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) =>
+  rsync(trailSlash(a), trailSlash(b), ['--delete'], progressBarOpts);
 
 /**
  * $$.isFileExist
@@ -347,10 +377,14 @@ const writeJSON = async <T extends Object>(filepath, obj: T): Promise<T> => {
 };
 
 export const $$ = {
+  cd,
+  pwd,
   ls,
   find,
   findDirs,
   findFiles,
+  findModified,
+  lastModified,
   rm,
   mkdir,
   cp,

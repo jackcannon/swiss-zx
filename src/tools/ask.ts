@@ -1,12 +1,20 @@
 import { chalk } from 'zx';
-import { second, seconds, wait, fn } from 'swiss-ak';
+import { second, seconds, wait, fn, symbols } from 'swiss-ak';
+import stringWidth from 'string-width';
 import prompts from 'prompts';
 import Fuse from 'fuse.js'; // fuzzy-search
 
 import { $$ } from './$$';
-import { moveUp, loading as loadingOut } from './out';
-import * as chlk from './chlk';
+import { moveUp, loading as loadingOut, truncate, hasColor } from './out';
+import { chlk, clr } from './clr';
 import { ExplodedPath, explodePath } from './PathUtils';
+import { out } from './out';
+import { Breadcrumb } from './out/breadcrumb';
+
+import { askTrim } from './ask/trim';
+import { displayPath, fileExplorer, multiFileExplorer } from './ask/fileExplorer';
+import { section, separator } from './ask/section';
+import { askTableSelect, askTableMultiselect } from './ask/table';
 
 const PROMPT_VALUE_PROPERTY = 'SWISS_ZX_PROMPT_VALUE';
 
@@ -19,6 +27,7 @@ const promptsOptions = {
 interface PromptChoiceObject<T = string> {
   title?: string;
   value?: T;
+  selected?: boolean;
 }
 
 type PromptChoice<T = string> = string | PromptChoiceObject<T>;
@@ -32,7 +41,8 @@ type PromptChoice<T = string> = string | PromptChoiceObject<T>;
  * const name = await ask.text('What is your name?'); // 'Jack'
  * ```
  */
-const text = async (message: string, initial?: string): Promise<string> => {
+const text = async (question: string | Breadcrumb, initial?: string): Promise<string> => {
+  const message = typeof question === 'string' ? question : question.get();
   const response = await prompts(
     {
       type: 'text',
@@ -55,7 +65,8 @@ const text = async (message: string, initial?: string): Promise<string> => {
  * const name = await ask.autotext('What is your name?', ['Jack', 'Jane', 'Joe']); // 'Jack'
  * ```
  */
-const autotext = async <T extends unknown>(message: string, choices: PromptChoice<T>[], choiceLimit: number = 5): Promise<T> => {
+const autotext = async <T = string>(question: string | Breadcrumb, choices: PromptChoice<T>[], choiceLimit: number = 5): Promise<T> => {
+  const message = typeof question === 'string' ? question : question.get();
   let response = {} as { [key: string]: T };
 
   if (choices) {
@@ -93,7 +104,8 @@ const autotext = async <T extends unknown>(message: string, choices: PromptChoic
  * const age = await ask.number('How old are you?'); // 30
  * ```
  */
-const number = async (message: string, initial: number = 1): Promise<number> => {
+const number = async (question: string | Breadcrumb, initial: number = 1): Promise<number> => {
+  const message = typeof question === 'string' ? question : question.get();
   const response = await prompts(
     {
       type: 'number',
@@ -115,13 +127,41 @@ const number = async (message: string, initial: number = 1): Promise<number> => 
  * const isCool = await ask.boolean('Is this cool?'); // true
  * ```
  */
-const boolean = async (message: string): Promise<boolean> => {
+const boolean = async (question: string | Breadcrumb, initial: boolean = true, yesTxt: string = 'yes', noTxt: string = 'no'): Promise<boolean> => {
+  const message = typeof question === 'string' ? question : question.get();
+  const response = await prompts(
+    {
+      type: 'toggle',
+      name: PROMPT_VALUE_PROPERTY,
+      message,
+      initial: !initial,
+      active: noTxt,
+      inactive: yesTxt
+    },
+    promptsOptions
+  );
+  return !Boolean(response[PROMPT_VALUE_PROPERTY]);
+};
+
+/**
+ * ask.booleanAlt
+ *
+ * Get a boolean input from the user (yes or no)
+ *
+ * Alternative interface to ask.boolean
+ *
+ * ```typescript
+ * const isCool = await ask.boolean('Is this cool?'); // true
+ * ```
+ */
+const booleanAlt = async (question: string | Breadcrumb, initial: boolean = true): Promise<boolean> => {
+  const message = typeof question === 'string' ? question : question.get();
   const response = await prompts(
     {
       type: 'confirm',
       name: PROMPT_VALUE_PROPERTY,
       message,
-      initial: true
+      initial
     },
     promptsOptions
   );
@@ -137,7 +177,8 @@ const boolean = async (message: string): Promise<boolean> => {
  * const colour = await ask.select('Whats your favourite colour?', ['red', 'green', 'blue']); // 'red'
  * ```
  */
-const select = async <T extends unknown>(message: string, choices: PromptChoice<T>[], initial?: T): Promise<T> => {
+const select = async <T = string>(question: string | Breadcrumb, choices: PromptChoice<T>[], initial?: T): Promise<T> => {
+  const message = typeof question === 'string' ? question : question.get();
   const choiceObjs = choices.map((choice) => (typeof choice === 'object' ? choice : { title: choice, value: choice }));
   let initialId = 0;
   if (initial) {
@@ -151,8 +192,7 @@ const select = async <T extends unknown>(message: string, choices: PromptChoice<
       name: PROMPT_VALUE_PROPERTY,
       message,
       choices: choiceObjs,
-      initial: initialId,
-      hint: '- Arrow keys to select. Enter/Return to submit'
+      initial: initialId
     },
     promptsOptions
   );
@@ -163,18 +203,33 @@ const select = async <T extends unknown>(message: string, choices: PromptChoice<
 /**
  * ask.multiselect
  *
- * Get the user to select multiple options from a list.
+ * Get the user to select multiple opts from a list.
  *
  * ```typescript
  * const colours = await ask.multiselect('Whats your favourite colours?', ['red', 'green', 'blue']); // ['red', 'green']
  * ```
  */
-const multiselect = async <T extends unknown>(message: string, choices: PromptChoice<T>[], initial?: T): Promise<T[]> => {
-  const choiceObjs = choices.map((choice) => (typeof choice === 'object' ? choice : { title: choice, value: choice }));
-  let initialId = 0;
+const multiselect = async <T = string>(
+  question: string | Breadcrumb,
+  choices: PromptChoice<T>[],
+  initial?: PromptChoice<T> | PromptChoice<T>[],
+  canSelectAll: boolean = false
+): Promise<T[]> => {
+  const message = typeof question === 'string' ? question : question.get();
+  if (!choices || choices.length === 0) {
+    return [];
+  }
+
+  let choiceObjs = choices.map((choice) => (typeof choice === 'object' ? choice : { title: choice, value: choice }));
   if (initial) {
-    initialId = (choiceObjs || []).map((x) => (x && x.value ? x.value : x)).indexOf(initial);
-    if (initialId < 0) initialId = 0;
+    const initialSelected = [initial].flat();
+    choiceObjs = choiceObjs.map((choice) => ({
+      selected: Boolean(initialSelected.find((x) => x === choice || x === choice.value)),
+      ...choice
+    }));
+  }
+  if (canSelectAll) {
+    choiceObjs = [{ title: chlk.gray4('[Select all]'), value: '***SELECT_ALL***' }, ...choiceObjs];
   }
 
   const response = await prompts(
@@ -183,14 +238,64 @@ const multiselect = async <T extends unknown>(message: string, choices: PromptCh
       name: PROMPT_VALUE_PROPERTY,
       instructions: false,
       message,
-      choices: choiceObjs,
-      initial: initialId,
-      hint: '- Space to select. Enter/Return to submit'
+      choices: choiceObjs
     },
     promptsOptions
   );
-  const result = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [0];
-  return result.map((value) => (typeof value === 'number' ? choiceObjs[value] : value));
+  const result = response[PROMPT_VALUE_PROPERTY] ? response[PROMPT_VALUE_PROPERTY] : [];
+
+  let selected = result.map((value) => (typeof value === 'number' ? choiceObjs[value] : value));
+  if (selected.includes('***SELECT_ALL***')) {
+    selected = choiceObjs.map((choice) => choice.value).filter((value) => !(value + '').startsWith('***') && !(value + '').endsWith('***'));
+  }
+
+  return selected;
+};
+
+export interface CRUDOptions {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canDeleteAll: boolean;
+}
+export type CRUD = 'none' | 'create' | 'update' | 'delete' | 'delete-all';
+/**
+ * ask.crud
+ *
+ * Get the user to select a CRUD (**C**reate, **R**ead, **U**pdate and **D**elete) action
+ *
+ * Values returned are: 'none' | 'create' | 'update' | 'delete' | 'delete-all'
+ *
+ * ```typescript
+ * const action = await ask.crud('What do you want to do next?'); // 'none'
+ * ```
+ */
+const crud = async (question: string | Breadcrumb, itemName: string = 'item', items?: any[], options: Partial<CRUDOptions> = {}): Promise<CRUD> => {
+  const fullOptions: CRUDOptions = {
+    canCreate: true,
+    canUpdate: true,
+    canDelete: true,
+    canDeleteAll: true,
+    ...options
+  };
+
+  const opts = [{ title: chalk.dim(`${clr.approve(symbols.TICK)} [ Finished ]`), value: 'none' as CRUD }];
+  if (fullOptions.canCreate) {
+    opts.push({ title: `${clr.create(symbols.PLUS)} Add another ${itemName}`, value: 'create' as CRUD });
+  }
+  if (items.length > 0) {
+    if (fullOptions.canUpdate) {
+      opts.push({ title: `${clr.update(symbols.ARROW_ROTATE_CLOCK)} Change a ${itemName} value`, value: 'update' as CRUD });
+    }
+    if (fullOptions.canDelete) {
+      opts.push({ title: `${clr.delete(symbols.CROSS)} Remove ${itemName}`, value: 'delete' as CRUD });
+    }
+    if (fullOptions.canDeleteAll) {
+      opts.push({ title: `${clr.deleteAll(symbols.TIMES)} Remove all`, value: 'delete-all' as CRUD });
+    }
+  }
+
+  return await ask.select(question, opts, 'none');
 };
 
 /**
@@ -205,7 +310,7 @@ const multiselect = async <T extends unknown>(message: string, choices: PromptCh
  * ); // 'Jack'
  * ```
  */
-const validate = async <T extends unknown, I extends unknown>(
+const validate = async <T = string, I = string>(
   askFunc: (initialValue?: T) => Promise<I> | I,
   validateFn: (input: Awaited<I>) => boolean | string
 ): Promise<I> => {
@@ -224,6 +329,36 @@ const validate = async <T extends unknown, I extends unknown>(
   return runLoop();
 };
 
+const imitateHighlight = chalk.cyanBright.bold.underline;
+const getImitateResultText = (result: any, isChild: boolean = false): string => {
+  if (result instanceof Array) {
+    if (result.length > 3) return `${result.length} selected`;
+    return result.map((item) => getImitateResultText(item, true)).join(', ');
+  }
+
+  if (typeof result === 'object') {
+    const usableProps = ['name', 'title', 'display', 'value'];
+    for (let prop in usableProps) {
+      if (result[prop]) return result[prop];
+    }
+  }
+
+  if (typeof result === 'boolean') {
+    if (isChild) return result + '';
+    return result ? `${imitateHighlight('yes')} / no` : `yes / ${imitateHighlight('no')}`;
+  }
+
+  if (typeof result === 'number') {
+    return result + '';
+  }
+
+  if (typeof result === 'string') {
+    return result;
+  }
+
+  return 'done';
+};
+
 /**
  * ask.imitate
  *
@@ -233,15 +368,51 @@ const validate = async <T extends unknown, I extends unknown>(
  * ask.imitate(true, 'What is your name?', 'Jack');
  * ```
  */
-const imitate = (done: boolean, questionText: string, resultText?: string): number => {
+const imitate = (done: boolean, question: string | Breadcrumb, result?: any): number => {
+  const message = typeof question === 'string' ? question : question.get();
+  const resultText = getImitateResultText(result);
   const prefix = done ? chalk.green('✔') : chalk.cyan('?');
-  const question = chalk.whiteBright.bold(questionText);
-  const joiner = chalk.gray(done ? '…' : '›');
-  const resultWrapper = done ? chalk.white : chalk.gray;
-  const result = resultText ? `${joiner} ${resultWrapper(resultText)}` : '';
+  const questionText = chalk.whiteBright.bold(message);
+  const joiner = resultText ? chalk.gray(done ? '… ' : '› ') : '';
 
-  console.log(`${prefix} ${question} ${result}`);
+  const mainLength = stringWidth(`${prefix} ${questionText} ${joiner}`);
+  const maxLength = out.utils.getTerminalWidth() - mainLength - 1;
+
+  let resultWrapper = hasColor(resultText) ? fn.noact : done ? chalk.white : chalk.gray;
+
+  const resultOut = resultText ? truncate(`${resultWrapper(resultText)}`, maxLength) : '';
+
+  console.log(`${prefix} ${questionText} ${joiner}${resultOut}`);
   return 1;
+};
+
+/**
+ * ask.prefill
+ *
+ * Auto-fills an ask prompt with the provided value, if defined.
+ *
+ * Continues to display the 'prompt', but already 'submitted'
+ *
+ * Good for keeping skipping parts of forms, but providing context and keeping display consistent
+ *
+ * ```typescript
+ * let data = {};
+ * const name1 = ask.prefill(data.name, 'What is your name?', ask.text); // User input
+ *
+ * data = {name: 'Jack'}
+ * const name2 = ask.prefill(data.name, 'What is your name?', ask.text); // Jack
+ * ```
+ */
+const prefill = async <T extends unknown = string>(
+  value: T | undefined,
+  question: string | Breadcrumb,
+  askFn: (question: string | Breadcrumb) => Promise<T> | T
+): Promise<T> => {
+  if (value !== undefined) {
+    ask.imitate(true, question, value);
+    return value;
+  }
+  return askFn(question);
 };
 
 /**
@@ -255,7 +426,7 @@ const imitate = (done: boolean, questionText: string, resultText?: string): numb
  * loader.stop();
  * ```
  */
-const loading = (questionText: string) => loadingOut((s) => imitate(false, questionText, `[Loading${s}]`));
+const loading = (question: string | Breadcrumb) => loadingOut((s) => imitate(false, question, `[${s}]`));
 
 /**
  * ask.pause
@@ -266,8 +437,9 @@ const loading = (questionText: string) => loadingOut((s) => imitate(false, quest
  * await ask.pause();
  * ```
  */
-const pause = async (text: string = 'Press enter to continue...'): Promise<void> => {
-  console.log(chalk.gray(text));
+const pause = async (text: string | Breadcrumb = 'Press enter to continue...'): Promise<void> => {
+  const message = typeof text === 'string' ? text : text.get();
+  console.log(chalk.gray(message));
   await $`read -n 1`;
 };
 
@@ -329,57 +501,37 @@ const rename = async (bef: string, aft: (before: ExplodedPath) => string): Promi
   return isConfirmed;
 };
 
-/**
- * ask.fileExplorer
- *
- * Get a file from the user
- *
- * ```typescript
- * const file = await ask.fileExplorer('Select a file');
- * ```
- */
-const fileExplorer = async (
-  startDir: string | string[],
-  filter: (item: any, index: number, arr: any[]) => boolean = fn.result(true),
-  questionText: string = 'Choose a file:'
-) => {
-  const fnDir = chlk.gray5;
-  const fnFiles = chlk.gray3;
-  const runExplorer = async (dir) => {
-    const loader = loading(questionText);
+// TODO docs
+const wizard = <T extends unknown>(startObj: Partial<T> = {}) => {
+  let obj: Partial<T> = { ...startObj };
+  const history: Partial<T>[] = [];
+  history.push(obj);
 
-    const dirs = await $$.findDirs(dir);
-    const files = (await $$.findFiles(dir)).filter(filter);
-
-    loader.stop();
-
-    const options = [
-      { title: chlk.gray1('▲ [back]'), value: '..' },
-      ...dirs.map((dir) => ({ title: fnDir(`› ${dir}`), value: dir })),
-      ...files.map((file) => ({ title: fnFiles(`${file}`), value: file }))
-    ];
-    const result = await ask.select(questionText, options, dirs[0] || files[0]);
-    if (result === '..') {
-      moveUp(1);
-      return runExplorer(explodePath(dir).dir);
+  return {
+    add(partial: Partial<T>) {
+      obj = {
+        ...obj,
+        ...partial
+      };
+      history.push(obj);
+    },
+    getPartial(): Partial<T> {
+      return obj;
+    },
+    get(): T {
+      return obj as T;
     }
-    if (dirs.includes(result)) {
-      moveUp(1);
-      return runExplorer($$.utils.removeTrailSlash(`${dir}/${result}`));
-    }
-    return `${dir}/${result}`;
   };
+};
 
-  const startDirs = [startDir].flat();
-
-  if (startDirs.length <= 1) {
-    return await runExplorer($$.utils.removeTrailSlash(startDirs[0]));
-  } else {
-    const options = startDirs.map((dir) => ({ title: fnDir(`› ${explodePath(dir).name}`), value: dir }));
-    const result = await ask.select(questionText, options);
-    moveUp(1);
-    return await runExplorer($$.utils.removeTrailSlash(result));
-  }
+type TitleFn<T> = (item: T, index: number, arr: T[]) => string;
+/**
+ * ask.utils.itemsToPromptObjects
+ *
+ * Take an array of items and convert them to an array of prompt objects
+ */
+const itemsToPromptObjects = <T = string>(items: T[], titles: string[] = [], titleFn?: TitleFn<T>): { title: string; value: T }[] => {
+  return items.map((item, index, arr) => ({ title: (titleFn && titleFn(item, index, arr)) || titles[index] || item + '', value: item as T }));
 };
 
 export const ask = {
@@ -387,13 +539,29 @@ export const ask = {
   autotext,
   number,
   boolean,
+  booleanAlt,
   select,
   multiselect,
+  crud,
   validate,
   imitate,
+  prefill,
   loading,
   pause,
   countdown,
   rename,
-  fileExplorer
+  fileExplorer,
+  multiFileExplorer,
+  wizard,
+  section,
+  separator,
+  trim: askTrim,
+  table: {
+    select: askTableSelect,
+    multiselect: askTableMultiselect
+  },
+  utils: {
+    itemsToPromptObjects,
+    displayPath
+  }
 };

@@ -1,5 +1,5 @@
 import { ArrayUtils } from 'swiss-ak';
-import { TableOptions } from '../tools/table';
+import { FullTableOptions } from '../tools/table';
 
 interface CharLookup<T> {
   hTop: T;
@@ -31,7 +31,7 @@ const ovAllCharact = (orig: string[], char: string) => ArrayUtils.repeat(4, char
 const ovSeperators = (orig: string[], char: string) => [orig[0], char, char, char];
 const ovOuterChars = (orig: string[], char: string) => [orig[0], char, orig[2], char];
 
-export const getTableCharacters = (opts: TableOptions): CharLookup<string[]> => {
+export const getTableCharacters = (opts: FullTableOptions): CharLookup<string[]> => {
   let mapped = tableCharactersBasic();
 
   const normalRows = ['hNor', 'bNor'];
@@ -61,7 +61,7 @@ export const getTableCharacters = (opts: TableOptions): CharLookup<string[]> => 
   if (opts.overrideHorChar || !opts.drawRowLines) {
     const ovrd = opts.overrideHorChar;
 
-    const copyVertsFrom = ['hNor', 'hNor', 'hNor', 'hNor', 'hNor', 'bNor', 'bNor', 'bNor', 'bNor'];
+    const copyVertsFrom = ['hNor', 'hNor', 'hNor', 'hNor', 'mSep', 'bNor', 'bNor', 'bNor', 'bNor'];
 
     for (const rowIndex in rowTypes) {
       const rowType = rowTypes[rowIndex];

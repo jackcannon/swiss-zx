@@ -1,5 +1,15 @@
-import { getProgressBar, ProgressBarOptions } from 'swiss-ak';
+import { $ } from 'zx';
+import { getProgressBar, ms, ProgressBarOptions } from 'swiss-ak';
 import { $$ } from './$$';
+
+$.verbose = false;
+
+/**
+ * toFFmpegTimeFormat
+ *
+ * Convert a number of milliseconds to a time format usable by FFmpeg.
+ */
+export const toFFmpegTimeFormat = (time: ms) => new Date(time).toISOString().slice(14, 23);
 
 /**
  * getProbeValue
@@ -14,6 +24,56 @@ export const getProbeValue = async (file: string, propertyName: string): Promise
   (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
 
 /**
+ * Note: this interface is a guide, and other properties may exist, and some may be have different types
+ */
+export interface ProbeResult {
+  index: number;
+  codec_name: string;
+  codec_long_name: string;
+  profile: string;
+  codec_type: string;
+  codec_time_base: string;
+  codec_tag_string: string;
+  codec_tag: number;
+  width: number;
+  height: number;
+  coded_width: number;
+  coded_height: number;
+  closed_captions: number;
+  has_b_frames: number;
+  sample_aspect_ratio: string;
+  display_aspect_ratio: string;
+  pix_fmt: string;
+  level: number;
+  color_range: string;
+  color_space: string;
+  color_transfer: string;
+  color_primaries: string;
+  chroma_location: string;
+  field_order: string;
+  timecode: string;
+  refs: number;
+  is_avc?: string;
+  nal_length_size?: number;
+  id: string;
+  r_frame_rate: string;
+  avg_frame_rate: string;
+  time_base: string;
+  start_pts: number;
+  start_time: number;
+  duration_ts: number;
+  duration: number;
+  bit_rate: number;
+  max_bit_rate: string;
+  bits_per_raw_sample: number;
+  nb_frames: number;
+  nb_read_frames: string;
+  nb_read_packets: string;
+
+  framerate: number;
+}
+
+/**
  * getProbe
  *
  * Get the probe of a file as an object
@@ -22,24 +82,66 @@ export const getProbeValue = async (file: string, propertyName: string): Promise
  * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
  * ```
  */
-export const getProbe = async (file: string, props?: string[]): Promise<{ [key: string]: string | number }> => {
+export const getProbe = async (file: string): Promise<ProbeResult> => {
   const full = await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
 
-  return Object.fromEntries(
+  const props = Object.fromEntries(
     full
       .toString()
       .split('\n')
       .map((line) => line.split('='))
-      .filter(([key]) => !props || props.includes(key))
-      .map(([key, value]) => {
-        let newValue = value;
-
-        // @ts-ignore
-        if (!Number.isNaN(Number(newValue))) newValue = Number(newValue);
-
-        return [key, newValue];
-      })
   );
+
+  const asNumber = (val: string): number => (Number.isNaN(Number(val)) ? 0 : Number(val));
+
+  const framerate = asNumber(props.avg_frame_rate.split('/')[0]) / asNumber(props.avg_frame_rate.split('/')[1]);
+
+  return {
+    index: asNumber(props.index),
+    codec_name: props.codec_name as string,
+    codec_long_name: props.codec_long_name as string,
+    profile: props.profile as string,
+    codec_type: props.codec_type as string,
+    codec_time_base: props.codec_time_base as string,
+    codec_tag_string: props.codec_tag_string as string,
+    codec_tag: asNumber(props.codec_tag),
+    width: asNumber(props.width),
+    height: asNumber(props.height),
+    coded_width: asNumber(props.coded_width),
+    coded_height: asNumber(props.coded_height),
+    closed_captions: asNumber(props.closed_captions),
+    has_b_frames: asNumber(props.has_b_frames),
+    sample_aspect_ratio: props.sample_aspect_ratio as string,
+    display_aspect_ratio: props.display_aspect_ratio as string,
+    pix_fmt: props.pix_fmt as string,
+    level: asNumber(props.level),
+    color_range: props.color_range as string,
+    color_space: props.color_space as string,
+    color_transfer: props.color_transfer as string,
+    color_primaries: props.color_primaries as string,
+    chroma_location: props.chroma_location as string,
+    field_order: props.field_order as string,
+    timecode: props.timecode as string,
+    refs: asNumber(props.refs),
+    is_avc: props.is_avc as string,
+    nal_length_size: asNumber(props.nal_length_size),
+    id: props.id as string,
+    r_frame_rate: props.r_frame_rate as string,
+    avg_frame_rate: props.avg_frame_rate as string,
+    time_base: props.time_base as string,
+    start_pts: asNumber(props.start_pts),
+    start_time: asNumber(props.start_time),
+    duration_ts: asNumber(props.duration_ts),
+    duration: asNumber(props.duration),
+    bit_rate: asNumber(props.bit_rate),
+    max_bit_rate: props.max_bit_rate as string,
+    bits_per_raw_sample: asNumber(props.bits_per_raw_sample),
+    nb_frames: asNumber(props.nb_frames),
+    nb_read_frames: props.nb_read_frames as string,
+    nb_read_packets: props.nb_read_packets as string,
+
+    framerate
+  };
 };
 
 /**
@@ -51,10 +153,11 @@ export const getProbe = async (file: string, props?: string[]): Promise<{ [key: 
  * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
  * ```
  */
-export const getTotalFrames = async (list?: string[]): Promise<number> => {
+export const getTotalFrames = async (list?: string | string[]): Promise<number> => {
   if (!list) {
     list = (await $$.ls()).filter((file) => file.endsWith('.MOV'));
   }
+  if (!(list instanceof Array)) list = [list];
 
   const counts = await Promise.all(list.map(async (file) => getProbeValue(file, 'nb_frames')));
 
@@ -80,7 +183,7 @@ const readChunk = (chunk) =>
 /**
  * ffmpeg
  *
- * Wrapper for ffmpeg command
+ * Wrapper for ffmpeg command that provides progress bar to track progress
  *
  * ```typescript
  * const progBarOpts = {}; // Same options as getProgressBar
@@ -119,7 +222,7 @@ export const ffmpeg = async (
     if (progStats.progress === 'end') {
       bar.finish();
       await tail.kill();
-      await ffmpegProcess.kill();
+      // await ffmpegProcess.kill();
       await $`rm -rf ${progressFileName}`;
     }
   }

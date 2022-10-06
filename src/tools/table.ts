@@ -1,25 +1,38 @@
 import { Partial, fn, ArrayUtils } from 'swiss-ak';
-import { getLineCounter } from './lineCounter';
-import * as out from './out';
+import { getLineCounter } from './out/lineCounter';
+import { out, AlignType } from './out';
 import { processInput } from '../utils/processTableInput';
 import { getTableCharacters } from '../utils/tableCharacters';
+import { clr, Colour } from './clr';
 
-/**
- * print.utils.getTerminalWidth
- *
- * Get maximum terminal width (columns)
- *
- * ```typescript
- * print.utils.getTerminalWidth(); // 127
- * ```
- */
-const getTerminalWidth = () => (process?.stdout?.columns ? process.stdout.columns : 100);
+const toFullFormatConfig = (config: Partial<TableFormatConfig>) =>
+  ({
+    isHeader: false,
+    isBody: true,
+    ...config
+  } as TableFormatConfigFull);
 
-export interface TableOptions {
+// TODO docs
+export interface TableFormatConfig {
+  formatFn: Function;
+  isHeader?: boolean;
+  isBody?: boolean;
+  row?: number;
+  col?: number;
+}
+interface TableFormatConfigFull extends TableFormatConfig {
+  isHeader: boolean;
+  isBody: boolean;
+}
+
+export interface FullTableOptions {
   /**
    * Function to wrap each line of the table in (e.g. chalk.blue)
    */
   wrapperFn: Function;
+
+  // todo docs
+  wrapLinesFn: Function;
 
   /**
    * Character to use instead of lines
@@ -59,16 +72,16 @@ export interface TableOptions {
   /**
    * How the table should be aligned on the screen
    *
-   * left, right or center
+   * left, right, center or justify
    */
-  align: 'left' | 'right' | 'center';
+  align: AlignType;
 
   /**
    * How each column should be aligned
    *
-   * Array with alignment for each column: left, right or center
+   * Array with alignment for each column: left, right, center or justify
    */
-  alignCols: ('left' | 'right' | 'center')[];
+  alignCols: AlignType[];
 
   /**
    * Change rows into columns and vice versa
@@ -79,9 +92,20 @@ export interface TableOptions {
    * Change rows into columns and vice versa (body only)
    */
   transposeBody: boolean;
+
+  /**
+   * How much spacing to leave around the outside of the table
+   * todo update docs for multiple margins
+   */
+  margin: number | number[];
+
+  // TODO docs
+  format: TableFormatConfig[];
 }
 
-const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
+export type TableOptions = Partial<FullTableOptions>;
+
+const getFullOptions = (opts: TableOptions): FullTableOptions => ({
   overrideChar: '',
   overrideHorChar: opts.overrideChar || '',
   overrideVerChar: opts.overrideChar || '',
@@ -90,11 +114,23 @@ const getFullOptions = (opts: Partial<TableOptions>): TableOptions => ({
   colWidths: [],
   ...opts,
   wrapperFn: typeof opts.wrapperFn !== 'function' ? fn.noact : opts.wrapperFn,
+  wrapLinesFn: typeof opts.wrapLinesFn !== 'function' ? fn.noact : opts.wrapLinesFn,
   drawOuter: typeof opts.drawOuter !== 'boolean' ? true : opts.drawOuter,
   drawRowLines: typeof opts.drawRowLines !== 'boolean' ? true : opts.drawRowLines,
   drawColLines: typeof opts.drawColLines !== 'boolean' ? true : opts.drawColLines,
   transpose: typeof opts.transpose !== 'boolean' ? false : opts.transpose,
-  transposeBody: typeof opts.transposeBody !== 'boolean' ? false : opts.transposeBody
+  transposeBody: typeof opts.transposeBody !== 'boolean' ? false : opts.transposeBody,
+  format: (opts.format || []).map(toFullFormatConfig),
+  margin: ((input: number | number[] = 0) => {
+    const arr = [input].flat();
+
+    const top = arr[0] ?? 0;
+    const right = arr[1] ?? top;
+    const bottom = arr[2] ?? top;
+    const left = arr[3] ?? right ?? top;
+
+    return [top, right, bottom, left];
+  })(opts.margin) as number[]
 });
 
 const empty = (numCols: number, char: string = '') => new Array(numCols).fill(char);
@@ -117,10 +153,12 @@ const empty = (numCols: number, char: string = '') => new Array(numCols).fill(ch
  * // └──────┴─────┘
  * ```
  */
-const print = (body: any[][], header?: any[][], options: Partial<TableOptions> = {}): number => {
+const print = (body: any[][], header?: any[][], options: TableOptions = {}): number => {
   const lc = getLineCounter();
   const opts = getFullOptions(options);
-  const { wrapperFn, drawOuter, alignCols, align } = opts;
+  const { wrapperFn, wrapLinesFn, drawOuter, alignCols, align, drawRowLines, margin } = opts;
+
+  const [marginTop, marginRight, marginBottom, marginLeft] = opts.margin as number[];
 
   const {
     cells: { header: pHeader, body: pBody },
@@ -136,32 +174,36 @@ const print = (body: any[][], header?: any[][], options: Partial<TableOptions> =
 
     let padded = row.map((cell, col) => out.align(cell || '', alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn) padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(`${norm}${sepr}${norm}`);
-    const str = `${strt}${norm}${inner}${norm}${endc}`;
-    lc.log(out.align(wrapperFn(str), align, 0, ' ', false));
+    const inner = padded.join(wrapLinesFn(`${norm}${sepr}${norm}`));
+    const str = wrapLinesFn(`${' '.repeat(marginLeft)}${strt}${norm}`) + inner + wrapLinesFn(`${norm}${endc}${' '.repeat(marginRight)}`);
+
+    lc.log(out.align(wrapperFn(str), align, -1, ' ', false));
   };
 
+  if (marginTop) lc.log('\n'.repeat(marginTop - 1));
+
   if (pHeader.length) {
-    if (drawOuter) printLine(empty(numCols, ''), tableChars.hTop);
+    if (drawOuter && drawRowLines) printLine(empty(numCols, ''), tableChars.hTop, wrapLinesFn);
     for (let index in pHeader) {
       const row = pHeader[index];
-      if (Number(index) !== 0) printLine(empty(numCols, ''), tableChars.hSep);
+      if (Number(index) !== 0 && drawRowLines) printLine(empty(numCols, ''), tableChars.hSep, wrapLinesFn);
       for (let line of row) {
         printLine(line as string[], tableChars.hNor, chalk.bold);
       }
     }
-    printLine(empty(numCols, ''), tableChars.mSep);
+    printLine(empty(numCols, ''), tableChars.mSep, wrapLinesFn);
   } else {
-    if (drawOuter) printLine(empty(numCols, ''), tableChars.bTop);
+    if (drawOuter) printLine(empty(numCols, ''), tableChars.bTop, wrapLinesFn);
   }
   for (let index in pBody) {
     const row = pBody[index];
-    if (Number(index) !== 0) printLine(empty(numCols, ''), tableChars.bSep);
+    if (Number(index) !== 0 && drawRowLines) printLine(empty(numCols, ''), tableChars.bSep, wrapLinesFn);
     for (let line of row) {
       printLine(line as string[], tableChars.bNor);
     }
   }
-  if (drawOuter) printLine(empty(numCols, ''), tableChars.bBot);
+  if (drawOuter && drawRowLines) printLine(empty(numCols, ''), tableChars.bBot, wrapLinesFn);
+  if (marginBottom) lc.log('\n'.repeat(marginBottom - 1));
   return lc.get();
 };
 
@@ -210,6 +252,19 @@ const concatRows = (cells: { header: any[][]; body: any[][] }): any[][] => {
   return [...(cells.header || []), ...cells.body] as any[][];
 };
 
+// TODO docs
+
+const getFormat = (format: Function | Colour, row?: number, col?: number, isHeader?: boolean, isBody?: boolean): TableFormatConfig => {
+  const result: TableFormatConfig = {
+    formatFn: typeof format === 'function' ? format : clr[format],
+    row,
+    col
+  };
+  if (isHeader !== undefined) result.isHeader = isHeader;
+  if (isBody !== undefined) result.isBody = isBody;
+  return result;
+};
+
 /**
  * table.printObjects
  *
@@ -243,7 +298,7 @@ const concatRows = (cells: { header: any[][]; body: any[][] }): any[][] => {
  * // └───────┴───────┴───────┘
  * ```
  */
-const printObjects = (objects: Object[], headers: Object = {}, options: Partial<TableOptions> = {}) => {
+const printObjects = (objects: Object[], headers: Object = {}, options: TableOptions = {}) => {
   const { body, header } = objectsToTable(objects, headers);
   return print(body, header, options);
 };
@@ -255,6 +310,6 @@ export const table = {
     objectsToTable,
     transpose,
     concatRows,
-    getTerminalWidth
+    getFormat
   }
 };

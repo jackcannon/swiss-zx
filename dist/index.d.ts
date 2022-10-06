@@ -1,6 +1,8 @@
 import * as zx from 'zx';
-import { second, ProgressBarOptions, Partial } from 'swiss-ak';
+import * as swiss_ak from 'swiss-ak';
+import { ms, ProgressBarOptions, Partial as Partial$1, second } from 'swiss-ak';
 import * as chalk from 'chalk';
+import * as zx_core from 'zx/core';
 
 declare type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
 interface FindOptions {
@@ -17,6 +19,11 @@ interface FindOptions {
      */
     type?: FindType;
     /**
+     * TODO docs
+     * Minimum depth to search
+     */
+    mindepth?: number;
+    /**
      * Maximum depth to search
      */
     maxdepth?: number;
@@ -26,12 +33,22 @@ interface FindOptions {
     name?: string;
     /**
      * Regular expression to match
+     *
+     * IMPORTANT: use String.raw to make sure the backslashes are escaped
+     *
+     * ```typescript
+     * const regex = String.raw`^.*\.js$` // '^.*\.js$'
+     * ```
      */
     regex?: string;
     /**
      * If true, removes the path from the result (so you just get the file/directory name)
      */
     removePath?: boolean;
+    /**
+     * TODO docs
+     */
+    absolutePath?: boolean;
     /**
      * If true, ensures the provided path has a trailing slash.
      */
@@ -45,39 +62,22 @@ interface FindOptions {
      */
     showHidden?: boolean;
 }
-declare const $$: {
-    ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-    find: (dir?: string, options?: FindOptions) => Promise<string[]>;
-    findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
-    findFiles: (dir?: string, options?: FindOptions) => Promise<string[]>;
-    rm: (item: string) => zx.ProcessPromise;
-    mkdir: (item: string) => zx.ProcessPromise;
-    cp: (a: string, b: string) => zx.ProcessPromise;
-    mv: (a: string, b: string) => zx.ProcessPromise;
-    touch: (item: string) => zx.ProcessPromise;
-    cat: (item: string) => zx.ProcessPromise;
-    grep: (pattern: string, file: string) => Promise<string[]>;
-    isFileExist: (file: string) => Promise<boolean>;
-    isDirExist: (dir: string) => Promise<boolean>;
-    readJSON: <T extends unknown>(filepath: string) => Promise<T>;
-    writeJSON: <T_1 extends Object>(filepath: any, obj: T_1) => Promise<T_1>;
-    rsync: (a: string, b: string, flags?: string[]) => zx.ProcessPromise;
-    sync: (a: string, b: string) => zx.ProcessPromise;
-    utils: {
-        intoLines: (out: ProcessOutput) => string[];
-        removeTrailSlash: (path: string) => string;
-        trailSlash: (path: string) => string;
-        removeDoubleSlashes: (path: string) => string;
-    };
-};
 
 interface ExplodedPath {
+    /**
+     * The full original path as it was passed in.
+     */
+    path: string;
     /**
      * The directory path of the given path
      *
      * Note: no trailing slash
      */
     dir: string;
+    /**
+     * the ancestral folders of the given dir as an array
+     */
+    folders: string[];
     /**
      * the name of the file, not including the extension
      */
@@ -93,6 +93,8 @@ interface ExplodedPath {
 }
 /**
  * explodePath
+ *
+ * TODO update docs for folders and path
  *
  * 'Explodes' a path into its components
  *
@@ -110,7 +112,7 @@ interface ExplodedPath {
  * console.log(filename); // 'file.txt'
  * ```
  */
-declare const explodePath: (filepath: string) => ExplodedPath;
+declare const explodePath: (path: string) => ExplodedPath;
 
 type PathUtils_ExplodedPath = ExplodedPath;
 declare const PathUtils_explodePath: typeof explodePath;
@@ -121,151 +123,125 @@ declare namespace PathUtils {
   };
 }
 
-interface PromptChoiceObject<T = string> {
-    title?: string;
-    value?: T;
+interface ModifiedFile extends ExplodedPath {
+    lastModified: ms;
 }
-declare type PromptChoice<T = string> = string | PromptChoiceObject<T>;
-declare const ask: {
-    text: (message: string, initial?: string) => Promise<string>;
-    autotext: <T extends unknown>(message: string, choices: PromptChoice<T>[], choiceLimit?: number) => Promise<T>;
-    number: (message: string, initial?: number) => Promise<number>;
-    boolean: (message: string) => Promise<boolean>;
-    select: <T_1 extends unknown>(message: string, choices: PromptChoice<T_1>[], initial?: T_1) => Promise<T_1>;
-    multiselect: <T_2 extends unknown>(message: string, choices: PromptChoice<T_2>[], initial?: T_2) => Promise<T_2[]>;
-    validate: <T_3 extends unknown, I extends unknown>(askFunc: (initialValue?: T_3) => I | Promise<I>, validateFn: (input: Awaited<I>) => boolean | string) => Promise<I>;
-    imitate: (done: boolean, questionText: string, resultText?: string) => number;
-    loading: (questionText: string) => {
-        stop: () => void;
-    };
-    pause: (text?: string) => Promise<void>;
-    countdown: (totalSeconds: number, template?: (s: second) => string, complete?: string) => Promise<void>;
-    rename: (bef: string, aft: (before: ExplodedPath) => string) => Promise<boolean>;
-    fileExplorer: (startDir: string | string[], filter?: (item: any, index: number, arr: any[]) => boolean, questionText?: string) => Promise<any>;
-};
-
-/**
- * getProbeValue
- *
- * Get a value from ffprobe output
- *
- * ```typescript
- * const probe = await getProbe('file.mp4', 'width'); // '1280'
- * ```
- */
-declare const getProbeValue: (file: string, propertyName: string) => Promise<string>;
-/**
- * getProbe
- *
- * Get the probe of a file as an object
- *
- * ```typescript
- * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
- * ```
- */
-declare const getProbe: (file: string, props?: string[]) => Promise<{
-    [key: string]: string | number;
-}>;
-/**
- * getTotalFrames
- *
- * Get the total number of frames in a video file.
- *
- * ```typescript
- * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
- * ```
- */
-declare const getTotalFrames: (list?: string[]) => Promise<number>;
-/**
- * ffmpeg
- *
- * Wrapper for ffmpeg command
- *
- * ```typescript
- * const progBarOpts = {}; // Same options as getProgressBar
- * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
- * ```
- */
-declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
-
-interface SupportedFlag {
-    name: string;
-    type: 'string' | 'number' | 'boolean';
-    options?: string[];
-    canOverrideOpts?: boolean;
-    processOutput?: (value: any) => any;
-    description: string;
-    hint?: string;
-}
-interface FlagsObj {
-    'black-threshold'?: number;
-    compose?: string;
-    displace?: string;
-    dissolve?: number;
-    flip?: boolean;
-    flop?: boolean;
-    geometry?: string;
-    gravity?: string;
-    monochrome?: boolean;
-    negate?: boolean;
-    quality?: number;
-    resize?: string;
-    rotate?: number;
-    size?: string;
-    threshold?: number;
-    'white-threshold'?: number;
-}
-interface CompositeFlags {
-    change?: FlagsObj;
-    mask?: FlagsObj;
-}
-declare const gm: {
-    convert: (inPath: string, outPath: string, flags?: FlagsObj) => Promise<ProcessOutput>;
-    composite: (changePath: string, basePath: string, outPath?: string, maskPath?: string, flags?: CompositeFlags | FlagsObj) => Promise<ProcessOutput>;
-    ask: {
-        flags: (name: string, previousFlagsObj?: FlagsObj) => Promise<{
-            'black-threshold'?: number;
-            compose?: string;
-            displace?: string;
-            dissolve?: number;
-            flip?: boolean;
-            flop?: boolean;
-            geometry?: string;
-            gravity?: string;
-            monochrome?: boolean;
-            negate?: boolean;
-            quality?: number;
-            resize?: string;
-            rotate?: number;
-            size?: string;
-            threshold?: number;
-            'white-threshold'?: number;
-        }>;
-    };
+declare const $$: {
+    cd: (dir?: string) => Promise<void>;
+    pwd: () => Promise<string>;
+    ls: (dir?: string, flags?: string[]) => Promise<string[]>;
+    find: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    findFiles: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    findModified: (dir?: string, options?: FindOptions) => Promise<ModifiedFile[]>;
+    lastModified: (path: string) => Promise<number>;
+    rm: (item: string) => zx.ProcessPromise;
+    mkdir: (item: string) => zx.ProcessPromise;
+    cp: (a: string, b: string) => zx.ProcessPromise;
+    mv: (a: string, b: string) => zx.ProcessPromise;
+    touch: (item: string) => zx.ProcessPromise;
+    cat: (item: string) => zx.ProcessPromise;
+    grep: (pattern: string, file: string) => Promise<string[]>;
+    isFileExist: (file: string) => Promise<boolean>;
+    isDirExist: (dir: string) => Promise<boolean>;
+    readJSON: <T extends unknown>(filepath: string) => Promise<T>;
+    writeJSON: <T_1 extends Object>(filepath: any, obj: T_1) => Promise<T_1>;
+    rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
+    sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
     utils: {
-        supportedFlags: {
-            [key: string]: SupportedFlag;
-        };
-        printFlagsTable: (flagsObjArray: FlagsObj[], overrideHeader: string[][]) => number;
-        flagsObjToArray: (obj: FlagsObj) => any[];
+        intoLines: (out: ProcessOutput) => string[];
+        removeTrailSlash: (path: string) => string;
+        trailSlash: (path: string) => string;
+        removeDoubleSlashes: (path: string) => string;
     };
 };
 
+declare const chlk: {
+    gray0: chalk.ChalkInstance;
+    gray1: chalk.ChalkInstance;
+    gray2: chalk.ChalkInstance;
+    gray3: chalk.ChalkInstance;
+    gray4: chalk.ChalkInstance;
+    gray5: chalk.ChalkInstance;
+    grays: chalk.ChalkInstance[];
+    gray: (num: number) => chalk.ChalkInstance;
+    clear: (str: string) => string;
+    not: (style: Function) => (item: string) => string;
+    notUnderlined: (item: string) => string;
+};
 /**
- * getLineCounter
+ * clr
  *
- * Get line counter for counter output lines
+ * A collection of shortcuts and aliases for chalk functions
+ */
+declare const clr: {
+    hl1: chalk.ChalkInstance;
+    hl2: chalk.ChalkInstance;
+    approve: chalk.ChalkInstance;
+    create: chalk.ChalkInstance;
+    update: chalk.ChalkInstance;
+    delete: chalk.ChalkInstance;
+    deleteAll: chalk.ChalkInstance;
+    blue: chalk.ChalkInstance;
+    cyan: chalk.ChalkInstance;
+    green: chalk.ChalkInstance;
+    magenta: chalk.ChalkInstance;
+    red: chalk.ChalkInstance;
+    yellow: chalk.ChalkInstance;
+    t1: chalk.ChalkInstance;
+    t2: chalk.ChalkInstance;
+    t3: chalk.ChalkInstance;
+    t4: chalk.ChalkInstance;
+    t5: chalk.ChalkInstance;
+    t6: chalk.ChalkInstance;
+    gray0: chalk.ChalkInstance;
+    gray1: chalk.ChalkInstance;
+    gray2: chalk.ChalkInstance;
+    gray3: chalk.ChalkInstance;
+    gray4: chalk.ChalkInstance;
+    gray5: chalk.ChalkInstance;
+};
+declare type Colour = keyof typeof clr;
+
+/**
+ * Breadcrumb
+ *
+ * Provides a consistent format and style for questions/prompts
  *
  * ```typescript
- * const lc = getLineCounter();
- * lc.log('hello'); // 1
- * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
- * lc.add(1); // 3
- * lc.get(); // 3
- * lc.clear(); // 0
+ * const bread = getBreadcrumb();
+ * bread() // ''
+ * bread('a') // 'a'
+ * bread('a', 'b') // 'a › b'
+ * bread('a', 'b', 'c') // 'a › b › c'
+ *
+ * const sub = bread.sub('a', 'b');
+ * sub(); // 'a › b'
+ * sub('c') // 'a › b › c'
+ * sub('c', 'd') // 'a › b › c › d'
+ *
+ * const subsub = sub.sub('c', 'd');
+ * subsub(); // 'a › b › c › d'
+ * subsub('e'); // 'a › b › c › d › e'
  * ```
  */
-declare const getLineCounter: () => {
+declare type Breadcrumb = {
+    (...tempNames: string[]): Breadcrumb;
+    setColours: (colours: Colour[]) => void;
+    add: (...names: string[]) => number;
+    getNames: (...tempNames: string[]) => any[];
+    sub: (...tempNames: string[]) => Breadcrumb;
+    get(...tempNames: string[]): string;
+    toString(): string;
+};
+/**
+ * getBreadcrumb
+ *
+ * Returns an empty breadcrumb object
+ */
+declare const getBreadcrumb: (...baseNames: string[]) => Breadcrumb;
+
+interface LineCounter {
     /**
      * lc.log
      *
@@ -275,27 +251,28 @@ declare const getLineCounter: () => {
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
      * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
-     * lc.add(1); // 3
+     * lc.add(1);
      * lc.get(); // 3
-     * lc.clear(); // 0
+     * lc.clear();
      * ```
      */
     log(...args: any[]): number;
+    move(lines: number): void;
     /**
      * lc.wrap
      *
-     * Wraps a function, and adds a given number (of the result of the function) to the line counter
+     * Wraps a function, and adds a given number to the line counter
      *
      * ```typescript
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
      * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
-     * lc.add(1); // 3
+     * lc.add(1);
      * lc.get(); // 3
-     * lc.clear(); // 0
+     * lc.clear();
      * ```
      */
-    wrap: <A extends unknown[], T extends unknown>(newLines: number | undefined, func: (...args: A) => number | T, ...args: A) => T;
+    wrap: <T = any, A = any>(newLines: number, func: (...args: A[]) => number | T, ...args: A[]) => T;
     /**
      * lc.add
      *
@@ -305,12 +282,12 @@ declare const getLineCounter: () => {
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
      * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
-     * lc.add(1); // 3
+     * lc.add(1);
      * lc.get(); // 3
-     * lc.clear(); // 0
+     * lc.clear();
      * ```
      */
-    add(newLines: number): number;
+    add(newLines: number): void;
     /**
      * lc.get
      *
@@ -320,12 +297,13 @@ declare const getLineCounter: () => {
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
      * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
-     * lc.add(1); // 3
+     * lc.add(1);
      * lc.get(); // 3
-     * lc.clear(); // 0
+     * lc.clear();
      * ```
      */
     get(): number;
+    getSince(checkpointID: string): number;
     /**
      * lc.clear
      *
@@ -335,19 +313,253 @@ declare const getLineCounter: () => {
      * const lc = getLineCounter();
      * lc.log('hello'); // 1
      * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
-     * lc.add(1); // 3
+     * lc.add(1);
      * lc.get(); // 3
-     * lc.clear(); // 0
+     * lc.clear();
      * ```
      */
-    clear(): number;
+    clear(): void;
+    /**
+     * lc.clearBack
+     *
+     * Clears a given number of lines, and updates the line counter
+     */
+    clearBack(linesToMoveBack: number, limitToRecordedLines?: boolean): void;
+    /**
+     * lc.checkpoint
+     *
+     * Records a 'checkpoint' that can be returned to later
+     */
+    checkpoint(checkpointID?: string): string;
+    /**
+     * lc.clearToCheckpoint
+     *
+     * Clear lines up to a previously recorded checkpoint
+     */
+    clearToCheckpoint(checkpointID: string): void;
+}
+/**
+ * getLineCounter
+ *
+ * Get line counter for counter output lines
+ *
+ * ```typescript
+ * const lc = getLineCounter();
+ * lc.log('hello'); // 1
+ * lc.wrap(undefined, () => table.print(['hello', 'world'])); // 1
+ * lc.add(1);
+ * lc.get(); // 3
+ * lc.clear();
+ * ```
+ */
+declare const getLineCounter: () => LineCounter;
+
+declare type Text = string | string[];
+
+/**
+ * out.pad
+ *
+ * Pad before and after the given text with the given character.
+ *
+ * ```typescript
+ * pad('foo', 3, 1, '-'); // '---foo-'
+ * pad('bar', 10, 5, '_'); // '__________bar_____'
+ * ```
+ */
+declare const pad: (line: string, start: number, end: number, replaceChar?: string) => string;
+declare type AlignType = 'left' | 'right' | 'center' | 'justify';
+declare type AlignFunction = (item: any, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+/**
+ * out.center
+ *
+ * Align the given text to the center within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * out.center('foo', 10); // '   foo    '
+ * out.center('something long', 10); // 'something long'
+ * out.center('lines\n1\n2', 5);
+ * // 'lines' + '\n' +
+ * // '  1  ' + '\n' +
+ * // '  2  '
+ * ```
+ */
+declare const center: AlignFunction;
+/**
+ * out.left
+ *
+ * Align the given text to the left within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * out.left('foo', 10); // 'foo       '
+ * out.left('something long', 10); // 'something long'
+ * out.left('lines\n1\n2', 5);
+ * // 'lines' + '\n' +
+ * // '1    ' + '\n' +
+ * // '2    '
+ * ```
+ */
+declare const left: AlignFunction;
+/**
+ * out.right
+ *
+ * Align the given text to the right within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * out.right('foo', 10); // '       foo'
+ * out.right('something long', 10); // 'something long'
+ * out.right('lines\n1\n2', 5);
+ * // 'lines' + '\n' +
+ * // '    1' + '\n' +
+ * // '    2'
+ * ```
+ */
+declare const right: AlignFunction;
+/**
+ * out.justify
+ *
+ * Evenly space the text horizontally across the given width.
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * const lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit';
+ * out.justify(out.wrap(lorem, 20), 20);
+ * // 'Lorem  ipsum   dolor' + '\n' +
+ * // 'sit            amet,' + '\n' +
+ * // 'consectetur         ' + '\n' +
+ * // 'adipiscing      elit'
+ * ```
+ */
+declare const justify: AlignFunction;
+/**
+ * out.align
+ *
+ * Align the given text to the given alignment within the given width of characters/columns
+ *
+ * Giving a width of 0 will use the terminal width
+ *
+ * ```typescript
+ * out.align('foo', 'left', 10); // 'foo       '
+ * out.align('something long', 'center', 10); // 'something long'
+ * out.align('lines\n1\n2', 'right', 5);
+ * // 'lines' + '\n' +
+ * // '    1' + '\n' +
+ * // '    2'
+ * ```
+ */
+declare const align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+/**
+ * out.wrap
+ *
+ * Wrap the given text to the given width of characters/columns
+ *
+ * ```typescript
+ * wrap('This is a sentence', 15);
+ * // 'This is' + '\n' +
+ * // 'a sentence'
+ * ```
+ */
+declare const wrap: (item: any, width?: number, alignment?: AlignType, forceWidth?: boolean) => string;
+/**
+ * out.moveUp
+ *
+ * Move the terminal cursor up X lines, clearing each row.
+ *
+ * Useful for replacing previous lines of output
+ *
+ * ```typescript
+ * moveUp(1);
+ * ```
+ */
+declare const moveUp: (lines?: number) => void;
+/**
+ * out.loading
+ *
+ * Display an animated loading indicator
+ *
+ * ```typescript
+ * const loader = out.loading();
+ * // ...
+ * loader.stop();
+ * ```
+ */
+declare const loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
+    stop: () => void;
+};
+/**
+ * out.utils.hasColor
+ *
+ * Determine whether a given string contains any chalk-ed colours
+ */
+declare const hasColor: (str: string) => boolean;
+/**
+ * out.limitToLength
+ *
+ * Limit the length of a string to the given length
+ *
+ * ```typescript
+ * out.limitToLength('This is a very long sentence', 12); // 'This is a ve'
+ * ```
+ */
+declare const limitToLength: (text: string, maxLength: number) => string;
+/**
+ * out.truncate
+ *
+ * Limit the length of a string to the given length, and add an ellipsis if necessary
+ *
+ * ```typescript
+ * out.truncate('This is a very long sentence', 15); // 'This is a ve...'
+ * ```
+ */
+declare const truncate: (text: string, maxLength?: number, suffix?: string) => string;
+declare const out: {
+    pad: (line: string, start: number, end: number, replaceChar?: string) => string;
+    center: AlignFunction;
+    left: AlignFunction;
+    right: AlignFunction;
+    justify: AlignFunction;
+    align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+    wrap: (item: any, width?: number, alignment?: AlignType, forceWidth?: boolean) => string;
+    moveUp: (lines?: number) => void;
+    loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
+        stop: () => void;
+    };
+    limitToLength: (text: string, maxLength: number) => string;
+    truncate: (text: string, maxLength?: number, suffix?: string) => string;
+    getLineCounter: () => LineCounter;
+    getBreadcrumb: (...baseNames: string[]) => Breadcrumb;
+    utils: {
+        getLines: (text: Text) => string[];
+        getNumLines: (text: Text) => number;
+        getLinesWidth: (text: Text) => number;
+        getLogLines: (item: any) => string[];
+        getNumLogLines: (item: Text) => number;
+        getLogLinesWidth: (item: Text) => number;
+        joinLines: (lines: string[]) => string;
+        getTerminalWidth: () => number;
+        hasColor: (str: string) => boolean;
+    };
 };
 
-interface TableOptions {
+interface TableFormatConfig {
+    formatFn: Function;
+    isHeader?: boolean;
+    isBody?: boolean;
+    row?: number;
+    col?: number;
+}
+interface FullTableOptions {
     /**
      * Function to wrap each line of the table in (e.g. chalk.blue)
      */
     wrapperFn: Function;
+    wrapLinesFn: Function;
     /**
      * Character to use instead of lines
      */
@@ -379,15 +591,15 @@ interface TableOptions {
     /**
      * How the table should be aligned on the screen
      *
-     * left, right or center
+     * left, right, center or justify
      */
-    align: 'left' | 'right' | 'center';
+    align: AlignType;
     /**
      * How each column should be aligned
      *
-     * Array with alignment for each column: left, right or center
+     * Array with alignment for each column: left, right, center or justify
      */
-    alignCols: ('left' | 'right' | 'center')[];
+    alignCols: AlignType[];
     /**
      * Change rows into columns and vice versa
      */
@@ -396,10 +608,17 @@ interface TableOptions {
      * Change rows into columns and vice versa (body only)
      */
     transposeBody: boolean;
+    /**
+     * How much spacing to leave around the outside of the table
+     * todo update docs for multiple margins
+     */
+    margin: number | number[];
+    format: TableFormatConfig[];
 }
+declare type TableOptions = Partial$1<FullTableOptions>;
 declare const table: {
-    print: (body: any[][], header?: any[][], options?: Partial<TableOptions>) => number;
-    printObjects: (objects: Object[], headers?: Object, options?: Partial<TableOptions>) => number;
+    print: (body: any[][], header?: any[][], options?: TableOptions) => number;
+    printObjects: (objects: Object[], headers?: Object, options?: TableOptions) => number;
     utils: {
         objectsToTable: (objects: Object[], headers?: Object) => {
             header: any[][];
@@ -410,170 +629,268 @@ declare const table: {
             header: any[][];
             body: any[][];
         }) => any[][];
-        getTerminalWidth: () => number;
+        getFormat: (format: Function | Colour, row?: number, col?: number, isHeader?: boolean, isBody?: boolean) => TableFormatConfig;
     };
 };
 
-declare type Text = string | string[];
-
-declare const utils: {
-    getLines: (text: Text) => string[];
-    getNumLines: (text: Text) => number;
-    getLinesWidth: (text: Text) => number;
-    getLogLines: (item: any) => string[];
-    getNumLogLines: (item: Text) => number;
-    getLogLinesWidth: (item: Text) => number;
-    joinLines: (lines: string[]) => string;
-};
-/**
- * out.pad
- *
- * Pad before and after the given text with the given character.
- *
- * ```typescript
- * pad('foo', 3, 1, '-'); // '---foo-'
- * pad('bar', 10, 5, '_'); // '__________bar_____'
- * ```
- */
-declare const pad: (line: string, start: number, end: number, replaceChar?: string) => string;
-declare type AlignType = 'left' | 'right' | 'center';
-declare type AlignFunction = (item: any, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
-/**
- * out.center
- *
- * Align the given text to the center within the given width of characters/columns
- *
- * Giving a width of 0 will use the terminal width
- *
- * ```typescript
- * out.center('foo', 10); // '   foo    '
- * out.center('something long', 10); // 'something long'
- * out.center('lines\n1\n3', 5);
- * // 'lines' +
- * // '  1  ' +
- * // '  2  '
- * ```
- */
-declare const center: AlignFunction;
-/**
- * out.left
- *
- * Align the given text to the left within the given width of characters/columns
- *
- * Giving a width of 0 will use the terminal width
- *
- * ```typescript
- * out.left('foo', 10); // 'foo       '
- * out.left('something long', 10); // 'something long'
- * out.left('lines\n1\n3', 5);
- * // 'lines' +
- * // '1    ' +
- * // '2    '
- * ```
- */
-declare const left: AlignFunction;
-/**
- * out.right
- *
- * Align the given text to the right within the given width of characters/columns
- *
- * Giving a width of 0 will use the terminal width
- *
- * ```typescript
- * out.right('foo', 10); // '       foo'
- * out.right('something long', 10); // 'something long'
- * out.right('lines\n1\n3', 5);
- * // 'lines' +
- * // '    1' +
- * // '    2'
- * ```
- */
-declare const right: AlignFunction;
-/**
- * out.align
- *
- * Align the given text to the given alignment within the given width of characters/columns
- *
- * Giving a width of 0 will use the terminal width
- *
- * ```typescript
- * out.align('foo', 'left', 10); // 'foo       '
- * out.align('something long', 'center', 10); // 'something long'
- * out.align('lines\n1\n3', 'right', 5);
- * // 'lines' +
- * // '    1' +
- * // '    2'
- * ```
- */
-declare const align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
-/**
- * out.wrap
- *
- * Wrap the given text to the given width of characters/columns
- *
- * ```typescript
- * wrap('This is a sentence', 15);
- * // 'This is' +
- * // 'a sentence'
- * ```
- */
-declare const wrap: (item: any, width?: number, forceWidth?: boolean) => string;
-/**
- * out.moveUp
- *
- * Move the terminal cursor up X lines, clearing each row.
- *
- * Useful for replacing previous lines of output
- *
- * ```typescript
- * moveUp(1);
- * ```
- */
-declare const moveUp: (lines?: number) => void;
-/**
- * out.loading
- *
- * Display an animated loading indicator
- *
- * ```typescript
- * const loader = out.loading();
- * // ...
- * loader.stop();
- * ```
- */
-declare const loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
-    stop: () => void;
-};
-
-declare const out_utils: typeof utils;
-declare const out_pad: typeof pad;
-type out_AlignType = AlignType;
-declare const out_center: typeof center;
-declare const out_left: typeof left;
-declare const out_right: typeof right;
-declare const out_align: typeof align;
-declare const out_wrap: typeof wrap;
-declare const out_moveUp: typeof moveUp;
-declare const out_loading: typeof loading;
-declare namespace out {
-  export {
-    out_utils as utils,
-    out_pad as pad,
-    out_AlignType as AlignType,
-    out_center as center,
-    out_left as left,
-    out_right as right,
-    out_align as align,
-    out_wrap as wrap,
-    out_moveUp as moveUp,
-    out_loading as loading,
-  };
+interface Handles<T = any> {
+    start: T;
+    end: T;
 }
+interface AskTrimOptions {
+    speed: number;
+    fastSpeed: number;
+    showInstructions: boolean;
+    charTrack: string;
+    charHandle: string;
+    charActiveHandle: string;
+    charBar: string;
+    charHandleBase: string;
+    charActiveHandleBase: string;
+    clrTrack: Function;
+    clrHandle: Function;
+    clrActiveHandle: Function;
+    clrBar: Function;
+    clrHandleBase: Function;
+    clrActiveHandleBase: Function;
+}
+
+interface FileExplorerOptions {
+    filter: (file: string, index: number, files: string[]) => boolean;
+    makeDir: boolean;
+    newFile: boolean;
+    selectDirText: string;
+    makeDirText: string;
+    newFileText: string;
+    enclosingText: string;
+}
+
+interface PromptChoiceObject<T = string> {
+    title?: string;
+    value?: T;
+    selected?: boolean;
+}
+declare type PromptChoice<T = string> = string | PromptChoiceObject<T>;
+interface CRUDOptions {
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    canDeleteAll: boolean;
+}
+declare type CRUD = 'none' | 'create' | 'update' | 'delete' | 'delete-all';
+declare type TitleFn<T> = (item: T, index: number, arr: T[]) => string;
+declare const ask: {
+    text: (question: string | Breadcrumb, initial?: string) => Promise<string>;
+    autotext: <T = string>(question: string | Breadcrumb, choices: PromptChoice<T>[], choiceLimit?: number) => Promise<T>;
+    number: (question: string | Breadcrumb, initial?: number) => Promise<number>;
+    boolean: (question: string | Breadcrumb, initial?: boolean, yesTxt?: string, noTxt?: string) => Promise<boolean>;
+    booleanAlt: (question: string | Breadcrumb, initial?: boolean) => Promise<boolean>;
+    select: <T_1 = string>(question: string | Breadcrumb, choices: PromptChoice<T_1>[], initial?: T_1) => Promise<T_1>;
+    multiselect: <T_2 = string>(question: string | Breadcrumb, choices: PromptChoice<T_2>[], initial?: PromptChoice<T_2> | PromptChoice<T_2>[], canSelectAll?: boolean) => Promise<T_2[]>;
+    crud: (question: string | Breadcrumb, itemName?: string, items?: any[], options?: Partial<CRUDOptions>) => Promise<CRUD>;
+    validate: <T_3 = string, I = string>(askFunc: (initialValue?: T_3) => I | Promise<I>, validateFn: (input: Awaited<I>) => boolean | string) => Promise<I>;
+    imitate: (done: boolean, question: string | Breadcrumb, result?: any) => number;
+    prefill: <T_4 extends unknown = string>(value: T_4, question: string | Breadcrumb, askFn: (question: string | Breadcrumb) => T_4 | Promise<T_4>) => Promise<T_4>;
+    loading: (question: string | Breadcrumb) => {
+        stop: () => void;
+    };
+    pause: (text?: string | Breadcrumb) => Promise<void>;
+    countdown: (totalSeconds: number, template?: (s: second) => string, complete?: string) => Promise<void>;
+    rename: (bef: string, aft: (before: ExplodedPath) => string) => Promise<boolean>;
+    fileExplorer: (startDir: string | string[], selectType?: FindType, question?: string | Breadcrumb, initial?: string, options?: swiss_ak.Partial<FileExplorerOptions>) => Promise<string>;
+    multiFileExplorer: (startDir: string | string[], selectType?: FindType, question?: string | Breadcrumb, initial?: string | string[], options?: swiss_ak.Partial<FileExplorerOptions>) => Promise<string[]>;
+    wizard: <T_5 extends unknown>(startObj?: Partial<T_5>) => {
+        add(partial: Partial<T_5>): void;
+        getPartial(): Partial<T_5>;
+        get(): T_5;
+    };
+    section: <QuesT extends ((qst?: string | Breadcrumb, results?: any[], lc?: LineCounter, separator?: () => void) => Promise<any>)[]>(question: string | Breadcrumb, sectionFn?: (lc: LineCounter, separator: () => void) => void | Promise<any>, ...questionFns: QuesT) => Promise<QuesT extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...Tail extends [infer Head, ...infer Tail] ? [Head extends (...args: any[]) => Promise<infer U> ? U : Head, ...any] : []] : []] : []] : []] : []] : []] : []] : []] : []] : []] : []>;
+    separator: (version?: "up" | "down" | "none", spacing?: number, offset?: number, width?: number) => number;
+    trim: (totalFrames: number, frameRate: number, options?: Partial<AskTrimOptions>) => Promise<Handles<number>>;
+    table: {
+        select: <T_6 extends unknown>(question: string | Breadcrumb, items: T_6[], initial?: number | T_6, rows?: any[][] | ((item?: T_6, index?: number, items?: T_6[]) => any[]), headers?: any[][] | swiss_ak.RemapOf<T_6, string>, tableOptions?: swiss_ak.Partial<FullTableOptions>) => Promise<T_6>;
+        multiselect: <T_7 extends unknown>(question: string | Breadcrumb, items: T_7[], initial?: number[] | T_7[], rows?: any[][] | ((item?: T_7, index?: number, items?: T_7[]) => any[]), headers?: any[][] | swiss_ak.RemapOf<T_7, string>, tableOptions?: swiss_ak.Partial<FullTableOptions>) => Promise<T_7[]>;
+    };
+    utils: {
+        itemsToPromptObjects: <T_8 = string>(items: T_8[], titles?: string[], titleFn?: TitleFn<T_8>) => {
+            title: string;
+            value: T_8;
+        }[];
+        displayPath: (p: any) => any;
+    };
+};
+
+/**
+ * toFFmpegTimeFormat
+ *
+ * Convert a number of milliseconds to a time format usable by FFmpeg.
+ */
+declare const toFFmpegTimeFormat: (time: ms) => string;
+/**
+ * getProbeValue
+ *
+ * Get a value from ffprobe output
+ *
+ * ```typescript
+ * const probe = await getProbe('file.mp4', 'width'); // '1280'
+ * ```
+ */
+declare const getProbeValue: (file: string, propertyName: string) => Promise<string>;
+/**
+ * Note: this interface is a guide, and other properties may exist, and some may be have different types
+ */
+interface ProbeResult {
+    index: number;
+    codec_name: string;
+    codec_long_name: string;
+    profile: string;
+    codec_type: string;
+    codec_time_base: string;
+    codec_tag_string: string;
+    codec_tag: number;
+    width: number;
+    height: number;
+    coded_width: number;
+    coded_height: number;
+    closed_captions: number;
+    has_b_frames: number;
+    sample_aspect_ratio: string;
+    display_aspect_ratio: string;
+    pix_fmt: string;
+    level: number;
+    color_range: string;
+    color_space: string;
+    color_transfer: string;
+    color_primaries: string;
+    chroma_location: string;
+    field_order: string;
+    timecode: string;
+    refs: number;
+    is_avc?: string;
+    nal_length_size?: number;
+    id: string;
+    r_frame_rate: string;
+    avg_frame_rate: string;
+    time_base: string;
+    start_pts: number;
+    start_time: number;
+    duration_ts: number;
+    duration: number;
+    bit_rate: number;
+    max_bit_rate: string;
+    bits_per_raw_sample: number;
+    nb_frames: number;
+    nb_read_frames: string;
+    nb_read_packets: string;
+    framerate: number;
+}
+/**
+ * getProbe
+ *
+ * Get the probe of a file as an object
+ *
+ * ```typescript
+ * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
+ * ```
+ */
+declare const getProbe: (file: string) => Promise<ProbeResult>;
+/**
+ * getTotalFrames
+ *
+ * Get the total number of frames in a video file.
+ *
+ * ```typescript
+ * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
+ * ```
+ */
+declare const getTotalFrames: (list?: string | string[]) => Promise<number>;
+/**
+ * ffmpeg
+ *
+ * Wrapper for ffmpeg command that provides progress bar to track progress
+ *
+ * ```typescript
+ * const progBarOpts = {}; // Same options as getProgressBar
+ * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
+ * ```
+ */
+declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
+
+declare type GMCommand = 'convert' | 'composite';
+interface SupportedFlag {
+    name: string;
+    type: 'string' | 'number' | 'boolean';
+    commands: GMCommand[];
+    options?: string[];
+    canOverrideOpts?: boolean;
+    processOutput?: (value: any) => any;
+    description: string;
+    hint?: string;
+}
+
+interface CommonFlagsObj {
+    compose?: string;
+    geometry?: string;
+    gravity?: string;
+    monochrome?: boolean;
+    negate?: boolean;
+    quality?: number;
+    resize?: string;
+    rotate?: number;
+    size?: string;
+}
+interface ConvertFlagsObj extends CommonFlagsObj {
+    'black-threshold'?: number;
+    blur?: string;
+    colorize?: string;
+    crop?: string;
+    fill?: string;
+    flip?: boolean;
+    flop?: boolean;
+    threshold?: number;
+    'white-threshold'?: number;
+    format?: string;
+    bordercolor?: string;
+    border?: number;
+    fuzz?: string;
+    transparent?: string;
+    modulate?: string;
+    /** brightness - shortcut/alias for `-modulate x,100,100` */
+    brightness?: number;
+    /** saturation - shortcut/alias for `-modulate 100,x,100` */
+    saturation?: number;
+    /** hue - shortcut/alias for `-modulate 100,100,x` */
+    hue?: number;
+}
+interface CompositeFlagsObj extends CommonFlagsObj {
+    displace?: string;
+    dissolve?: number;
+}
+declare type FlagsObj = ConvertFlagsObj & CompositeFlagsObj;
+interface ChangeAndMaskFlags {
+    change?: CompositeFlagsObj;
+    mask?: CompositeFlagsObj;
+}
+declare const gm: {
+    convert: (inPath: string, outPath: string, flags?: ConvertFlagsObj) => Promise<ProcessOutput>;
+    composite: (changePath: string, basePath: string, outPath?: string, maskPath?: string, flags?: ChangeAndMaskFlags | CompositeFlagsObj) => Promise<ProcessOutput>;
+    pipe: (changePath: string, basePath: string, outPath?: string, maskPath?: string, convertFlags?: ConvertFlagsObj, compositeFlags?: ChangeAndMaskFlags | CompositeFlagsObj) => Promise<zx_core.ProcessOutput>;
+    utils: {
+        supportedFlags: {
+            [key: string]: SupportedFlag;
+        };
+        flagsObjToArray: (obj: FlagsObj) => any[];
+    };
+};
 
 /**
  * Close all Mac OS X Finder windows.
  */
 declare const closeFinder: () => Promise<void>;
+
+declare const progressBarUtils: {
+    getColouredProgressBarOpts: (opts: ProgressBarOptions, randomise?: boolean) => (prefix?: string, override?: ProgressBarOptions, resetColours?: boolean) => ProgressBarOptions;
+};
 
 /**
  * LogUtils.getLogStr
@@ -605,82 +922,10 @@ declare namespace LogUtils {
   };
 }
 
-/**
- * gray0
- *
- * Gray 0 (0-5). Equivalent to chalk.black
- */
-declare const gray0: chalk.ChalkInstance;
-/**
- * gray1
- *
- * Gray 1 (0-5). Equivalent to chalk.gray.dim
- */
-declare const gray1: chalk.ChalkInstance;
-/**
- * gray2
- *
- * Gray 2 (0-5). Equivalent to chalk.white.dim
- */
-declare const gray2: chalk.ChalkInstance;
-/**
- * gray3
- *
- * Gray 3 (0-5). Equivalent to chalk.whiteBright.dim
- */
-declare const gray3: chalk.ChalkInstance;
-/**
- * gray4
- *
- * Gray 4 (0-5). Equivalent to chalk.white
- */
-declare const gray4: chalk.ChalkInstance;
-/**
- * gray5
- *
- * Gray 5 (0-5). Equivalent to chalk.whiteBright
- */
-declare const gray5: chalk.ChalkInstance;
-/**
- * grays
- *
- * Grays between 0 and 5.
- *
- * ```typescript
- * grays[2]; // gray2
- * ```
- */
-declare const grays: chalk.ChalkInstance[];
-/**
- * gray
- *
- * Grays between 0 and 5.
- *
- * ```typescript
- * gray(2); // gray2
- * ```
- */
-declare const gray: (num: number) => chalk.ChalkInstance;
-
-declare const chlk_gray0: typeof gray0;
-declare const chlk_gray1: typeof gray1;
-declare const chlk_gray2: typeof gray2;
-declare const chlk_gray3: typeof gray3;
-declare const chlk_gray4: typeof gray4;
-declare const chlk_gray5: typeof gray5;
-declare const chlk_grays: typeof grays;
-declare const chlk_gray: typeof gray;
-declare namespace chlk {
-  export {
-    chlk_gray0 as gray0,
-    chlk_gray1 as gray1,
-    chlk_gray2 as gray2,
-    chlk_gray3 as gray3,
-    chlk_gray4 as gray4,
-    chlk_gray5 as gray5,
-    chlk_grays as grays,
-    chlk_gray as gray,
-  };
+interface KeyListener {
+    start(): void;
+    stop(): void;
 }
+declare const getKeyListener: (callback: (keyName: any) => void, isStart?: boolean) => KeyListener;
 
-export { $$, AlignType, ExplodedPath, LogUtils, PathUtils, TableOptions, align, ask, center, chlk, closeFinder, explodePath, ffmpeg, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, left, loading, moveUp, out, pad, processLogContents, right, table, utils, wrap };
+export { $$, AlignType, Breadcrumb, CRUD, CRUDOptions, Colour, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, ExplodedPath, FlagsObj, FullTableOptions, LineCounter, LogUtils, ModifiedFile, PathUtils, ProbeResult, TableFormatConfig, TableOptions, align, ask, center, chlk, closeFinder, clr, explodePath, ffmpeg, getBreadcrumb, getKeyListener, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, hasColor, justify, left, limitToLength, loading, moveUp, out, pad, processLogContents, progressBarUtils, right, table, toFFmpegTimeFormat, truncate, wrap };

@@ -1,10 +1,20 @@
 export interface ExplodedPath {
   /**
+   * The full original path as it was passed in.
+   */
+  path: string;
+
+  /**
    * The directory path of the given path
    *
    * Note: no trailing slash
    */
   dir: string;
+
+  /**
+   * the ancestral folders of the given dir as an array
+   */
+  folders: string[];
 
   /**
    * the name of the file, not including the extension
@@ -25,6 +35,8 @@ export interface ExplodedPath {
 /**
  * explodePath
  *
+ * TODO update docs for folders and path
+ *
  * 'Explodes' a path into its components
  *
  * - dir: the directory path of the given path
@@ -41,12 +53,14 @@ export interface ExplodedPath {
  * console.log(filename); // 'file.txt'
  * ```
  */
-export const explodePath = (filepath: string): ExplodedPath => {
-  const dir = (filepath.match(/(.*[\\\/])*/) || [])[0].replace(/[\\\/]$/, ''); // everything up to last '/' or '\'
-  const filename = (filepath.match(/[^\\\/]*$/) || [])[0]; // from last '/' or '\' onwards
+export const explodePath = (path: string): ExplodedPath => {
+  const dir = (path.match(/(.*[\\\/])*/) || [])[0].replace(/[\\\/]$/, ''); // everything up to last '/' or '\'
+  const filename = (path.match(/[^\\\/]*$/) || [])[0]; // from last '/' or '\' onwards
 
   const ext = ((filename.match(/\.[^\.]*$/) || [])[0] || '').replace(/^\./, ''); // after last . in filename
   const name = filename.replace(ext, '').replace(/[\.]$/, ''); // until last . in filename
 
-  return { dir, name, ext, filename };
+  const folders = dir.split(/[\\\/]/).filter((x) => x);
+
+  return { path, dir, folders, name, ext, filename };
 };
