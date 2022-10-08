@@ -508,6 +508,7 @@ declare const hasColor: (str: string) => boolean;
  * ```
  */
 declare const limitToLength: (text: string, maxLength: number) => string;
+declare const limitToLengthEnd: (text: string, maxLength: number) => string;
 /**
  * out.truncate
  *
@@ -531,6 +532,7 @@ declare const out: {
         stop: () => void;
     };
     limitToLength: (text: string, maxLength: number) => string;
+    limitToLengthEnd: (text: string, maxLength: number) => string;
     truncate: (text: string, maxLength?: number, suffix?: string) => string;
     getLineCounter: () => LineCounter;
     getBreadcrumb: (...baseNames: string[]) => Breadcrumb;
@@ -613,10 +615,14 @@ interface FullTableOptions {
      * todo update docs for multiple margins
      */
     margin: number | number[];
+    cellPadding: number;
     format: TableFormatConfig[];
+    truncate: false | string;
+    maxWidth: number;
 }
 declare type TableOptions = Partial$1<FullTableOptions>;
 declare const table: {
+    getLines: (body: any[][], header?: any[][], options?: TableOptions) => string[];
     print: (body: any[][], header?: any[][], options?: TableOptions) => number;
     printObjects: (objects: Object[], headers?: Object, options?: TableOptions) => number;
     utils: {
@@ -926,6 +932,6 @@ interface KeyListener {
     start(): void;
     stop(): void;
 }
-declare const getKeyListener: (callback: (keyName: any) => void, isStart?: boolean) => KeyListener;
+declare const getKeyListener: (callback: (keyName: any) => void, isStart?: boolean, isDebugLog?: boolean) => KeyListener;
 
-export { $$, AlignType, Breadcrumb, CRUD, CRUDOptions, Colour, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, ExplodedPath, FlagsObj, FullTableOptions, LineCounter, LogUtils, ModifiedFile, PathUtils, ProbeResult, TableFormatConfig, TableOptions, align, ask, center, chlk, closeFinder, clr, explodePath, ffmpeg, getBreadcrumb, getKeyListener, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, hasColor, justify, left, limitToLength, loading, moveUp, out, pad, processLogContents, progressBarUtils, right, table, toFFmpegTimeFormat, truncate, wrap };
+export { $$, AlignType, Breadcrumb, CRUD, CRUDOptions, Colour, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, ExplodedPath, FlagsObj, FullTableOptions, LineCounter, LogUtils, ModifiedFile, PathUtils, ProbeResult, TableFormatConfig, TableOptions, align, ask, center, chlk, closeFinder, clr, explodePath, ffmpeg, getBreadcrumb, getKeyListener, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, hasColor, justify, left, limitToLength, limitToLengthEnd, loading, moveUp, out, pad, processLogContents, progressBarUtils, right, table, toFFmpegTimeFormat, truncate, wrap };

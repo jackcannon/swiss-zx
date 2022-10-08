@@ -496,15 +496,39 @@ var loading = (action = loadingDefault, lines = 1, symbols7 = loadingChars) => {
   };
 };
 var hasColor = (str) => Boolean(str.match(new RegExp(`\\u001b[[0-9]+m`, "g")));
-var limitToLength = (text2, maxLength) => {
-  const current = stringWidth(text2);
-  const diff = current - maxLength;
-  const match = text2.match(new RegExp(`(.\\u001b[[0-9]+m|\\u001b[[0-9]+m.|.){${diff}}$`));
-  const [cut, index] = match ? [match[0], match.index] : ["", maxLength * 2];
-  const specials = Array.from(cut.matchAll(new RegExp(`\\u001b[[0-9]+m`, "g"))).filter(fn3.isTruthy).map((x) => x[0]);
-  return [text2.slice(0, index), ...specials].join("");
-};
-var truncate = (text2, maxLength = getTerminalWidth(), suffix = "...") => stringWidth(text2) > maxLength ? limitToLength(text2, maxLength - stringWidth(suffix)) + chalk.dim(suffix) : text2;
+var limitToLength = (text2, maxLength) => joinLines(
+  getLines(text2).map((line) => {
+    let specials = "";
+    let result = line;
+    while (stringWidth(result) > maxLength) {
+      const match = result.match(new RegExp(`(\\u001b[[0-9]+m|.)$`));
+      const { 0: removed, index } = match || { 0: result.slice(-1), index: result.length - 1 };
+      if (removed.match(new RegExp(`\\u001b[[0-9]+m`))) {
+        specials = removed + specials;
+      }
+      result = result.slice(0, index);
+    }
+    return result + specials;
+  })
+);
+var limitToLengthEnd = (text2, maxLength) => joinLines(
+  getLines(text2).map((line) => {
+    let specials = "";
+    let result = line;
+    while (stringWidth(result) > maxLength) {
+      const match = result.match(new RegExp(`^(\\u001b[[0-9]+m|.)`));
+      const { 0: removed, index } = match || { 0: result.slice(0, 1), index: 1 };
+      if (removed.match(new RegExp(`\\u001b[[0-9]+m`))) {
+        specials = specials + removed;
+      }
+      result = result.slice(index + removed.length);
+    }
+    return specials + result;
+  })
+);
+var truncate = (text2, maxLength = getTerminalWidth(), suffix = "\u2026") => joinLines(
+  getLines(text2).map((line) => stringWidth(line) > maxLength ? limitToLength(line, maxLength - stringWidth(suffix)) + chalk.dim(suffix) : line)
+);
 var out = {
   pad,
   center,
@@ -516,6 +540,7 @@ var out = {
   moveUp,
   loading,
   limitToLength,
+  limitToLengthEnd,
   truncate,
   getLineCounter,
   getBreadcrumb,
@@ -590,20 +615,26 @@ var formatCells = (rows, type, format) => {
   return rows;
 };
 var splitCellsIntoLines = (rows, type) => rows.map((row) => row.map((cell) => out.utils.getLines(cell)));
-var getDesiredColumnWidths = (cells, numCols, preferredWidths, [_mT, marginRight, _mB, marginLeft]) => {
+var getDesiredColumnWidths = (cells, numCols, preferredWidths, [_mT, marginRight, _mB, marginLeft], maxTotalWidth) => {
   const transposed = zip(...[...cells.header, ...cells.body]);
   const actualColWidths = transposed.map((col) => Math.max(...col.map((cell) => out.utils.getLinesWidth(cell))));
   const currColWidths = preferredWidths.length ? ArrayUtils2.repeat(numCols, ...preferredWidths) : actualColWidths;
   const currTotalWidth = currColWidths.reduce(fn4.reduces.combine) + (numCols + 1) * 3;
-  const diff = currTotalWidth - (out.utils.getTerminalWidth() - (marginRight + marginLeft));
+  const diff = currTotalWidth - (maxTotalWidth - (marginRight + marginLeft));
   const colWidths = [...currColWidths];
   for (let i = 0; i < diff; i++) {
     colWidths[colWidths.indexOf(Math.max(...colWidths))]--;
   }
   return colWidths;
 };
-var wrapCells = (rows, type, colWidths) => rows.map((row) => {
-  const wrapped = row.map((cell, colIndex) => out.utils.getLines(out.wrap(out.utils.joinLines(cell), colWidths[colIndex])));
+var wrapCells = (rows, type, colWidths, truncate2) => rows.map((row) => {
+  const wrapped = row.map((cell) => out.utils.joinLines(cell)).map((text2, colIndex) => {
+    if (truncate2 !== false) {
+      return out.truncate(text2, colWidths[colIndex], truncate2);
+    } else {
+      return out.wrap(text2, colWidths[colIndex]);
+    }
+  }).map((text2) => out.utils.getLines(text2));
   const maxHeight = Math.max(...wrapped.map((cell) => cell.length));
   return wrapped.map((cell) => [...cell, ...empty(maxHeight)].slice(0, maxHeight));
 });
@@ -614,8 +645,8 @@ var processInput = (cells, opts) => {
   const numCols = Math.max(...[...transposed.header || [], ...transposed.body].map((row) => row.length));
   const everyCell = processCells(transposed, ensureStringForEveryCell, numCols);
   const linedCells = processCells(everyCell, splitCellsIntoLines);
-  const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths, opts.margin);
-  const wrappedCells = processCells(linedCells, wrapCells, colWidths);
+  const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths, opts.margin, opts.maxWidth);
+  const wrappedCells = processCells(linedCells, wrapCells, colWidths, opts.truncate);
   const formatted = processCells(wrappedCells, formatCells, opts.format);
   const seperatedRows = processCells(formatted, seperateLinesIntoRows);
   return { cells: seperatedRows, numCols, colWidths };
@@ -701,6 +732,9 @@ var getFullOptions = (opts) => ({
   align: "left",
   alignCols: ["left"],
   colWidths: [],
+  cellPadding: 1,
+  truncate: false,
+  maxWidth: out.utils.getTerminalWidth(),
   ...opts,
   wrapperFn: typeof opts.wrapperFn !== "function" ? fn5.noact : opts.wrapperFn,
   wrapLinesFn: typeof opts.wrapLinesFn !== "function" ? fn5.noact : opts.wrapLinesFn,
@@ -720,11 +754,11 @@ var getFullOptions = (opts) => ({
   })(opts.margin)
 });
 var empty2 = (numCols, char = "") => new Array(numCols).fill(char);
-var print = (body, header, options = {}) => {
-  const lc = getLineCounter();
+var getLines2 = (body, header, options = {}) => {
   const opts = getFullOptions(options);
-  const { wrapperFn, wrapLinesFn, drawOuter, alignCols, align: align2, drawRowLines, margin } = opts;
+  const { wrapperFn, wrapLinesFn, drawOuter, alignCols, align: align2, drawRowLines, cellPadding } = opts;
   const [marginTop, marginRight, marginBottom, marginLeft] = opts.margin;
+  const result = [];
   const {
     cells: { header: pHeader, body: pBody },
     numCols,
@@ -734,15 +768,16 @@ var print = (body, header, options = {}) => {
   const tableChars = getTableCharacters(opts);
   const printLine = (row = empty2(numCols), chars = tableChars.bNor, textWrapperFn) => {
     const [norm, strt, sepr, endc] = chars;
-    let padded = row.map((cell, col) => out.align(cell || "", alignColumns[col], colWidths[col], norm, true));
+    const pad2 = norm.repeat(Math.max(0, cellPadding));
+    let aligned = row.map((cell, col) => out.align(cell || "", alignColumns[col], colWidths[col], norm, true));
     if (textWrapperFn)
-      padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(wrapLinesFn(`${norm}${sepr}${norm}`));
-    const str = wrapLinesFn(`${" ".repeat(marginLeft)}${strt}${norm}`) + inner + wrapLinesFn(`${norm}${endc}${" ".repeat(marginRight)}`);
-    lc.log(out.align(wrapperFn(str), align2, -1, " ", false));
+      aligned = aligned.map((x) => textWrapperFn(x));
+    const inner = aligned.join(wrapLinesFn(`${pad2}${sepr}${pad2}`));
+    const str = wrapLinesFn(`${" ".repeat(marginLeft)}${strt}${pad2}`) + inner + wrapLinesFn(`${pad2}${endc}${" ".repeat(marginRight)}`);
+    result.push(out.align(wrapperFn(str), align2, -1, " ", false));
   };
   if (marginTop)
-    lc.log("\n".repeat(marginTop - 1));
+    result.push("\n".repeat(marginTop - 1));
   if (pHeader.length) {
     if (drawOuter && drawRowLines)
       printLine(empty2(numCols, ""), tableChars.hTop, wrapLinesFn);
@@ -770,8 +805,15 @@ var print = (body, header, options = {}) => {
   if (drawOuter && drawRowLines)
     printLine(empty2(numCols, ""), tableChars.bBot, wrapLinesFn);
   if (marginBottom)
-    lc.log("\n".repeat(marginBottom - 1));
-  return lc.get();
+    result.push("\n".repeat(marginBottom - 1));
+  return result;
+};
+var print = (body, header, options = {}) => {
+  const lines = getLines2(body, header, options);
+  if (lines.length) {
+    console.log(lines.join("\n"));
+  }
+  return lines.length;
 };
 var getAllKeys = (objects) => {
   const allKeys = {};
@@ -814,6 +856,7 @@ var printObjects = (objects, headers = {}, options = {}) => {
   return print(body, header, options);
 };
 var table = {
+  getLines: getLines2,
   print,
   printObjects,
   utils: {
@@ -825,8 +868,11 @@ var table = {
 };
 
 // src/utils/keyListener.ts
-var getKeyListener = (callback, isStart = true) => {
+var getKeyListener = (callback, isStart = true, isDebugLog = false) => {
   const listenFn = (key) => {
+    if (isDebugLog) {
+      console.log(JSON.stringify(key));
+    }
     if (key == "\r") {
       return callback("return");
     }
@@ -847,6 +893,9 @@ var getKeyListener = (callback, isStart = true) => {
     }
     if (key == " ") {
       return callback("space");
+    }
+    if (key === "\x1B") {
+      return callback("esc");
     }
     if (key == "") {
       return process.exit();
@@ -2077,6 +2126,7 @@ export {
   justify,
   left,
   limitToLength,
+  limitToLengthEnd,
   loading,
   moveUp,
   out,

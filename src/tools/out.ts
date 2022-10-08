@@ -375,16 +375,43 @@ export const hasColor = (str: string): boolean => Boolean(str.match(new RegExp(`
  * out.limitToLength('This is a very long sentence', 12); // 'This is a ve'
  * ```
  */
-export const limitToLength = (text: string, maxLength: number): string => {
-  const current = stringWidth(text);
-  const diff = current - maxLength;
-  const match = text.match(new RegExp(`(.\\u001b\[[0-9]+m|\\u001b\[[0-9]+m.|.){${diff}}$`));
-  const [cut, index] = match ? [match[0], match.index] : ['', maxLength * 2];
-  const specials = Array.from(cut.matchAll(new RegExp(`\\u001b\[[0-9]+m`, 'g')))
-    .filter(fn.isTruthy)
-    .map((x) => x[0]);
-  return [text.slice(0, index), ...specials].join('');
-};
+export const limitToLength = (text: string, maxLength: number): string =>
+  joinLines(
+    getLines(text).map((line) => {
+      let specials = '';
+      let result = line;
+      while (stringWidth(result) > maxLength) {
+        const match = result.match(new RegExp(`(\\u001b\[[0-9]+m|.)$`));
+        const { 0: removed, index } = match || { 0: result.slice(-1), index: result.length - 1 };
+
+        if (removed.match(new RegExp(`\\u001b\[[0-9]+m`))) {
+          specials = removed + specials;
+        }
+        result = result.slice(0, index);
+      }
+      return result + specials;
+    })
+  );
+
+// todo docs
+// todo dry
+export const limitToLengthEnd = (text: string, maxLength: number): string =>
+  joinLines(
+    getLines(text).map((line) => {
+      let specials = '';
+      let result = line;
+      while (stringWidth(result) > maxLength) {
+        const match = result.match(new RegExp(`^(\\u001b\[[0-9]+m|.)`));
+        const { 0: removed, index } = match || { 0: result.slice(0, 1), index: 1 };
+
+        if (removed.match(new RegExp(`\\u001b\[[0-9]+m`))) {
+          specials = specials + removed;
+        }
+        result = result.slice(index + removed.length);
+      }
+      return specials + result;
+    })
+  );
 
 /**
  * out.truncate
@@ -395,8 +422,10 @@ export const limitToLength = (text: string, maxLength: number): string => {
  * out.truncate('This is a very long sentence', 15); // 'This is a ve...'
  * ```
  */
-export const truncate = (text: string, maxLength: number = getTerminalWidth(), suffix: string = '...'): string =>
-  stringWidth(text) > maxLength ? limitToLength(text, maxLength - stringWidth(suffix)) + chalk.dim(suffix) : text;
+export const truncate = (text: string, maxLength: number = getTerminalWidth(), suffix: string = '…'): string =>
+  joinLines(
+    getLines(text).map((line) => (stringWidth(line) > maxLength ? limitToLength(line, maxLength - stringWidth(suffix)) + chalk.dim(suffix) : line))
+  );
 
 export const out = {
   pad,
@@ -409,6 +438,7 @@ export const out = {
   moveUp,
   loading,
   limitToLength,
+  limitToLengthEnd,
   truncate,
   getLineCounter,
   getBreadcrumb,

@@ -99,8 +99,18 @@ export interface FullTableOptions {
    */
   margin: number | number[];
 
+  // todo docs
+  cellPadding: number;
+
   // TODO docs
   format: TableFormatConfig[];
+
+  // TODO docs
+  // truncates line instead of wrapping
+  truncate: false | string;
+
+  // TODO docs
+  maxWidth: number;
 }
 
 export type TableOptions = Partial<FullTableOptions>;
@@ -112,6 +122,9 @@ const getFullOptions = (opts: TableOptions): FullTableOptions => ({
   align: 'left',
   alignCols: ['left'],
   colWidths: [],
+  cellPadding: 1,
+  truncate: false,
+  maxWidth: out.utils.getTerminalWidth(),
   ...opts,
   wrapperFn: typeof opts.wrapperFn !== 'function' ? fn.noact : opts.wrapperFn,
   wrapLinesFn: typeof opts.wrapLinesFn !== 'function' ? fn.noact : opts.wrapLinesFn,
@@ -135,30 +148,14 @@ const getFullOptions = (opts: TableOptions): FullTableOptions => ({
 
 const empty = (numCols: number, char: string = '') => new Array(numCols).fill(char);
 
-/**
- * table.print
- *
- * Print a table
- *
- * ```typescript
- * const header = [['Name', 'Age']];
- * const body = [['John', '25'], ['Jane', '26']];
- * table.print(body, header);
- *
- * // ┏━━━━━━┳━━━━━┓
- * // ┃ Name ┃ Age ┃
- * // ┡━━━━━━╇━━━━━┩
- * // │ John │ 25  │
- * // │ Jane │ 26  │
- * // └──────┴─────┘
- * ```
- */
-const print = (body: any[][], header?: any[][], options: TableOptions = {}): number => {
-  const lc = getLineCounter();
+const getLines = (body: any[][], header?: any[][], options: TableOptions = {}): string[] => {
+  // const lc = getLineCounter();
   const opts = getFullOptions(options);
-  const { wrapperFn, wrapLinesFn, drawOuter, alignCols, align, drawRowLines, margin } = opts;
+  const { wrapperFn, wrapLinesFn, drawOuter, alignCols, align, drawRowLines, cellPadding } = opts;
 
   const [marginTop, marginRight, marginBottom, marginLeft] = opts.margin as number[];
+
+  const result = [];
 
   const {
     cells: { header: pHeader, body: pBody },
@@ -172,15 +169,17 @@ const print = (body: any[][], header?: any[][], options: TableOptions = {}): num
   const printLine = (row = empty(numCols), chars = tableChars.bNor, textWrapperFn?: Function) => {
     const [norm, strt, sepr, endc] = chars;
 
-    let padded = row.map((cell, col) => out.align(cell || '', alignColumns[col], colWidths[col], norm, true));
-    if (textWrapperFn) padded = padded.map((x) => textWrapperFn(x));
-    const inner = padded.join(wrapLinesFn(`${norm}${sepr}${norm}`));
-    const str = wrapLinesFn(`${' '.repeat(marginLeft)}${strt}${norm}`) + inner + wrapLinesFn(`${norm}${endc}${' '.repeat(marginRight)}`);
+    const pad = norm.repeat(Math.max(0, cellPadding));
 
-    lc.log(out.align(wrapperFn(str), align, -1, ' ', false));
+    let aligned = row.map((cell, col) => out.align(cell || '', alignColumns[col], colWidths[col], norm, true));
+    if (textWrapperFn) aligned = aligned.map((x) => textWrapperFn(x));
+    const inner = aligned.join(wrapLinesFn(`${pad}${sepr}${pad}`));
+    const str = wrapLinesFn(`${' '.repeat(marginLeft)}${strt}${pad}`) + inner + wrapLinesFn(`${pad}${endc}${' '.repeat(marginRight)}`);
+
+    result.push(out.align(wrapperFn(str), align, -1, ' ', false));
   };
 
-  if (marginTop) lc.log('\n'.repeat(marginTop - 1));
+  if (marginTop) result.push('\n'.repeat(marginTop - 1));
 
   if (pHeader.length) {
     if (drawOuter && drawRowLines) printLine(empty(numCols, ''), tableChars.hTop, wrapLinesFn);
@@ -203,8 +202,34 @@ const print = (body: any[][], header?: any[][], options: TableOptions = {}): num
     }
   }
   if (drawOuter && drawRowLines) printLine(empty(numCols, ''), tableChars.bBot, wrapLinesFn);
-  if (marginBottom) lc.log('\n'.repeat(marginBottom - 1));
-  return lc.get();
+  if (marginBottom) result.push('\n'.repeat(marginBottom - 1));
+  return result;
+};
+
+/**
+ * table.print
+ *
+ * Print a table
+ *
+ * ```typescript
+ * const header = [['Name', 'Age']];
+ * const body = [['John', '25'], ['Jane', '26']];
+ * table.print(body, header);
+ *
+ * // ┏━━━━━━┳━━━━━┓
+ * // ┃ Name ┃ Age ┃
+ * // ┡━━━━━━╇━━━━━┩
+ * // │ John │ 25  │
+ * // │ Jane │ 26  │
+ * // └──────┴─────┘
+ * ```
+ */
+const print = (body: any[][], header?: any[][], options: TableOptions = {}): number => {
+  const lines = getLines(body, header, options);
+  if (lines.length) {
+    console.log(lines.join('\n'));
+  }
+  return lines.length;
 };
 
 const getAllKeys = (objects) => {
@@ -304,6 +329,7 @@ const printObjects = (objects: Object[], headers: Object = {}, options: TableOpt
 };
 
 export const table = {
+  getLines,
   print,
   printObjects,
   utils: {

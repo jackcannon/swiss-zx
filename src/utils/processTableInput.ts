@@ -67,14 +67,20 @@ const formatCells = (rows: string[][][], type: SectionType, format: TableFormatC
 
 const splitCellsIntoLines = (rows: string[][], type: SectionType) => rows.map((row) => row.map((cell) => out.utils.getLines(cell)));
 
-const getDesiredColumnWidths = (cells: Cells, numCols: number, preferredWidths: number[], [_mT, marginRight, _mB, marginLeft]: number[]) => {
+const getDesiredColumnWidths = (
+  cells: Cells,
+  numCols: number,
+  preferredWidths: number[],
+  [_mT, marginRight, _mB, marginLeft]: number[],
+  maxTotalWidth: number
+) => {
   const transposed = zip(...[...cells.header, ...cells.body]);
 
   const actualColWidths = transposed.map((col) => Math.max(...col.map((cell) => out.utils.getLinesWidth(cell))));
   const currColWidths = preferredWidths.length ? ArrayUtils.repeat(numCols, ...preferredWidths) : actualColWidths;
   const currTotalWidth = currColWidths.reduce(fn.reduces.combine) + (numCols + 1) * 3;
 
-  const diff = currTotalWidth - (out.utils.getTerminalWidth() - (marginRight + marginLeft));
+  const diff = currTotalWidth - (maxTotalWidth - (marginRight + marginLeft));
   const colWidths = [...currColWidths];
   for (let i = 0; i < diff; i++) {
     colWidths[colWidths.indexOf(Math.max(...colWidths))]--;
@@ -82,9 +88,19 @@ const getDesiredColumnWidths = (cells: Cells, numCols: number, preferredWidths: 
   return colWidths;
 };
 
-const wrapCells = (rows: string[][][], type: SectionType, colWidths: number[]) =>
+const wrapCells = (rows: string[][][], type: SectionType, colWidths: number[], truncate: false | string) =>
   rows.map((row) => {
-    const wrapped = row.map((cell, colIndex) => out.utils.getLines(out.wrap(out.utils.joinLines(cell), colWidths[colIndex])));
+    const wrapped = row
+      .map((cell) => out.utils.joinLines(cell))
+      .map((text, colIndex) => {
+        if (truncate !== false) {
+          return out.truncate(text, colWidths[colIndex], truncate as string);
+        } else {
+          return out.wrap(text, colWidths[colIndex]);
+        }
+      })
+      .map((text) => out.utils.getLines(text));
+
     const maxHeight = Math.max(...wrapped.map((cell) => cell.length));
     return wrapped.map((cell) => [...cell, ...empty(maxHeight)].slice(0, maxHeight));
   });
@@ -99,8 +115,8 @@ export const processInput = (cells: Cells, opts: FullTableOptions) => {
   const numCols = Math.max(...[...(transposed.header || []), ...transposed.body].map((row) => row.length));
   const everyCell = processCells(transposed, ensureStringForEveryCell, numCols);
   const linedCells = processCells(everyCell, splitCellsIntoLines);
-  const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths, opts.margin as number[]);
-  const wrappedCells = processCells(linedCells, wrapCells, colWidths);
+  const colWidths = getDesiredColumnWidths(linedCells, numCols, opts.colWidths, opts.margin as number[], opts.maxWidth);
+  const wrappedCells = processCells(linedCells, wrapCells, colWidths, opts.truncate);
   const formatted = processCells(wrappedCells, formatCells, opts.format);
   const seperatedRows = processCells(formatted, seperateLinesIntoRows);
 

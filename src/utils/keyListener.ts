@@ -3,9 +3,11 @@ interface KeyListener {
   stop(): void;
 }
 
-export const getKeyListener = (callback: (keyName) => void, isStart: boolean = true): KeyListener => {
+export const getKeyListener = (callback: (keyName) => void, isStart: boolean = true, isDebugLog: boolean = false): KeyListener => {
   const listenFn = (key: any) => {
-    // console.log(JSON.stringify(key)); // use this to preview key codes
+    if (isDebugLog) {
+      console.log(JSON.stringify(key)); // use this to preview key codes
+    }
 
     if (key == '\r') {
       return callback('return');
@@ -27,6 +29,9 @@ export const getKeyListener = (callback: (keyName) => void, isStart: boolean = t
     }
     if (key == ' ') {
       return callback('space');
+    }
+    if (key === '\u001b') {
+      return callback('esc');
     }
 
     // ctrl-c
