@@ -224,6 +224,10 @@ export const align = (item: any, direction: AlignType, width: number = getTermin
   return func(item, width, replaceChar, forceWidth);
 };
 
+// todo docs
+export const split = (leftItem: any, rightItem: any, width: number = getTerminalWidth(), replaceChar: string = ' ') =>
+  `${leftItem + ''}${replaceChar.repeat(Math.max(0, width - (stringWidth(leftItem + '') + stringWidth(rightItem + ''))))}${rightItem + ''}`;
+
 /**
  * out.wrap
  *
@@ -395,7 +399,7 @@ export const limitToLength = (text: string, maxLength: number): string =>
 
 // todo docs
 // todo dry
-export const limitToLengthEnd = (text: string, maxLength: number): string =>
+export const limitToLengthStart = (text: string, maxLength: number): string =>
   joinLines(
     getLines(text).map((line) => {
       let specials = '';
@@ -422,9 +426,13 @@ export const limitToLengthEnd = (text: string, maxLength: number): string =>
  * out.truncate('This is a very long sentence', 15); // 'This is a ve...'
  * ```
  */
-export const truncate = (text: string, maxLength: number = getTerminalWidth(), suffix: string = '…'): string =>
+export const truncate = (text: string, maxLength: number = getTerminalWidth(), suffix: string = chalk.dim('…')): string =>
+  joinLines(getLines(text).map((line) => (stringWidth(line) > maxLength ? limitToLength(line, maxLength - stringWidth(suffix)) + suffix : line)));
+
+// TODO docs
+export const truncateStart = (text: string, maxLength: number = getTerminalWidth(), suffix: string = chalk.dim('…')): string =>
   joinLines(
-    getLines(text).map((line) => (stringWidth(line) > maxLength ? limitToLength(line, maxLength - stringWidth(suffix)) + chalk.dim(suffix) : line))
+    getLines(text).map((line) => (stringWidth(line) > maxLength ? suffix + limitToLengthStart(line, maxLength - stringWidth(suffix)) : line))
   );
 
 export const out = {
@@ -434,12 +442,14 @@ export const out = {
   right,
   justify,
   align,
+  split,
   wrap,
   moveUp,
   loading,
   limitToLength,
-  limitToLengthEnd,
+  limitToLengthStart,
   truncate,
+  truncateStart,
   getLineCounter,
   getBreadcrumb,
   utils: {

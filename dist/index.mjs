@@ -14,22 +14,22 @@ var PathUtils_exports = {};
 __export(PathUtils_exports, {
   explodePath: () => explodePath
 });
-var explodePath = (path2) => {
-  const dir = (path2.match(/(.*[\\\/])*/) || [])[0].replace(/[\\\/]$/, "");
-  const filename = (path2.match(/[^\\\/]*$/) || [])[0];
+var explodePath = (path) => {
+  const dir = (path.match(/(.*[\\\/])*/) || [])[0].replace(/[\\\/]$/, "");
+  const filename = (path.match(/[^\\\/]*$/) || [])[0];
   const ext = ((filename.match(/\.[^\.]*$/) || [])[0] || "").replace(/^\./, "");
   const name = filename.replace(ext, "").replace(/[\.]$/, "");
   const folders = dir.split(/[\\\/]/).filter((x) => x);
-  return { path: path2, dir, folders, name, ext, filename };
+  return { path, dir, folders, name, ext, filename };
 };
 
 // src/tools/$$.ts
 $2.verbose = false;
 var fs = fsO.promises;
 var intoLines = (out2) => out2.toString().split("\n").filter(fn.isTruthy);
-var removeTrailSlash = (path2) => path2.replace(/\/$/, "");
-var trailSlash = (path2) => removeTrailSlash(path2) + "/";
-var removeDoubleSlashes = (path2) => path2.replace(/\/\//g, "/");
+var removeTrailSlash = (path) => path.replace(/\/$/, "");
+var trailSlash = (path) => removeTrailSlash(path) + "/";
+var removeDoubleSlashes = (path) => path.replace(/\/\//g, "/");
 var cd = async (dir = ".") => {
   cdO(dir);
   await $2`cd ${dir}`;
@@ -88,10 +88,10 @@ var findModified = async (dir = ".", options = {}) => {
     ...explodePath(file.replace(/^\./, removeTrailSlash(dir)))
   }));
 };
-var lastModified = async (path2) => {
-  let list = await findModified(path2, { type: "f" });
+var lastModified = async (path) => {
+  let list = await findModified(path, { type: "f" });
   if (list.length === 0)
-    list = await findModified(path2);
+    list = await findModified(path);
   const max = Math.max(...list.map(({ lastModified: lastModified2 }) => lastModified2));
   return max;
 };
@@ -147,6 +147,8 @@ var $$ = {
   grep,
   isFileExist,
   isDirExist,
+  readFile,
+  writeFile,
   readJSON,
   writeJSON,
   rsync,
@@ -161,8 +163,8 @@ var $$ = {
 
 // src/tools/ask.ts
 import { chalk as chalk5 } from "zx";
-import { seconds as seconds3, wait as wait2, fn as fn8, symbols as symbols6 } from "swiss-ak";
-import stringWidth3 from "string-width";
+import { seconds as seconds4, wait as wait3, fn as fn8, symbols as symbols6 } from "swiss-ak";
+import stringWidth4 from "string-width";
 import prompts from "prompts";
 import Fuse from "fuse.js";
 
@@ -417,6 +419,7 @@ var align = (item, direction, width = getTerminalWidth(), replaceChar = " ", for
   const func = alignFunc[direction] || alignFunc.left;
   return func(item, width, replaceChar, forceWidth);
 };
+var split = (leftItem, rightItem, width = getTerminalWidth(), replaceChar = " ") => `${leftItem + ""}${replaceChar.repeat(Math.max(0, width - (stringWidth(leftItem + "") + stringWidth(rightItem + ""))))}${rightItem + ""}`;
 var wrap = (item, width = getTerminalWidth(), alignment, forceWidth = false) => getLogLines(item).map((line) => {
   if (stringWidth(line) > width) {
     let words = line.split(/(?<=#?[ -]+)/g);
@@ -511,7 +514,7 @@ var limitToLength = (text2, maxLength) => joinLines(
     return result + specials;
   })
 );
-var limitToLengthEnd = (text2, maxLength) => joinLines(
+var limitToLengthStart = (text2, maxLength) => joinLines(
   getLines(text2).map((line) => {
     let specials = "";
     let result = line;
@@ -526,8 +529,9 @@ var limitToLengthEnd = (text2, maxLength) => joinLines(
     return specials + result;
   })
 );
-var truncate = (text2, maxLength = getTerminalWidth(), suffix = "\u2026") => joinLines(
-  getLines(text2).map((line) => stringWidth(line) > maxLength ? limitToLength(line, maxLength - stringWidth(suffix)) + chalk.dim(suffix) : line)
+var truncate = (text2, maxLength = getTerminalWidth(), suffix = chalk.dim("\u2026")) => joinLines(getLines(text2).map((line) => stringWidth(line) > maxLength ? limitToLength(line, maxLength - stringWidth(suffix)) + suffix : line));
+var truncateStart = (text2, maxLength = getTerminalWidth(), suffix = chalk.dim("\u2026")) => joinLines(
+  getLines(text2).map((line) => stringWidth(line) > maxLength ? suffix + limitToLengthStart(line, maxLength - stringWidth(suffix)) : line)
 );
 var out = {
   pad,
@@ -536,12 +540,14 @@ var out = {
   right,
   justify,
   align,
+  split,
   wrap,
   moveUp,
   loading,
   limitToLength,
-  limitToLengthEnd,
+  limitToLengthStart,
   truncate,
+  truncateStart,
   getLineCounter,
   getBreadcrumb,
   utils: {
@@ -1135,110 +1141,653 @@ var askTrim = async (totalFrames, frameRate, options = {}) => {
 };
 
 // src/tools/ask/fileExplorer.ts
-import { fn as fn6, symbols as symbols4 } from "swiss-ak";
-var displayPath = (p) => p.replace(process.env.HOME + "/", `${symbols4.HOME}/`).replace("/Volumes/", `${symbols4.EJECT}/`);
-var getFullOpts = (opts) => ({
-  filter: fn6.result(true),
-  makeDir: false,
-  newFile: false,
-  selectDirText: `[select '{{dir}}']`,
-  makeDirText: "[create folder]",
-  newFileText: "[new file]",
-  enclosingText: "[back]",
-  ...opts
-});
-var fileExplorer = async (startDir, selectType = "f", question, initial, options = {}) => {
-  const opts = getFullOpts(options);
+import * as fsP from "fs/promises";
+import stringWidth3 from "string-width";
+import {
+  ArrayUtils as ArrayUtils5,
+  fn as fn6,
+  getDeferred as getDeferred2,
+  milliseconds,
+  PromiseUtils,
+  seconds as seconds3,
+  sortNumberedText,
+  symbols as symbols4,
+  TimeUtils,
+  tryOr,
+  wait as wait2
+} from "swiss-ak";
+
+// src/tools/ffmpeg.ts
+import { $ as $3 } from "zx";
+import { getProgressBar as getProgressBar2 } from "swiss-ak";
+$3.verbose = false;
+var toFFmpegTimeFormat = (time) => new Date(time).toISOString().slice(14, 23);
+var getProbeValue = async (file, propertyName) => (await $3`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
+var getProbe = async (file) => {
+  const full = await $3`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
+  const props = Object.fromEntries(
+    full.toString().split("\n").map((line) => line.split("="))
+  );
+  const asNumber = (val) => Number.isNaN(Number(val)) ? 0 : Number(val);
+  const framerate = asNumber(props.avg_frame_rate.split("/")[0]) / asNumber(props.avg_frame_rate.split("/")[1]);
+  return {
+    index: asNumber(props.index),
+    codec_name: props.codec_name,
+    codec_long_name: props.codec_long_name,
+    profile: props.profile,
+    codec_type: props.codec_type,
+    codec_time_base: props.codec_time_base,
+    codec_tag_string: props.codec_tag_string,
+    codec_tag: asNumber(props.codec_tag),
+    width: asNumber(props.width),
+    height: asNumber(props.height),
+    coded_width: asNumber(props.coded_width),
+    coded_height: asNumber(props.coded_height),
+    closed_captions: asNumber(props.closed_captions),
+    has_b_frames: asNumber(props.has_b_frames),
+    sample_aspect_ratio: props.sample_aspect_ratio,
+    display_aspect_ratio: props.display_aspect_ratio,
+    pix_fmt: props.pix_fmt,
+    level: asNumber(props.level),
+    color_range: props.color_range,
+    color_space: props.color_space,
+    color_transfer: props.color_transfer,
+    color_primaries: props.color_primaries,
+    chroma_location: props.chroma_location,
+    field_order: props.field_order,
+    timecode: props.timecode,
+    refs: asNumber(props.refs),
+    is_avc: props.is_avc,
+    nal_length_size: asNumber(props.nal_length_size),
+    id: props.id,
+    r_frame_rate: props.r_frame_rate,
+    avg_frame_rate: props.avg_frame_rate,
+    time_base: props.time_base,
+    start_pts: asNumber(props.start_pts),
+    start_time: asNumber(props.start_time),
+    duration_ts: asNumber(props.duration_ts),
+    duration: asNumber(props.duration),
+    bit_rate: asNumber(props.bit_rate),
+    max_bit_rate: props.max_bit_rate,
+    bits_per_raw_sample: asNumber(props.bits_per_raw_sample),
+    nb_frames: asNumber(props.nb_frames),
+    nb_read_frames: props.nb_read_frames,
+    nb_read_packets: props.nb_read_packets,
+    framerate
+  };
+};
+var getTotalFrames = async (list) => {
+  if (!list) {
+    list = (await $$.ls()).filter((file) => file.endsWith(".MOV"));
+  }
+  if (!(list instanceof Array))
+    list = [list];
+  const counts = await Promise.all(list.map(async (file) => getProbeValue(file, "nb_frames")));
+  const totalFrames = counts.map((count) => Number(count.trim())).reduce((acc, cur) => acc + cur, 0);
+  return totalFrames;
+};
+var readChunk = (chunk) => Object.fromEntries(
+  chunk.toString().split("\n").filter((row) => row && row.includes("=")).map(
+    (row) => row.split("=").map((str) => str.trim()).slice(0, 2)
+  )
+);
+var ffmpeg = async (command = () => $3`ffmpeg -progress pr.txt`, progressFileName = "pr.txt", totalFrames = 1, progressBarOpts = {}) => {
+  await $3`echo "" > ${progressFileName}`;
+  const ffmpegProcess = command();
+  const tail = $3`tail -f ${progressFileName}`.nothrow();
+  const bar = getProgressBar2(totalFrames, {
+    showCount: true,
+    showPercent: true,
+    wrapperFn: chalk.magenta,
+    ...progressBarOpts
+  });
+  for await (const chunk of tail.stdout) {
+    const progStats = readChunk(chunk);
+    if (!progStats || !progStats.frame) {
+      continue;
+    }
+    const frame = Number(progStats.frame);
+    bar.set(frame);
+    if (progStats.progress === "end") {
+      bar.finish();
+      await tail.kill();
+      await $3`rm -rf ${progressFileName}`;
+    }
+  }
+  await ffmpegProcess;
+};
+
+// src/tools/ask/fileExplorer.ts
+var fsCache = /* @__PURE__ */ new Map();
+var getPathContents = (path) => fsCache.get(path);
+var loadPathContents = async (path) => {
+  if (fsCache.has(path)) {
+    return fsCache.get(path);
+  }
+  return forceLoadPathContents(path);
+};
+var forceLoadPathContents = async (path) => {
+  let contents = { dirs: [], files: [] };
+  try {
+    const pathType = await getPathType(path);
+    if (pathType === "d") {
+      const lists = await Promise.all([$$.findDirs(path), $$.findFiles(path)]);
+      const [dirs, files] = lists.map((list) => sortNumberedText(list)).map((list) => list.map((item) => item.replace(/\r|\n/g, " ")));
+      contents = { ...contents, dirs, files };
+    }
+    if (pathType === "f") {
+      const [stat2, probe] = await Promise.all([tryOr(void 0, () => fsP.stat(path)), tryOr(void 0, () => getProbe(path))]);
+      contents = { ...contents, info: { stat: stat2, probe } };
+    }
+  } catch (err) {
+  }
+  fsCache.set(path, contents);
+  return contents;
+};
+var getPathType = async (path) => {
+  const [isDir, isFile] = await Promise.all([$$.isDirExist(path), $$.isFileExist(path)]);
+  return isDir ? "d" : isFile ? "f" : void 0;
+};
+var join = (...items) => {
+  const result = items.join("/");
+  return $$.utils.removeDoubleSlashes(result || "/");
+};
+var keyActionDict = {
+  move: {
+    keys: "\u2191 \u2193 \u2190 \u2192",
+    label: "Navigate"
+  },
+  r: {
+    keys: "R",
+    label: `Refresh`
+  },
+  f: {
+    keys: "F",
+    label: `New Folder`
+  },
+  space: {
+    keys: "space",
+    label: "Toggle selection"
+  },
+  return: {
+    keys: "\u2B90 ",
+    label: "Submit"
+  }
+};
+var getActionBar = (multi, pressed, disabled = []) => {
+  const keyList = {
+    single: ["move", "r", "f", "return"],
+    multi: ["move", "r", "f", "space", "return"]
+  }[multi ? "multi" : "single"];
+  const row = keyList.map((key) => {
+    const { keys, label } = keyActionDict[key];
+    return ` [ ${keys} ] ${label} `;
+  });
+  const format = pressed ? [{ formatFn: chalk.bgWhite.black, col: keyList.indexOf(pressed) }] : [];
+  disabled.forEach((key) => format.push({ formatFn: chalk.dim.strikethrough, col: keyList.indexOf(key) }));
+  return table.getLines([row], void 0, { drawOuter: false, drawColLines: false, drawRowLines: false, alignCols: ["center"], colWidths: [200], format }).join("\n");
+};
+var FILE_CATEGORIES = {
+  image: ["jpg", "jpeg", "png", "tif", "tiff", "gif", "bmp", "webp", "psd", "ai", "cr2", "crw", "nef", "pef", "svg"],
+  video: ["mp4", "mov", "wmv", "avi", "avchd", "flv", "f4v", "swf", "mkv", "webm"],
+  audio: ["mp3", "aac", "ogg", "flac", "alac", "wav", "aiff", "dsd"],
+  text: ["txt", "rtf"]
+};
+var getFileCategory = (ext) => {
+  const category = Object.keys(FILE_CATEGORIES).find((key) => FILE_CATEGORIES[key].includes(ext.toLowerCase()));
+  return category || "";
+};
+var getFileIcon = (ext) => {
+  const category = getFileCategory(ext);
+  const dispExt = ext.length % 2 === 0 ? ext : "." + ext;
+  if (category === "image") {
+    return out.left(
+      `\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
+\u2551  ${chalk.whiteBright("\u2600")}  \u250C\u2500\u2500\u2500\u2500\u2510${chalk.whiteBright("\u2600")}  \u2551
+\u2551 ${chalk.whiteBright("\u2600")}\u250C\u2500\u2500\u2524\u25AB\u25AB\u25AA\u25AB\u2502  ${chalk.whiteBright("\u2600")}\u2551
+\u255F\u2500\u2500\u2524\u25AB\u25AA\u2502\u25AB\u25AB\u25AB\u25AB\u251C\u2500\u2500\u2500\u2562
+\u2551\u25AA\u25AB\u2502\u25AB\u25AB\u2502\u25AA\u25AB\u25AB\u25AB\u2502\u25AB\u25AA\u25AB\u2551
+\u255A\u2550\u2550\u2567\u2550\u2550\u2567\u2550\u2550\u2550\u2550\u2567\u2550\u2550\u2550\u255D`,
+      16
+    );
+  }
+  if (category === "video") {
+    return out.left(
+      `\u250F\u2531\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2532\u2513
+\u2523\u252B\u256D\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E\u2523\u252B
+\u2523\u252B\u2502${out.center(out.limitToLength(dispExt.toUpperCase(), 8), 8)}\u2502\u2523\u252B
+\u2523\u252B\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F\u2523\u252B
+\u2517\u2539\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253A\u251B`,
+      14
+    );
+  }
+  if (category === "audio") {
+    return out.left(
+      `\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
+\u2502   .\u2219\xAF\xAF\xAF\xAF\u2219.   \u2502
+\u2502  /        \\  \u2502
+\u2502 |    ()    | \u2502
+\u2502  \\        /  \u2502
+\u2502   '\u2219____\u2219'   \u2502
+\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518`,
+      16
+    );
+  }
+  return out.left(
+    `,\u254C\u254C\u254C\u254C\u254C.
+\u254E       \u27CD
+\u254E${out.center(out.limitToLengthStart(dispExt, 8), 8)}\u254E
+\u254E        \u254E
+\u254E        \u254E
+\u02F8\u254C\u254C\u254C\u254C\u254C\u254C\u254C\u254C\u02F8`,
+    10
+  );
+};
+var humanFileSize = (size) => {
+  const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+  return fn6.roundTo(0.01, size / Math.pow(1024, i)) * 1 + " " + ["B", "kB", "MB", "GB", "TB"][i];
+};
+var getFilePanel = (path, panelWidth, maxLines) => {
+  var _a;
+  const { filename, ext } = explodePath(path);
+  const { stat: stat2, probe } = ((_a = getPathContents(path)) == null ? void 0 : _a.info) || {};
+  const result = [];
+  result.push(out.center(getFileIcon(ext), panelWidth));
+  const category = getFileCategory(ext);
+  result.push(out.center(out.wrap(filename, panelWidth), panelWidth));
+  result.push(out.center(chalk.dim(`${ext.toUpperCase()} ${category ? `${fn6.capitalise(category)} ` : ""}File`), panelWidth));
+  result.push(out.center(chlk.gray1("\u2500".repeat(Math.round(panelWidth * 0.75))), panelWidth));
+  const now = Date.now();
+  const addItem = (title, value, extra) => {
+    result.push(out.split(`${chalk.bold.dim(title)}`, `${value}${extra ? chalk.dim(` (${chalk.dim(extra)})`) : ""}`, panelWidth));
+  };
+  const addTimeItem = (title, time, append) => {
+    addItem(title, `${TimeUtils.toReadableDuration(now - time, false, 2)}${append || ""}`);
+  };
+  if (stat2) {
+    addItem(`Size`, `${humanFileSize(stat2.size)}`);
+    addTimeItem(`Modified`, stat2.mtimeMs, " ago");
+    addTimeItem(`Created`, stat2.ctimeMs, " ago");
+  }
+  if (probe) {
+    if (["image", "video"].includes(category))
+      addItem(`Dimensions`, `${probe.width}\xD7${probe.height}`);
+    if (["video", "audio"].includes(category))
+      addItem(`Duration`, TimeUtils.toReadableDuration(seconds3(probe.duration), false, 2));
+    if (["video"].includes(category))
+      addItem(`FPS`, `${probe.framerate}`);
+  }
+  const resultStr = out.left(out.wrap(result.join("\n"), panelWidth), panelWidth);
+  return chalk.white(out.utils.joinLines(out.utils.getLines(resultStr).slice(0, maxLines)));
+};
+var fileExplorerHandler = async (isMulti = false, isSave = false, question, selectType = "f", startPath = process.cwd(), suggestedFileName = "") => {
+  const primaryWrapFn = chalk.yellowBright;
+  const cursorWrapFn = chalk.bgYellow.black;
+  const ancestralCursorWrapFn = chalk.bgGray.black;
+  const selectedIconWrapFn = chalk.greenBright;
+  const selectedWrapFn = chalk.greenBright;
+  const cursorOnSelectedWrapFn = chalk.bgGreenBright.black;
+  const minWidth = 25;
+  const maxWidth = 25;
+  const maxItems = 15;
+  const maxColumns = Math.floor(out.utils.getTerminalWidth() / (maxWidth + 1));
+  const accepted = isSave ? ["d", "f"] : [selectType];
   const lc = getLineCounter();
-  const quest = question ? typeof question === "string" ? question : question.get() : selectType === "d" ? "Choose a directory" : "Choose a file:";
-  const fnDir = (dir) => (selectType === "d" ? chlk.gray5 : chlk.gray3)(`${symbols4.CHEV_RGT} ${dir}`);
-  const fnFiles = (dir) => (selectType === "d" ? chlk.gray2 : chlk.gray5)(`${selectType === "f" ? symbols4.BULLET : " "} ${dir}`);
-  const runExplorer = async (dir, runInitial, message) => {
-    const dispLine = `${quest}${message ? chalk.red(` - ${message}`) : ""}`;
-    const loader = ask.loading(dispLine);
-    const dirs = await $$.findDirs(dir);
-    const files = (await $$.findFiles(dir)).filter(opts.filter);
-    loader.stop();
-    const options2 = [
-      { title: chlk.gray1("\u25B2 [back]"), value: ".." },
-      selectType === "d" ? { title: `${chalk.greenBright(symbols4.TICK)} ${opts.selectDirText.replace("{{dir}}", displayPath(dir))}`, value: "***SELECT***" } : void 0,
-      opts.makeDir ? { title: `${chalk.cyanBright.bold("+")} ${opts.makeDirText}`, value: "***MAKE_DIR***" } : void 0,
-      opts.newFile ? { title: `${chalk.blueBright.bold("+")} ${opts.newFileText}`, value: "***NEW_FILE***" } : void 0,
-      ...ask.utils.itemsToPromptObjects(dirs, void 0, fnDir),
-      ...ask.utils.itemsToPromptObjects(files, void 0, fnFiles)
-    ].filter(fn6.filters.exists);
-    const result2 = await lc.wrap(1, () => ask.select(dispLine, options2, runInitial || "***SELECT***"));
-    if (result2 === "***SELECT***") {
-      lc.clear();
-      return dir;
+  const deferred = getDeferred2();
+  let cursor = startPath.split("/");
+  const multiSelected = /* @__PURE__ */ new Set();
+  let paths = [];
+  let currentPath = "";
+  let cursorType = "d";
+  let pressed = void 0;
+  let submitted = false;
+  let loading3 = false;
+  const recalc = () => {
+    var _a;
+    if (submitted)
+      return;
+    paths = cursor.map((f, index, all) => join(...all.slice(0, index + 1)));
+    currentPath = paths[paths.length - 1];
+    const isDir = ((_a = getPathContents(paths[paths.length - 2])) == null ? void 0 : _a.dirs.includes(explodePath(currentPath).filename)) || false;
+    cursorType = isDir ? "d" : "f";
+  };
+  const loadEssentials = async (executeFn = loadPathContents) => {
+    await Promise.all([
+      PromiseUtils.each(paths, executeFn),
+      (async () => {
+        const { dirs } = await executeFn(currentPath);
+        const list = dirs;
+        return PromiseUtils.each(
+          list.map((dir) => join(currentPath, dir)),
+          executeFn
+        );
+      })(),
+      (async () => {
+        const parent = explodePath(currentPath).dir;
+        const { dirs } = await executeFn(parent);
+        const list = [...dirs];
+        return PromiseUtils.each(
+          list.map((dir) => join(parent, dir)),
+          executeFn
+        );
+      })()
+    ]);
+  };
+  const loadNewDepth = async () => {
+    display();
+    await loadEssentials(loadPathContents);
+    display();
+  };
+  const loadNewItem = async () => {
+    display();
+    if (!getPathContents(currentPath)) {
+      await loadPathContents(currentPath);
+      display();
     }
-    if (result2 === "***MAKE_DIR***") {
-      lc.clear();
-      const name = await ask.text("Enter a name for the new directory:", "untitled folder");
-      await $$.mkdir(path.join(dir, name));
-      lc.clear();
-      return runExplorer($$.utils.removeTrailSlash(`${dir}/${name}`));
+  };
+  const setPressed = async (key) => {
+    pressed = key;
+    display();
+    if (!key)
+      return;
+    await wait2(milliseconds(100));
+    if (!loading3) {
+      pressed = void 0;
+      display();
     }
-    if (result2 === "***NEW_FILE***") {
-      lc.clear();
-      const name = await ask.text("Enter a name for the new file:", "untitled.txt");
-      lc.clear();
-      const filePath = `${dir}/${name}`;
-      await $$.touch(filePath);
-      if (selectType === "f") {
-        return filePath;
+  };
+  const display = async () => {
+    if (submitted)
+      return;
+    recalc();
+    const formatter = (symbol, regularWrapFn, selectedPrefix = " ", unselectedPrefix = " ") => (width, highlighted, isActiveColumn, columnPath) => (name, index, all) => {
+      const isHighlighted = name === highlighted;
+      const fullPath = join(columnPath, name);
+      const isSelected = isMulti && multiSelected.has(fullPath);
+      const prefix = isSelected ? selectedPrefix : unselectedPrefix;
+      const template = (text2) => `${prefix}${text2} ${symbol} `;
+      const extraChars = stringWidth3(template(""));
+      const stretched = template(out.left(out.truncate(name, width - extraChars, "\u2026"), width - extraChars));
+      let wrapFn = fn6.noact;
+      if (isHighlighted) {
+        if (isActiveColumn) {
+          wrapFn = isSelected ? cursorOnSelectedWrapFn : cursorWrapFn;
+        } else {
+          wrapFn = ancestralCursorWrapFn;
+        }
       } else {
-        return runExplorer(dir, runInitial);
+        wrapFn = isSelected ? selectedWrapFn : regularWrapFn;
+      }
+      return wrapFn(chlk.clear(stretched));
+    };
+    const { dir: formatDir, file: formatFile } = {
+      single: {
+        d: {
+          dir: formatter("\u203A", chlk.gray5),
+          file: formatter(" ", chalk.dim)
+        },
+        f: {
+          dir: formatter("\u203A", chlk.gray3),
+          file: formatter(" ", chlk.gray5)
+        },
+        df: {
+          dir: formatter("\u203A", chlk.gray5),
+          file: formatter(" ", chlk.gray5)
+        }
+      },
+      multi: {
+        d: {
+          dir: formatter("\u203A", chlk.gray5, ` ${selectedIconWrapFn(symbols4.RADIO_FULL)} `, ` ${symbols4.RADIO_EMPTY} `),
+          file: formatter(" ", chalk.dim, "   ", "   ")
+        },
+        f: {
+          dir: formatter("\u203A", chlk.gray3, "   ", "   "),
+          file: formatter(" ", chlk.gray5, ` ${selectedIconWrapFn(symbols4.RADIO_FULL)} `, ` ${symbols4.RADIO_EMPTY} `)
+        },
+        df: {
+          dir: formatter("\u203A", chlk.gray5, "   ", "   "),
+          file: formatter(" ", chlk.gray5, ` ${selectedIconWrapFn(symbols4.RADIO_FULL)} `, ` ${symbols4.RADIO_EMPTY} `)
+        }
+      }
+    }[isMulti ? "multi" : "single"][accepted.join("")];
+    const emptyColumn = [" ".repeat(minWidth), ..." ".repeat(maxItems - 1).split("")];
+    const allColumns = paths.map(getPathContents).map((contents, index) => {
+      const dirs = (contents == null ? void 0 : contents.dirs) || [];
+      const files = (contents == null ? void 0 : contents.files) || [];
+      const list = [...dirs, ...files];
+      const contentWidth = Math.max(...list.map((s) => s.length));
+      const width = Math.max(minWidth, Math.min(contentWidth, maxWidth));
+      const highlighted = cursor[index + 1];
+      const highlightedIndex = list.indexOf(highlighted);
+      const isActiveCol = index + 2 === cursor.length;
+      const columnPath = paths[index];
+      const formattedLines = [
+        ...dirs.map(formatDir(width, highlighted, isActiveCol, columnPath)),
+        ...files.map(formatFile(width, highlighted, isActiveCol, columnPath))
+      ];
+      if (formattedLines.length > maxItems) {
+        const startIndex = Math.max(0, highlightedIndex - maxItems + 2);
+        const isScrollUp = startIndex > 0;
+        const isScrollDown = startIndex + maxItems < formattedLines.length;
+        const slicedLines = formattedLines.slice(startIndex, startIndex + maxItems);
+        const fullWidth = stringWidth3(formatDir(width, "", false, "")(""));
+        if (isScrollUp)
+          slicedLines[0] = chalk.dim(out.center("\u2191" + " ".repeat(Math.floor(width / 2)) + "\u2191", fullWidth));
+        if (isScrollDown)
+          slicedLines[slicedLines.length - 1] = chalk.dim(out.center("\u2193" + " ".repeat(Math.floor(width / 2)) + "\u2193", fullWidth));
+        return out.utils.joinLines(slicedLines);
+      }
+      return out.utils.joinLines([...formattedLines, ...emptyColumn].slice(0, maxItems));
+    });
+    if (cursorType === "f") {
+      allColumns[allColumns.length - 1] = getFilePanel(currentPath, minWidth, maxItems);
+    }
+    const columns = [...allColumns.slice(-maxColumns), ...ArrayUtils5.repeat(maxColumns, out.utils.joinLines(emptyColumn))].slice(0, maxColumns);
+    const termWidth = out.utils.getTerminalWidth();
+    const tableLines = table.getLines([columns], void 0, {
+      wrapLinesFn: chlk.gray1,
+      drawOuter: true,
+      cellPadding: 0,
+      truncate: "",
+      maxWidth: Infinity
+    });
+    const tableOut = out.center(out.limitToLengthStart(tableLines.join("\n"), termWidth - 1), termWidth);
+    const tableWidth = stringWidth3(tableLines[Math.floor(tableLines.length / 2)]);
+    const infoLine = (() => {
+      const count = isMulti ? chalk.dim(`${chlk.gray1("[")} ${multiSelected.size} selected ${chlk.gray1("]")} `) : "";
+      const curr = out.limitToLengthStart(
+        `${currentPath} ${chalk.dim(`(${{ f: "File", d: "Directory" }[cursorType]})`)}`,
+        tableWidth - (stringWidth3(count) + 3)
+      );
+      const split2 = out.split(curr, count, tableWidth - 2);
+      return out.center(split2, termWidth);
+    })();
+    const actionBar = getActionBar(isMulti, pressed);
+    lc.clear();
+    lc.wrap(1, () => ask.imitate(false, question, " "));
+    lc.log();
+    lc.log(infoLine);
+    lc.log(tableOut);
+    lc.log(actionBar);
+  };
+  const userActions = {
+    moveVertical: (direction) => {
+      const folds = cursor.slice(0, -1);
+      const current = cursor[cursor.length - 1];
+      const currContents = getPathContents(paths[folds.length - 1]);
+      if (!currContents)
+        return;
+      const list = [...currContents.dirs, ...currContents.files];
+      const currIndex = list.indexOf(current);
+      const nextIndex = (list.length + currIndex + direction) % list.length;
+      const nextValue = list[nextIndex];
+      cursor = [...folds, nextValue];
+      loadNewItem();
+    },
+    moveRight: () => {
+      const current = cursor[cursor.length - 1];
+      const currContents = getPathContents(paths[cursor.length - 2]);
+      const nextContents = getPathContents(paths[cursor.length - 1]);
+      if (!currContents || !nextContents || currContents.dirs.includes(current) === false)
+        return;
+      const nextList = [...nextContents.dirs, ...nextContents.files];
+      if (!nextList.length)
+        return;
+      cursor = [...cursor, nextList[0]];
+      loadNewDepth();
+    },
+    moveLeft: () => {
+      if (cursor.length <= 2)
+        return;
+      cursor = cursor.slice(0, -1);
+      loadNewDepth();
+    },
+    refresh: async () => {
+      if (loading3)
+        return;
+      loading3 = true;
+      setPressed("r");
+      const allKeys = Array.from(fsCache.keys());
+      const restKeys = new Set(allKeys);
+      await loadEssentials((path) => {
+        restKeys.delete(path);
+        return forceLoadPathContents(path);
+      });
+      display();
+      loading3 = false;
+      if (pressed === "r")
+        setPressed(void 0);
+      await PromiseUtils.eachLimit(32, Array.from(restKeys), async () => {
+        if (submitted)
+          return;
+        return forceLoadPathContents;
+      });
+    },
+    select: () => {
+      if (isMulti && accepted.includes(cursorType)) {
+        if (multiSelected.has(currentPath)) {
+          multiSelected.delete(currentPath);
+        } else {
+          multiSelected.add(currentPath);
+        }
+        setPressed("space");
+      }
+    },
+    takeInput: async (preQuestion, inputFn, postQuestion) => {
+      display();
+      loading3 = true;
+      kl.stop();
+      lc.clearBack(1);
+      await preQuestion();
+      const value = await inputFn();
+      const skipDisplay = postQuestion ? await postQuestion(value) ?? false : false;
+      if (!skipDisplay)
+        display();
+      kl.start();
+      loading3 = false;
+      return value;
+    },
+    newFolder: async () => {
+      const basePath = cursorType === "f" ? paths[paths.length - 2] : currentPath;
+      await userActions.takeInput(
+        () => {
+          const info2 = chlk.gray3("Enter nothing to cancel");
+          const info1Prefix = chlk.gray3("  Adding folder to ");
+          const maxValWidth = out.utils.getTerminalWidth() - (stringWidth3(info1Prefix) + stringWidth3(info2));
+          const info1Value = chlk.gray4(out.truncateStart($$.utils.trailSlash(basePath), maxValWidth));
+          const info1 = info1Prefix + info1Value;
+          lc.log(out.split(info1, info2, out.utils.getTerminalWidth() - 2));
+        },
+        () => lc.wrap(1, () => ask.text(`What do you want to ${primaryWrapFn("name")} the new folder?`, "")),
+        async (newFolderName) => {
+          const newFolderPath = join(basePath, newFolderName);
+          if (newFolderName !== "") {
+            await $$.mkdir(newFolderPath);
+          }
+          display();
+          await Promise.all([forceLoadPathContents(basePath), forceLoadPathContents(newFolderPath)]);
+          return;
+        }
+      );
+    },
+    submit: () => {
+      return isSave ? userActions.submitSave() : userActions.submitSelect();
+    },
+    submitSave: async () => {
+      const initCursor = cursorType === "f" ? cursor[cursor.length - 1] : "";
+      const initSugg = suggestedFileName;
+      const initStart = startPath && await getPathType(startPath) === "f" ? explodePath(startPath).filename : "";
+      const initial = initCursor || initSugg || initStart || "";
+      const basePath = cursorType === "f" ? paths[paths.length - 2] : currentPath;
+      const newFileName = await userActions.takeInput(
+        () => {
+          lc.log(chlk.gray3("  Saving file to ") + chlk.gray4(out.truncateStart($$.utils.trailSlash(basePath), out.utils.getTerminalWidth() - 20)));
+        },
+        () => lc.wrap(1, () => ask.text(`What do you want to ${primaryWrapFn("name")} the file?`, initial)),
+        () => true
+      );
+      submitted = true;
+      kl.stop();
+      lc.clear();
+      const result = join(basePath, newFileName);
+      ask.imitate(true, question, result);
+      return deferred.resolve([result]);
+    },
+    submitSelect: () => {
+      if (!accepted.includes(cursorType))
+        return;
+      submitted = true;
+      setPressed("return");
+      kl.stop();
+      lc.clear();
+      if (isMulti) {
+        const result = Array.from(multiSelected);
+        ask.imitate(true, question, result);
+        return deferred.resolve(result);
+      } else {
+        const result = currentPath;
+        ask.imitate(true, question, result);
+        return deferred.resolve([currentPath]);
       }
     }
-    if (result2 === "..") {
-      lc.clear();
-      return runExplorer(explodePath(dir).dir);
-    }
-    if (dirs.includes(result2)) {
-      lc.clear();
-      return runExplorer($$.utils.removeTrailSlash(`${dir}/${result2}`));
-    }
-    if (selectType === "d" && files.includes(result2)) {
-      lc.clear();
-      return runExplorer(dir, runInitial, "Please select a directory");
-    }
-    return `${dir}/${result2}`;
   };
-  const startDirs = [startDir].flat();
-  const result = await (async () => {
-    if (startDirs.length <= 1) {
-      return await runExplorer($$.utils.removeTrailSlash(startDirs[0]), initial);
-    } else {
-      const options2 = ask.utils.itemsToPromptObjects(startDirs, void 0, fnDir);
-      const result2 = await lc.wrap(1, () => ask.select(quest, options2));
-      lc.clear();
-      return await runExplorer($$.utils.removeTrailSlash(result2), initial);
+  const kl = getKeyListener((key) => {
+    if (loading3)
+      return;
+    switch (key) {
+      case "up":
+        return userActions.moveVertical(-1);
+      case "down":
+        return userActions.moveVertical(1);
+      case "right":
+        return userActions.moveRight();
+      case "left":
+        return userActions.moveLeft();
+      case "r":
+        return userActions.refresh();
+      case "f":
+        return userActions.newFolder();
+      case "space":
+        return userActions.select();
+      case "return":
+        return userActions.submit();
     }
-  })();
-  lc.clear();
-  ask.imitate(true, quest, displayPath(result));
-  return result;
+  });
+  loadNewDepth();
+  return deferred.promise;
 };
-var multiFileExplorer = async (startDir, selectType = "f", question = "Choose files:", initial, options = {}) => {
-  const questionText = typeof question === "string" ? question : question.get();
-  const opts = getFullOpts(options);
-  const lc = getLineCounter();
-  const initiallySelected = initial ? [initial].flat() : [];
-  const dir = await lc.wrap(
-    1,
-    () => ask.fileExplorer(startDir, "d", `${questionText} Select a directory`, initiallySelected[0] || "***SELECT***", {
-      ...options
-    })
-  );
-  const list = selectType === "f" ? (await $$.findFiles(dir)).filter(opts.filter) : (await $$.findDirs(dir)).filter(opts.filter);
-  lc.clear();
-  const choices = await ask.multiselect(questionText, list, initiallySelected, true);
-  return choices.map((item) => `${dir}/${item}`);
+var fileExplorer = async (questionText, selectType = "f", startPath = process.cwd()) => {
+  const arr = await fileExplorerHandler(false, false, questionText, selectType, startPath);
+  return arr[0];
+};
+var multiFileExplorer = (questionText, selectType = "f", startPath = process.cwd()) => fileExplorerHandler(true, false, questionText, selectType, startPath);
+var saveFileExplorer = async (questionText, startPath = process.cwd(), suggestedFileName = "") => {
+  const arr = await fileExplorerHandler(false, true, questionText, "f", startPath, suggestedFileName);
+  return arr[0];
 };
 
 // src/tools/ask/section.ts
-import { ArrayUtils as ArrayUtils5 } from "swiss-ak";
+import { ArrayUtils as ArrayUtils6 } from "swiss-ak";
 var separator = (version = "down", spacing = 8, offset = 0, width = out.utils.getTerminalWidth() - 2) => {
   const lineChar = "\u2504";
   const chars = {
@@ -1246,7 +1795,7 @@ var separator = (version = "down", spacing = 8, offset = 0, width = out.utils.ge
     none: "\u25E6",
     up: "\u25B5"
   };
-  const line = ArrayUtils5.repeat(Math.floor(width / spacing) - offset, chars[version]).join(lineChar.repeat(spacing - 1));
+  const line = ArrayUtils6.repeat(Math.floor(width / spacing) - offset, chars[version]).join(lineChar.repeat(spacing - 1));
   console.log(chlk.gray1(out.center(line, void 0, lineChar)));
   return 1;
 };
@@ -1284,12 +1833,12 @@ var section = async (question, sectionFn, ...questionFns) => {
 };
 
 // src/tools/ask/table.ts
-import { fn as fn7, getDeferred as getDeferred2, symbols as symbols5 } from "swiss-ak";
+import { fn as fn7, getDeferred as getDeferred3, symbols as symbols5 } from "swiss-ak";
 var highlightFn = chalk.cyan.underline;
 var askTableHandler = (isMulti, question, items, initial = [], rows, headers = [], tableOptions = {}) => {
   const questionText = typeof question === "string" ? question : question.get();
   const lc = getLineCounter();
-  const deferred = getDeferred2();
+  const deferred = getDeferred3();
   let activeIndex = initial[0] !== void 0 ? typeof initial[0] === "number" ? initial[0] : items.indexOf(initial[0]) : 0;
   let selectedIndexes = initial.map((i) => typeof i === "number" ? i : items.indexOf(i)).filter((i) => i !== -1);
   lc.add(ask.imitate(false, questionText, `- Use arrow-keys. ${isMulti ? "Space to select. " : ""}Enter to ${isMulti ? "confirm" : "select"}.`));
@@ -1591,7 +2140,7 @@ var imitate = (done, question, result) => {
   const prefix = done ? chalk5.green("\u2714") : chalk5.cyan("?");
   const questionText = chalk5.whiteBright.bold(message);
   const joiner = resultText ? chalk5.gray(done ? "\u2026 " : "\u203A ") : "";
-  const mainLength = stringWidth3(`${prefix} ${questionText} ${joiner}`);
+  const mainLength = stringWidth4(`${prefix} ${questionText} ${joiner}`);
   const maxLength = out.utils.getTerminalWidth() - mainLength - 1;
   let resultWrapper = hasColor(resultText) ? fn8.noact : done ? chalk5.white : chalk5.gray;
   const resultOut = resultText ? truncate(`${resultWrapper(resultText)}`, maxLength) : "";
@@ -1619,7 +2168,7 @@ var countdown = async (totalSeconds, template = (s) => `Starting in ${s}s...`, c
     moveUp(lines);
     lines = text2.split("\n").length;
     console.log(chalk5.blackBright(text2));
-    await wait2(seconds3(1));
+    await wait3(seconds4(1));
   }
   moveUp(lines);
   if (complete) {
@@ -1686,6 +2235,7 @@ var ask = {
   rename,
   fileExplorer,
   multiFileExplorer,
+  saveFileExplorer,
   wizard,
   section,
   separator,
@@ -1695,109 +2245,8 @@ var ask = {
     multiselect: askTableMultiselect
   },
   utils: {
-    itemsToPromptObjects,
-    displayPath
+    itemsToPromptObjects
   }
-};
-
-// src/tools/ffmpeg.ts
-import { $ as $3 } from "zx";
-import { getProgressBar as getProgressBar2 } from "swiss-ak";
-$3.verbose = false;
-var toFFmpegTimeFormat = (time) => new Date(time).toISOString().slice(14, 23);
-var getProbeValue = async (file, propertyName) => (await $3`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
-var getProbe = async (file) => {
-  const full = await $3`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
-  const props = Object.fromEntries(
-    full.toString().split("\n").map((line) => line.split("="))
-  );
-  const asNumber = (val) => Number.isNaN(Number(val)) ? 0 : Number(val);
-  const framerate = asNumber(props.avg_frame_rate.split("/")[0]) / asNumber(props.avg_frame_rate.split("/")[1]);
-  return {
-    index: asNumber(props.index),
-    codec_name: props.codec_name,
-    codec_long_name: props.codec_long_name,
-    profile: props.profile,
-    codec_type: props.codec_type,
-    codec_time_base: props.codec_time_base,
-    codec_tag_string: props.codec_tag_string,
-    codec_tag: asNumber(props.codec_tag),
-    width: asNumber(props.width),
-    height: asNumber(props.height),
-    coded_width: asNumber(props.coded_width),
-    coded_height: asNumber(props.coded_height),
-    closed_captions: asNumber(props.closed_captions),
-    has_b_frames: asNumber(props.has_b_frames),
-    sample_aspect_ratio: props.sample_aspect_ratio,
-    display_aspect_ratio: props.display_aspect_ratio,
-    pix_fmt: props.pix_fmt,
-    level: asNumber(props.level),
-    color_range: props.color_range,
-    color_space: props.color_space,
-    color_transfer: props.color_transfer,
-    color_primaries: props.color_primaries,
-    chroma_location: props.chroma_location,
-    field_order: props.field_order,
-    timecode: props.timecode,
-    refs: asNumber(props.refs),
-    is_avc: props.is_avc,
-    nal_length_size: asNumber(props.nal_length_size),
-    id: props.id,
-    r_frame_rate: props.r_frame_rate,
-    avg_frame_rate: props.avg_frame_rate,
-    time_base: props.time_base,
-    start_pts: asNumber(props.start_pts),
-    start_time: asNumber(props.start_time),
-    duration_ts: asNumber(props.duration_ts),
-    duration: asNumber(props.duration),
-    bit_rate: asNumber(props.bit_rate),
-    max_bit_rate: props.max_bit_rate,
-    bits_per_raw_sample: asNumber(props.bits_per_raw_sample),
-    nb_frames: asNumber(props.nb_frames),
-    nb_read_frames: props.nb_read_frames,
-    nb_read_packets: props.nb_read_packets,
-    framerate
-  };
-};
-var getTotalFrames = async (list) => {
-  if (!list) {
-    list = (await $$.ls()).filter((file) => file.endsWith(".MOV"));
-  }
-  if (!(list instanceof Array))
-    list = [list];
-  const counts = await Promise.all(list.map(async (file) => getProbeValue(file, "nb_frames")));
-  const totalFrames = counts.map((count) => Number(count.trim())).reduce((acc, cur) => acc + cur, 0);
-  return totalFrames;
-};
-var readChunk = (chunk) => Object.fromEntries(
-  chunk.toString().split("\n").filter((row) => row && row.includes("=")).map(
-    (row) => row.split("=").map((str) => str.trim()).slice(0, 2)
-  )
-);
-var ffmpeg = async (command = () => $3`ffmpeg -progress pr.txt`, progressFileName = "pr.txt", totalFrames = 1, progressBarOpts = {}) => {
-  await $3`echo "" > ${progressFileName}`;
-  const ffmpegProcess = command();
-  const tail = $3`tail -f ${progressFileName}`.nothrow();
-  const bar = getProgressBar2(totalFrames, {
-    showCount: true,
-    showPercent: true,
-    wrapperFn: chalk.magenta,
-    ...progressBarOpts
-  });
-  for await (const chunk of tail.stdout) {
-    const progStats = readChunk(chunk);
-    if (!progStats || !progStats.frame) {
-      continue;
-    }
-    const frame = Number(progStats.frame);
-    bar.set(frame);
-    if (progStats.progress === "end") {
-      bar.finish();
-      await tail.kill();
-      await $3`rm -rf ${progressFileName}`;
-    }
-  }
-  await ffmpegProcess;
 };
 
 // src/tools/gm/utils.ts
@@ -2072,11 +2521,11 @@ var closeFinder = async () => {
 };
 
 // src/tools/progressBar.ts
-import { ArrayUtils as ArrayUtils6 } from "swiss-ak";
+import { ArrayUtils as ArrayUtils7 } from "swiss-ak";
 var getColouredProgressBarOpts = (opts, randomise = false) => {
   let wrapperFns = [chalk.yellowBright, chalk.magenta, chalk.blueBright, chalk.cyanBright, chalk.greenBright, chalk.redBright];
   if (randomise) {
-    wrapperFns = ArrayUtils6.randomise(wrapperFns);
+    wrapperFns = ArrayUtils7.randomise(wrapperFns);
   }
   let index = 0;
   return (prefix = "", override = {}, resetColours = false) => {
@@ -2126,7 +2575,7 @@ export {
   justify,
   left,
   limitToLength,
-  limitToLengthEnd,
+  limitToLengthStart,
   loading,
   moveUp,
   out,
@@ -2134,8 +2583,10 @@ export {
   processLogContents,
   progressBarUtils,
   right,
+  split,
   table,
   toFFmpegTimeFormat,
   truncate,
+  truncateStart,
   wrap
 };

@@ -144,6 +144,8 @@ declare const $$: {
     grep: (pattern: string, file: string) => Promise<string[]>;
     isFileExist: (file: string) => Promise<boolean>;
     isDirExist: (dir: string) => Promise<boolean>;
+    readFile: (filepath: string) => Promise<string>;
+    writeFile: (filepath: string, contents: string) => Promise<void>;
     readJSON: <T extends unknown>(filepath: string) => Promise<T>;
     writeJSON: <T_1 extends Object>(filepath: any, obj: T_1) => Promise<T_1>;
     rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
@@ -454,6 +456,7 @@ declare const justify: AlignFunction;
  * ```
  */
 declare const align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+declare const split: (leftItem: any, rightItem: any, width?: number, replaceChar?: string) => string;
 /**
  * out.wrap
  *
@@ -508,7 +511,7 @@ declare const hasColor: (str: string) => boolean;
  * ```
  */
 declare const limitToLength: (text: string, maxLength: number) => string;
-declare const limitToLengthEnd: (text: string, maxLength: number) => string;
+declare const limitToLengthStart: (text: string, maxLength: number) => string;
 /**
  * out.truncate
  *
@@ -519,6 +522,7 @@ declare const limitToLengthEnd: (text: string, maxLength: number) => string;
  * ```
  */
 declare const truncate: (text: string, maxLength?: number, suffix?: string) => string;
+declare const truncateStart: (text: string, maxLength?: number, suffix?: string) => string;
 declare const out: {
     pad: (line: string, start: number, end: number, replaceChar?: string) => string;
     center: AlignFunction;
@@ -526,14 +530,16 @@ declare const out: {
     right: AlignFunction;
     justify: AlignFunction;
     align: (item: any, direction: AlignType, width?: number, replaceChar?: string, forceWidth?: boolean) => string;
+    split: (leftItem: any, rightItem: any, width?: number, replaceChar?: string) => string;
     wrap: (item: any, width?: number, alignment?: AlignType, forceWidth?: boolean) => string;
     moveUp: (lines?: number) => void;
     loading: (action?: (s: string) => any, lines?: number, symbols?: string[]) => {
         stop: () => void;
     };
     limitToLength: (text: string, maxLength: number) => string;
-    limitToLengthEnd: (text: string, maxLength: number) => string;
+    limitToLengthStart: (text: string, maxLength: number) => string;
     truncate: (text: string, maxLength?: number, suffix?: string) => string;
+    truncateStart: (text: string, maxLength?: number, suffix?: string) => string;
     getLineCounter: () => LineCounter;
     getBreadcrumb: (...baseNames: string[]) => Breadcrumb;
     utils: {
@@ -661,16 +667,6 @@ interface AskTrimOptions {
     clrActiveHandleBase: Function;
 }
 
-interface FileExplorerOptions {
-    filter: (file: string, index: number, files: string[]) => boolean;
-    makeDir: boolean;
-    newFile: boolean;
-    selectDirText: string;
-    makeDirText: string;
-    newFileText: string;
-    enclosingText: string;
-}
-
 interface PromptChoiceObject<T = string> {
     title?: string;
     value?: T;
@@ -703,8 +699,9 @@ declare const ask: {
     pause: (text?: string | Breadcrumb) => Promise<void>;
     countdown: (totalSeconds: number, template?: (s: second) => string, complete?: string) => Promise<void>;
     rename: (bef: string, aft: (before: ExplodedPath) => string) => Promise<boolean>;
-    fileExplorer: (startDir: string | string[], selectType?: FindType, question?: string | Breadcrumb, initial?: string, options?: swiss_ak.Partial<FileExplorerOptions>) => Promise<string>;
-    multiFileExplorer: (startDir: string | string[], selectType?: FindType, question?: string | Breadcrumb, initial?: string | string[], options?: swiss_ak.Partial<FileExplorerOptions>) => Promise<string[]>;
+    fileExplorer: (questionText: string | Breadcrumb, selectType?: "d" | "f", startPath?: string) => Promise<string>;
+    multiFileExplorer: (questionText: string | Breadcrumb, selectType?: "d" | "f", startPath?: string) => Promise<string[]>;
+    saveFileExplorer: (questionText: string | Breadcrumb, startPath?: string, suggestedFileName?: string) => Promise<string>;
     wizard: <T_5 extends unknown>(startObj?: Partial<T_5>) => {
         add(partial: Partial<T_5>): void;
         getPartial(): Partial<T_5>;
@@ -722,7 +719,6 @@ declare const ask: {
             title: string;
             value: T_8;
         }[];
-        displayPath: (p: any) => any;
     };
 };
 
@@ -934,4 +930,4 @@ interface KeyListener {
 }
 declare const getKeyListener: (callback: (keyName: any) => void, isStart?: boolean, isDebugLog?: boolean) => KeyListener;
 
-export { $$, AlignType, Breadcrumb, CRUD, CRUDOptions, Colour, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, ExplodedPath, FlagsObj, FullTableOptions, LineCounter, LogUtils, ModifiedFile, PathUtils, ProbeResult, TableFormatConfig, TableOptions, align, ask, center, chlk, closeFinder, clr, explodePath, ffmpeg, getBreadcrumb, getKeyListener, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, hasColor, justify, left, limitToLength, limitToLengthEnd, loading, moveUp, out, pad, processLogContents, progressBarUtils, right, table, toFFmpegTimeFormat, truncate, wrap };
+export { $$, AlignType, Breadcrumb, CRUD, CRUDOptions, Colour, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, ExplodedPath, FlagsObj, FullTableOptions, LineCounter, LogUtils, ModifiedFile, PathUtils, ProbeResult, TableFormatConfig, TableOptions, align, ask, center, chlk, closeFinder, clr, explodePath, ffmpeg, getBreadcrumb, getKeyListener, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, hasColor, justify, left, limitToLength, limitToLengthStart, loading, moveUp, out, pad, processLogContents, progressBarUtils, right, split, table, toFFmpegTimeFormat, truncate, truncateStart, wrap };

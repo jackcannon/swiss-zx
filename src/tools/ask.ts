@@ -12,7 +12,7 @@ import { out } from './out';
 import { Breadcrumb } from './out/breadcrumb';
 
 import { askTrim } from './ask/trim';
-import { displayPath, fileExplorer, multiFileExplorer } from './ask/fileExplorer';
+import { fileExplorer, multiFileExplorer, saveFileExplorer } from './ask/fileExplorer';
 import { section, separator } from './ask/section';
 import { askTableSelect, askTableMultiselect } from './ask/table';
 
@@ -552,6 +552,7 @@ export const ask = {
   rename,
   fileExplorer,
   multiFileExplorer,
+  saveFileExplorer,
   wizard,
   section,
   separator,
@@ -561,7 +562,6 @@ export const ask = {
     multiselect: askTableMultiselect
   },
   utils: {
-    itemsToPromptObjects,
-    displayPath
+    itemsToPromptObjects
   }
 };

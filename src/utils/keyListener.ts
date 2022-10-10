@@ -1,4 +1,4 @@
-interface KeyListener {
+export interface KeyListener {
   start(): void;
   stop(): void;
 }

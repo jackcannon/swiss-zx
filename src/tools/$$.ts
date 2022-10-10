@@ -394,6 +394,8 @@ export const $$ = {
   grep,
   isFileExist,
   isDirExist,
+  readFile,
+  writeFile,
   readJSON,
   writeJSON,
   rsync,
