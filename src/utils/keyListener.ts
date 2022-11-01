@@ -3,35 +3,46 @@ export interface KeyListener {
   stop(): void;
 }
 
-export const getKeyListener = (callback: (keyName) => void, isStart: boolean = true, isDebugLog: boolean = false): KeyListener => {
+export const getKeyListener = (
+  callback: (keyName?: string, rawValue?: string) => void,
+  isStart: boolean = true,
+  isDebugLog: boolean = false
+): KeyListener => {
   const listenFn = (key: any) => {
     if (isDebugLog) {
       console.log(JSON.stringify(key)); // use this to preview key codes
     }
 
+    if (key == '') {
+      return callback('backspace', key);
+    }
+    if (key == '\u001b[3~') {
+      return callback('delete', key);
+    }
+
     if (key == '\r') {
-      return callback('return');
+      return callback('return', key);
     }
     if (key == '\t') {
-      return callback('tab');
+      return callback('tab', key);
     }
     if (key == '\u001B\u005B\u0041') {
-      return callback('up');
+      return callback('up', key);
     }
     if (key == '\u001B\u005B\u0043') {
-      return callback('right');
+      return callback('right', key);
     }
     if (key == '\u001B\u005B\u0042') {
-      return callback('down');
+      return callback('down', key);
     }
     if (key == '\u001B\u005B\u0044') {
-      return callback('left');
+      return callback('left', key);
     }
     if (key == ' ') {
-      return callback('space');
+      return callback('space', key);
     }
     if (key === '\u001b') {
-      return callback('esc');
+      return callback('esc', key);
     }
 
     // ctrl-c
@@ -41,7 +52,7 @@ export const getKeyListener = (callback: (keyName) => void, isStart: boolean = t
 
     // fallback (any normal letter/number/symbol)
     if (key.length === 1) {
-      return callback(key);
+      return callback(key, key);
     }
   };
 

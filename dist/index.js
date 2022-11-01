@@ -941,35 +941,41 @@ var getKeyListener = (callback, isStart = true, isDebugLog = false) => {
     if (isDebugLog) {
       console.log(JSON.stringify(key));
     }
+    if (key == "\x7F") {
+      return callback("backspace", key);
+    }
+    if (key == "\x1B[3~") {
+      return callback("delete", key);
+    }
     if (key == "\r") {
-      return callback("return");
+      return callback("return", key);
     }
     if (key == "	") {
-      return callback("tab");
+      return callback("tab", key);
     }
     if (key == "\x1B[A") {
-      return callback("up");
+      return callback("up", key);
     }
     if (key == "\x1B[C") {
-      return callback("right");
+      return callback("right", key);
     }
     if (key == "\x1B[B") {
-      return callback("down");
+      return callback("down", key);
     }
     if (key == "\x1B[D") {
-      return callback("left");
+      return callback("left", key);
     }
     if (key == " ") {
-      return callback("space");
+      return callback("space", key);
     }
     if (key === "\x1B") {
-      return callback("esc");
+      return callback("esc", key);
     }
     if (key == "") {
       return process.exit();
     }
     if (key.length === 1) {
-      return callback(key);
+      return callback(key, key);
     }
   };
   const start = () => {
@@ -1355,6 +1361,10 @@ var keyActionDict = {
     keys: "F",
     label: `New Folder`
   },
+  o: {
+    keys: "O",
+    label: `Open`
+  },
   space: {
     keys: "space",
     label: "Toggle selection"
@@ -1366,8 +1376,8 @@ var keyActionDict = {
 };
 var getActionBar = (multi, pressed, disabled = []) => {
   const keyList = {
-    single: ["move", "r", "f", "return"],
-    multi: ["move", "r", "f", "space", "return"]
+    single: ["move", "r", "f", "o", "return"],
+    multi: ["move", "r", "f", "o", "space", "return"]
   }[multi ? "multi" : "single"];
   const row = keyList.map((key) => {
     const { keys, label } = keyActionDict[key];
@@ -1760,6 +1770,10 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
         }
       );
     },
+    openFinder: async () => {
+      const dir = cursorType === "f" ? paths[paths.length - 2] : currentPath;
+      await $`open ${dir}`;
+    },
     submit: () => {
       return isSave ? userActions.submitSave() : userActions.submitSelect();
     },
@@ -1817,6 +1831,8 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
         return userActions.refresh();
       case "f":
         return userActions.newFolder();
+      case "o":
+        return userActions.openFinder();
       case "space":
         return userActions.select();
       case "return":

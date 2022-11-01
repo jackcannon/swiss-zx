@@ -97,6 +97,10 @@ const keyActionDict: ObjOfType<{ keys: string; label: string }> = {
     keys: 'F',
     label: `New Folder`
   },
+  o: {
+    keys: 'O',
+    label: `Open`
+  },
   space: {
     keys: 'space',
     label: 'Toggle selection'
@@ -109,8 +113,8 @@ const keyActionDict: ObjOfType<{ keys: string; label: string }> = {
 
 const getActionBar = (multi: boolean, pressed?: string, disabled: string[] = []) => {
   const keyList = {
-    single: ['move', 'r', 'f', 'return'],
-    multi: ['move', 'r', 'f', 'space', 'return']
+    single: ['move', 'r', 'f', 'o', 'return'],
+    multi: ['move', 'r', 'f', 'o', 'space', 'return']
   }[multi ? 'multi' : 'single'];
 
   const row = keyList.map((key) => {
@@ -604,6 +608,10 @@ const fileExplorerHandler = async (
         }
       );
     },
+    openFinder: async () => {
+      const dir = cursorType === 'f' ? paths[paths.length - 2] : currentPath;
+      await $`open ${dir}`;
+    },
     submit: () => {
       return isSave ? userActions.submitSave() : userActions.submitSelect();
     },
@@ -665,6 +673,8 @@ const fileExplorerHandler = async (
         return userActions.refresh();
       case 'f':
         return userActions.newFolder();
+      case 'o':
+        return userActions.openFinder();
       case 'space':
         return userActions.select();
       case 'return':

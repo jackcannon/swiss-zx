@@ -928,6 +928,6 @@ interface KeyListener {
     start(): void;
     stop(): void;
 }
-declare const getKeyListener: (callback: (keyName: any) => void, isStart?: boolean, isDebugLog?: boolean) => KeyListener;
+declare const getKeyListener: (callback: (keyName?: string, rawValue?: string) => void, isStart?: boolean, isDebugLog?: boolean) => KeyListener;
 
 export { $$, AlignType, Breadcrumb, CRUD, CRUDOptions, Colour, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, ExplodedPath, FlagsObj, FullTableOptions, LineCounter, LogUtils, ModifiedFile, PathUtils, ProbeResult, TableFormatConfig, TableOptions, align, ask, center, chlk, closeFinder, clr, explodePath, ffmpeg, getBreadcrumb, getKeyListener, getLineCounter, getLog, getLogStr, getProbe, getProbeValue, getTotalFrames, gm, hasColor, justify, left, limitToLength, limitToLengthStart, loading, moveUp, out, pad, processLogContents, progressBarUtils, right, split, table, toFFmpegTimeFormat, truncate, truncateStart, wrap };
