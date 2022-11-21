@@ -282,7 +282,8 @@ const fileExplorerHandler = async (
 
   let pressed: string = undefined;
   let submitted: boolean = false;
-  let loading: boolean = false;
+  let loading: boolean = false; // is loading something
+  let locked: boolean = false; // prevent multiple keypresses
 
   const recalc = () => {
     if (submitted) return;
@@ -320,15 +321,21 @@ const fileExplorerHandler = async (
   };
 
   const loadNewDepth = async () => {
+    loading = true;
     display();
     await loadEssentials(loadPathContents);
+    loading = false;
     display();
   };
 
   const loadNewItem = async () => {
-    display();
     if (!getPathContents(currentPath)) {
+      loading = true;
+      display();
       await loadPathContents(currentPath);
+      loading = false;
+      display();
+    } else {
       display();
     }
   };
@@ -473,6 +480,10 @@ const fileExplorerHandler = async (
     const tableWidth = stringWidth(tableLines[Math.floor(tableLines.length / 2)]);
 
     const infoLine = (() => {
+      if (loading) {
+        return chalk.dim(out.center('='.repeat(20) + ' Loading... ' + '='.repeat(20)));
+      }
+
       const count = isMulti ? chalk.dim(`${chlk.gray1('[')} ${multiSelected.size} selected ${chlk.gray1(']')} `) : '';
       const curr = out.limitToLengthStart(
         `${currentPath} ${chalk.dim(`(${{ f: 'File', d: 'Directory' }[cursorType]})`)}`,
@@ -529,6 +540,7 @@ const fileExplorerHandler = async (
     refresh: async () => {
       if (loading) return;
       loading = true;
+      locked = true;
       setPressed('r');
       const allKeys = Array.from(fsCache.keys());
 
@@ -540,6 +552,7 @@ const fileExplorerHandler = async (
       });
       display();
       loading = false;
+      locked = false;
       if (pressed === 'r') setPressed(undefined);
 
       await PromiseUtils.eachLimit(32, Array.from(restKeys), async () => {
@@ -565,6 +578,7 @@ const fileExplorerHandler = async (
     ): Promise<T> => {
       display();
       loading = true;
+      locked = true;
       kl.stop();
 
       lc.clearBack(1); // removes action bar
@@ -579,6 +593,7 @@ const fileExplorerHandler = async (
 
       kl.start();
       loading = false;
+      locked = false;
 
       return value;
     },
@@ -659,7 +674,7 @@ const fileExplorerHandler = async (
   };
 
   const kl = getKeyListener((key) => {
-    if (loading) return;
+    if (locked) return;
     switch (key) {
       case 'up':
         return userActions.moveVertical(-1);

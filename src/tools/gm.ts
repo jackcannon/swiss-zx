@@ -1,3 +1,4 @@
+import { fn } from 'swiss-ak';
 import { gmUtils } from './gm/utils';
 
 export interface CommonFlagsObj {
@@ -10,6 +11,9 @@ export interface CommonFlagsObj {
   resize?: string;
   rotate?: number;
   size?: string;
+
+  // TODO add to utils
+  font?: string;
 }
 
 export interface ConvertFlagsObj extends CommonFlagsObj {
@@ -29,6 +33,9 @@ export interface ConvertFlagsObj extends CommonFlagsObj {
   border?: number;
   fuzz?: string;
   transparent?: string;
+  pointsize?: number;
+  draw?: string;
+  channel?: string; // TODO set strict options (e.g. 'red')
 
   modulate?: string;
   /** brightness - shortcut/alias for `-modulate x,100,100` */
@@ -39,9 +46,27 @@ export interface ConvertFlagsObj extends CommonFlagsObj {
   hue?: number;
 }
 
+type channel = 'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte';
+
+const channelComposeCopyMap: { [key in channel]: string } = {
+  red: 'CopyRed',
+  green: 'CopyGreen',
+  blue: 'CopyBlue',
+  cyan: 'CopyCyan',
+  magenta: 'CopyMagenta',
+  yellow: 'CopyYellow',
+  black: 'CopyBlack',
+  opacity: 'CopyOpacity',
+  gray: 'Copy',
+  matte: 'Copy'
+};
+
 export interface CompositeFlagsObj extends CommonFlagsObj {
   displace?: string;
   dissolve?: number;
+
+  // TODO add to utils
+  prism?: [channel, number | `${number}` | `${number}x${number}`] | string;
 }
 
 export type FlagsObj = ConvertFlagsObj & CompositeFlagsObj;
@@ -52,7 +77,7 @@ interface ChangeAndMaskFlags {
 }
 
 const formaliseCompositeFlags = (flags: ChangeAndMaskFlags | CompositeFlagsObj): ChangeAndMaskFlags => {
-  const hasObjs = Object.values(flags).some((val) => typeof val === 'object');
+  const hasObjs = Object.values(flags).some((val) => typeof val === 'object' && !(val instanceof Array));
 
   if (hasObjs) {
     const comp = flags as ChangeAndMaskFlags;
@@ -76,9 +101,9 @@ const formaliseCompositeFlags = (flags: ChangeAndMaskFlags | CompositeFlagsObj):
  * const converted = await gm.convert(input, output, {});
  * ```
  */
-const convert = async (inPath: string, outPath: string, flags: ConvertFlagsObj = {}): Promise<ProcessOutput> => {
+const convert = (inPath: string, outPath: string, flags: ConvertFlagsObj = {}): ProcessPromise => {
   const flagsArray = gmUtils.flagsObjToArray(flags);
-  return await $`gm convert ${flagsArray} ${inPath} ${outPath} | cat`;
+  return $`gm convert ${flagsArray} ${inPath} ${outPath} | cat`;
 };
 
 /**
@@ -92,13 +117,13 @@ const convert = async (inPath: string, outPath: string, flags: ConvertFlagsObj =
  * const composited = await gm.composite(change, base, out, undefined, {});
  * ```
  */
-const composite = async (
+const composite = (
   changePath: string,
   basePath: string,
   outPath: string = basePath,
   maskPath: string = '',
   flags: ChangeAndMaskFlags | CompositeFlagsObj = {}
-): Promise<ProcessOutput> => {
+): ProcessPromise => {
   const { change, mask } = formaliseCompositeFlags(flags);
 
   // Screen is not supported by gm, but is the inverse of Multiply
@@ -106,42 +131,60 @@ const composite = async (
   // Screen = 1 - ((1 - A) * (1 - B))
   // Therefore, we can negate (invert) both the change and base images, multiply them, and then invert the result
   if (change.compose === 'Screen') {
-    await convert(basePath, outPath, { negate: !change.negate });
-    const result = await composite(changePath, outPath, outPath, maskPath, {
-      change: {
-        ...change,
-        compose: 'Multiply',
-        negate: !change.negate
-      },
-      mask
-    });
-    await convert(outPath, outPath, { negate: !change.negate });
-    return result;
+    return convert(basePath, 'MIFF:-', { negate: !change.negate })
+      .pipe(
+        composite(changePath, 'MIFF:-', 'MIFF:-', maskPath, {
+          change: {
+            ...change,
+            compose: 'Multiply',
+            negate: !change.negate
+          },
+          mask
+        })
+      )
+      .pipe(convert('MIFF:-', outPath, { negate: !change.negate }));
+  }
+
+  if (change.prism) {
+    const { prism, ...rest } = change;
+
+    const prismStrs = prism instanceof Array ? prism.map(fn.toString) : prism.split(',').map((str) => str.trim());
+    const [channel, amount] = [...['red', ...prismStrs].slice(-2), '1x0'].slice(0, 2) as [string, string];
+
+    const values = [...(typeof amount === 'string' ? amount.split('x').map(Number) : [amount]), 0].slice(0, 2);
+
+    const dForw = values.map((x) => x * 2).join('x');
+    const dBack = values.map((x) => x * -1).join('x');
+
+    return convert(basePath, 'MIFF:-', { channel })
+      .pipe(composite(changePath, 'MIFF:-', 'MIFF:-', maskPath || changePath, { change: { displace: dForw, ...rest }, mask }))
+      .pipe(composite('MIFF:-', basePath, 'MIFF:-', undefined, { change: { compose: channelComposeCopyMap[channel] } }))
+      .pipe(composite(changePath, 'MIFF:-', outPath, maskPath || changePath, { change: { displace: dBack, ...rest }, mask }));
   }
 
   const changeFlags = gmUtils.flagsObjToArray(change);
   const maskFlags = gmUtils.flagsObjToArray(mask);
 
-  return await $`gm composite ${changeFlags} ${changePath} ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
+  return $`gm composite ${changeFlags} ${changePath} ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
 };
 
 // TODO docs
 // convert piped to composite (allows for applying convert flags to the change image)
-const pipe = async (
+const pipe = (
   changePath: string,
   basePath: string,
   outPath: string = basePath,
   maskPath: string = '',
   convertFlags: ConvertFlagsObj = {},
   compositeFlags: ChangeAndMaskFlags | CompositeFlagsObj = {}
-) => {
+): ProcessPromise => {
   const { change, mask } = formaliseCompositeFlags(compositeFlags);
 
   const chngFlags = gmUtils.flagsObjToArray(change);
   const maskFlags = gmUtils.flagsObjToArray(mask);
   const convFlags = gmUtils.flagsObjToArray(convertFlags);
 
-  return await $`gm convert ${convFlags} ${changePath} MIFF:- | gm composite ${chngFlags} MIFF:- ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
+  return $`gm convert ${convFlags} ${changePath} MIFF:- | gm composite ${chngFlags} MIFF:- ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
 };
 
 export const gm = {

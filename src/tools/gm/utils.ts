@@ -215,6 +215,13 @@ const supportedFlags: { [key: string]: SupportedFlag } = {
     commands: ['convert'],
     description: 'hue of the image (uses and is overriden by modulate)',
     hint: '%'
+  },
+  prism: {
+    name: 'prism',
+    type: 'string',
+    commands: ['composite'],
+    description: 'create a prism effect by displacing a colour channel of the image',
+    hint: '<channel>,<horizontal scale>x<vertical scale> (e.g. red,10x10)'
   }
 };
 

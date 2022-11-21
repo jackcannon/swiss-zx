@@ -85,6 +85,25 @@ var explodePath = (path) => {
   return { path, dir, folders, name, ext, filename };
 };
 
+// src/tools/exiftool.ts
+var exiftool = async (file, setAttr, getAttr, outFile) => {
+  const getFlags = (getAttr == null ? void 0 : getAttr.map((attr) => `-${(attr + "").replace(/[^a-zA-Z0-9-]/g, "")}`)) ?? [];
+  const setFlags = Object.entries(setAttr || {}).map(([k, v]) => {
+    const attr = (k + "").replace(/[^a-zA-Z0-9-]/g, "");
+    return `-${attr}=${v}`;
+  });
+  let output;
+  if (outFile) {
+    await $$.rm(outFile);
+    output = await $`exiftool -s ${getFlags} ${setFlags} -ignoreMinorErrors -o ${outFile} ${file}`;
+  } else {
+    output = await $`exiftool -s ${getFlags} ${setFlags} -ignoreMinorErrors -overwrite_original ${file}`;
+  }
+  const lines = output.stdout.split("\n").filter((line) => line && line.match(/\s:\s(.*)/) !== null);
+  const entries = lines.map((line) => line.trim().split(/\s+:\s+(.*)/s)).map(([key, value]) => [(key || "").trim(), (value || "").trim()]).filter(([key]) => key);
+  return Object.fromEntries(entries);
+};
+
 // src/tools/$$.ts
 import_zx.$.verbose = false;
 var fs = import_zx.fs.promises;
@@ -215,6 +234,7 @@ var $$ = {
   writeJSON,
   rsync,
   sync,
+  exiftool,
   utils: {
     intoLines,
     removeTrailSlash,
@@ -1502,6 +1522,7 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
   let pressed = void 0;
   let submitted = false;
   let loading3 = false;
+  let locked = false;
   const recalc = () => {
     var _a;
     if (submitted)
@@ -1534,14 +1555,20 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
     ]);
   };
   const loadNewDepth = async () => {
+    loading3 = true;
     display();
     await loadEssentials(loadPathContents);
+    loading3 = false;
     display();
   };
   const loadNewItem = async () => {
-    display();
     if (!getPathContents(currentPath)) {
+      loading3 = true;
+      display();
       await loadPathContents(currentPath);
+      loading3 = false;
+      display();
+    } else {
       display();
     }
   };
@@ -1654,6 +1681,9 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
     const tableOut = out.center(out.limitToLengthStart(tableLines.join("\n"), termWidth - 1), termWidth);
     const tableWidth = (0, import_string_width3.default)(tableLines[Math.floor(tableLines.length / 2)]);
     const infoLine = (() => {
+      if (loading3) {
+        return chalk.dim(out.center("=".repeat(20) + " Loading... " + "=".repeat(20)));
+      }
       const count = isMulti ? chalk.dim(`${chlk.gray1("[")} ${multiSelected.size} selected ${chlk.gray1("]")} `) : "";
       const curr = out.limitToLengthStart(
         `${currentPath} ${chalk.dim(`(${{ f: "File", d: "Directory" }[cursorType]})`)}`,
@@ -1706,6 +1736,7 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
       if (loading3)
         return;
       loading3 = true;
+      locked = true;
       setPressed("r");
       const allKeys = Array.from(fsCache.keys());
       const restKeys = new Set(allKeys);
@@ -1715,6 +1746,7 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
       });
       display();
       loading3 = false;
+      locked = false;
       if (pressed === "r")
         setPressed(void 0);
       await import_swiss_ak10.PromiseUtils.eachLimit(32, Array.from(restKeys), async () => {
@@ -1736,6 +1768,7 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
     takeInput: async (preQuestion, inputFn, postQuestion) => {
       display();
       loading3 = true;
+      locked = true;
       kl.stop();
       lc.clearBack(1);
       await preQuestion();
@@ -1745,6 +1778,7 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
         display();
       kl.start();
       loading3 = false;
+      locked = false;
       return value;
     },
     newFolder: async () => {
@@ -1816,7 +1850,7 @@ var fileExplorerHandler = async (isMulti = false, isSave = false, question, sele
     }
   };
   const kl = getKeyListener((key) => {
-    if (loading3)
+    if (locked)
       return;
     switch (key) {
       case "up":
@@ -2315,6 +2349,9 @@ var ask = {
   }
 };
 
+// src/tools/gm.ts
+var import_swiss_ak15 = require("swiss-ak");
+
 // src/tools/gm/utils.ts
 var import_swiss_ak14 = require("swiss-ak");
 var supportedFlags = {
@@ -2512,6 +2549,13 @@ var supportedFlags = {
     commands: ["convert"],
     description: "hue of the image (uses and is overriden by modulate)",
     hint: "%"
+  },
+  prism: {
+    name: "prism",
+    type: "string",
+    commands: ["composite"],
+    description: "create a prism effect by displacing a colour channel of the image",
+    hint: "<channel>,<horizontal scale>x<vertical scale> (e.g. red,10x10)"
   }
 };
 var flagsObjToArray = (obj) => {
@@ -2530,8 +2574,20 @@ var gmUtils = {
 };
 
 // src/tools/gm.ts
+var channelComposeCopyMap = {
+  red: "CopyRed",
+  green: "CopyGreen",
+  blue: "CopyBlue",
+  cyan: "CopyCyan",
+  magenta: "CopyMagenta",
+  yellow: "CopyYellow",
+  black: "CopyBlack",
+  opacity: "CopyOpacity",
+  gray: "Copy",
+  matte: "Copy"
+};
 var formaliseCompositeFlags = (flags) => {
-  const hasObjs = Object.values(flags).some((val) => typeof val === "object");
+  const hasObjs = Object.values(flags).some((val) => typeof val === "object" && !(val instanceof Array));
   if (hasObjs) {
     const comp = flags;
     return {
@@ -2544,35 +2600,43 @@ var formaliseCompositeFlags = (flags) => {
     mask: {}
   };
 };
-var convert = async (inPath, outPath, flags = {}) => {
+var convert = (inPath, outPath, flags = {}) => {
   const flagsArray = gmUtils.flagsObjToArray(flags);
-  return await $`gm convert ${flagsArray} ${inPath} ${outPath} | cat`;
+  return $`gm convert ${flagsArray} ${inPath} ${outPath} | cat`;
 };
-var composite = async (changePath, basePath, outPath = basePath, maskPath = "", flags = {}) => {
+var composite = (changePath, basePath, outPath = basePath, maskPath = "", flags = {}) => {
   const { change, mask } = formaliseCompositeFlags(flags);
   if (change.compose === "Screen") {
-    await convert(basePath, outPath, { negate: !change.negate });
-    const result = await composite(changePath, outPath, outPath, maskPath, {
-      change: {
-        ...change,
-        compose: "Multiply",
-        negate: !change.negate
-      },
-      mask
-    });
-    await convert(outPath, outPath, { negate: !change.negate });
-    return result;
+    return convert(basePath, "MIFF:-", { negate: !change.negate }).pipe(
+      composite(changePath, "MIFF:-", "MIFF:-", maskPath, {
+        change: {
+          ...change,
+          compose: "Multiply",
+          negate: !change.negate
+        },
+        mask
+      })
+    ).pipe(convert("MIFF:-", outPath, { negate: !change.negate }));
+  }
+  if (change.prism) {
+    const { prism, ...rest } = change;
+    const prismStrs = prism instanceof Array ? prism.map(import_swiss_ak15.fn.toString) : prism.split(",").map((str) => str.trim());
+    const [channel, amount] = [...["red", ...prismStrs].slice(-2), "1x0"].slice(0, 2);
+    const values = [...typeof amount === "string" ? amount.split("x").map(Number) : [amount], 0].slice(0, 2);
+    const dForw = values.map((x) => x * 2).join("x");
+    const dBack = values.map((x) => x * -1).join("x");
+    return convert(basePath, "MIFF:-", { channel }).pipe(composite(changePath, "MIFF:-", "MIFF:-", maskPath || changePath, { change: { displace: dForw, ...rest }, mask })).pipe(composite("MIFF:-", basePath, "MIFF:-", void 0, { change: { compose: channelComposeCopyMap[channel] } })).pipe(composite(changePath, "MIFF:-", outPath, maskPath || changePath, { change: { displace: dBack, ...rest }, mask }));
   }
   const changeFlags = gmUtils.flagsObjToArray(change);
   const maskFlags = gmUtils.flagsObjToArray(mask);
-  return await $`gm composite ${changeFlags} ${changePath} ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
+  return $`gm composite ${changeFlags} ${changePath} ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
 };
-var pipe = async (changePath, basePath, outPath = basePath, maskPath = "", convertFlags = {}, compositeFlags = {}) => {
+var pipe = (changePath, basePath, outPath = basePath, maskPath = "", convertFlags = {}, compositeFlags = {}) => {
   const { change, mask } = formaliseCompositeFlags(compositeFlags);
   const chngFlags = gmUtils.flagsObjToArray(change);
   const maskFlags = gmUtils.flagsObjToArray(mask);
   const convFlags = gmUtils.flagsObjToArray(convertFlags);
-  return await $`gm convert ${convFlags} ${changePath} MIFF:- | gm composite ${chngFlags} MIFF:- ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
+  return $`gm convert ${convFlags} ${changePath} MIFF:- | gm composite ${chngFlags} MIFF:- ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
 };
 var gm = {
   convert,
@@ -2587,11 +2651,11 @@ var closeFinder = async () => {
 };
 
 // src/tools/progressBar.ts
-var import_swiss_ak15 = require("swiss-ak");
+var import_swiss_ak16 = require("swiss-ak");
 var getColouredProgressBarOpts = (opts, randomise = false) => {
   let wrapperFns = [chalk.yellowBright, chalk.magenta, chalk.blueBright, chalk.cyanBright, chalk.greenBright, chalk.redBright];
   if (randomise) {
-    wrapperFns = import_swiss_ak15.ArrayUtils.randomise(wrapperFns);
+    wrapperFns = import_swiss_ak16.ArrayUtils.randomise(wrapperFns);
   }
   let index = 0;
   return (prefix = "", override = {}, resetColours = false) => {

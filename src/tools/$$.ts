@@ -3,6 +3,7 @@ import { $, fs as fsO, cd as cdO } from 'zx';
 import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'swiss-ak';
 import { FindOptions } from '../utils/types';
 import { ExplodedPath, explodePath } from './PathUtils';
+import { exiftool } from './exiftool';
 
 $.verbose = false;
 
@@ -400,6 +401,7 @@ export const $$ = {
   writeJSON,
   rsync,
   sync,
+  exiftool,
   utils: {
     intoLines,
     removeTrailSlash,
