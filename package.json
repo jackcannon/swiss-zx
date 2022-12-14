@@ -1,6 +1,6 @@
 {
   "name": "swiss-zx",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "author": "Jack Cannon <jackc@annon.co.uk> (http://c.annon.co.uk/)",
   "license": "MIT",
   "repository": {
@@ -31,6 +31,7 @@
     "prompts": "^2.4.2",
     "string-width": "^5.1.2",
     "swiss-ak": "^1.10.2",
+    "swiss-node": "^1.0.1",
     "zx": "^7.0.8"
   }
 }
