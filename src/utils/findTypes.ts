@@ -26,6 +26,9 @@ export interface FindOptions {
    * Name of file/directory to find
    */
   name?: string;
+
+  ext?: string;
+
   /**
    * Regular expression to match
    *

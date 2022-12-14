@@ -45,6 +45,11 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.1.tgz#352bee64f93117d867d05f7406642a52685cbca6"
   integrity sha512-GKX1Qnqxo4S+Z/+Z8KKPLpH282LD7jLHWJcVryOflnsnH+BtSDfieR6ObwBMwpnNws0bUK8GI7z0unQf9bARNQ==
 
+"@types/node@^18.11.15":
+  version "18.11.15"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.15.tgz#de0e1fbd2b22b962d45971431e2ae696643d3f5d"
+  integrity sha512-VkhBbVo2+2oozlkdHXLrb3zjsRkpdnaU2bXmX8Wgle3PUi569eLRaHGlgETQHR7lLL1w7GiG3h9SnePhxNDecw==
+
 "@types/ps-tree@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@types/ps-tree/-/ps-tree-1.1.2.tgz#5c60773a38ffb1402e049902a7b7a8d3c67cd59a"
@@ -119,6 +124,11 @@ chalk@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.0.1.tgz#ca57d71e82bb534a296df63bbacc4a1c22b2a4b6"
   integrity sha512-Fo07WOYGqMfCWHOzSXOt2CxDbC6skS/jO9ynEcmpANMoPrD+W1r1K6Vx7iNm+AQmETU1Xr2t+n8nzkV9t6xh3w==
+
+chalk@^5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.2.0.tgz#249623b7d66869c673699fb66d65723e54dfcfb3"
+  integrity sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==
 
 chokidar@^3.5.1:
   version "3.5.3"
@@ -845,6 +855,18 @@ swiss-ak@^1.10.2:
   version "1.10.2"
   resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-1.10.2.tgz#7b60bff61dd4645a2ab046fde21ee4dc06ee9d21"
   integrity sha512-TkLyl2ApLv/0FJ+g8oL9UFu6R4DymDy0/0W2CdIhOKPrL+tU3X5IFGbCyfTimUVGR/xw2OPutavJ7+QRc2Ot3w==
+
+swiss-node@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/swiss-node/-/swiss-node-1.0.1.tgz#28444f226ce58f5a9ebdf203ae33d36e555c89e6"
+  integrity sha512-e1CdvLrBjVXx5VTgCSW0ZyperTE9inYA0dCA4K6RA9kGxmfHESpFI7wIdpKKnPOBfSyi43Me4YmGLgTp8HqBsw==
+  dependencies:
+    "@types/node" "^18.11.15"
+    chalk "^5.2.0"
+    fuse.js "^6.6.2"
+    prompts "^2.4.2"
+    string-width "^5.1.2"
+    swiss-ak "^1.10.2"
 
 thenify-all@^1.0.0:
   version "1.6.0"

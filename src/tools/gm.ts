@@ -1,5 +1,8 @@
 import { fn } from 'swiss-ak';
+import { $$ } from './$$';
 import { gmUtils } from './gm/utils';
+
+const PIPE = 'MIFF:-';
 
 export interface CommonFlagsObj {
   compose?: string;
@@ -101,9 +104,9 @@ const formaliseCompositeFlags = (flags: ChangeAndMaskFlags | CompositeFlagsObj):
  * const converted = await gm.convert(input, output, {});
  * ```
  */
-const convert = (inPath: string, outPath: string, flags: ConvertFlagsObj = {}): ProcessPromise => {
+const convert = (inPath: string = PIPE, outPath: string = PIPE, flags: ConvertFlagsObj = {}): ProcessPromise => {
   const flagsArray = gmUtils.flagsObjToArray(flags);
-  return $`gm convert ${flagsArray} ${inPath} ${outPath} | cat`;
+  return $`gm convert ${flagsArray} ${inPath} ${outPath}`;
 };
 
 /**
@@ -118,9 +121,9 @@ const convert = (inPath: string, outPath: string, flags: ConvertFlagsObj = {}): 
  * ```
  */
 const composite = (
-  changePath: string,
-  basePath: string,
-  outPath: string = basePath,
+  changePath: string = PIPE,
+  basePath: string = PIPE,
+  outPath: string = PIPE,
   maskPath: string = '',
   flags: ChangeAndMaskFlags | CompositeFlagsObj = {}
 ): ProcessPromise => {
@@ -131,9 +134,9 @@ const composite = (
   // Screen = 1 - ((1 - A) * (1 - B))
   // Therefore, we can negate (invert) both the change and base images, multiply them, and then invert the result
   if (change.compose === 'Screen') {
-    return convert(basePath, 'MIFF:-', { negate: !change.negate })
+    return convert(basePath, PIPE, { negate: !change.negate })
       .pipe(
-        composite(changePath, 'MIFF:-', 'MIFF:-', maskPath, {
+        composite(changePath, PIPE, PIPE, maskPath, {
           change: {
             ...change,
             compose: 'Multiply',
@@ -142,7 +145,7 @@ const composite = (
           mask
         })
       )
-      .pipe(convert('MIFF:-', outPath, { negate: !change.negate }));
+      .pipe(convert(PIPE, outPath, { negate: !change.negate }));
   }
 
   if (change.prism) {
@@ -156,10 +159,12 @@ const composite = (
     const dForw = values.map((x) => x * 2).join('x');
     const dBack = values.map((x) => x * -1).join('x');
 
-    return convert(basePath, 'MIFF:-', { channel })
-      .pipe(composite(changePath, 'MIFF:-', 'MIFF:-', maskPath || changePath, { change: { displace: dForw, ...rest }, mask }))
-      .pipe(composite('MIFF:-', basePath, 'MIFF:-', undefined, { change: { compose: channelComposeCopyMap[channel] } }))
-      .pipe(composite(changePath, 'MIFF:-', outPath, maskPath || changePath, { change: { displace: dBack, ...rest }, mask }));
+    return pipe(basePath, outPath, [
+      (pI, p1) => convert(pI, p1, { channel }),
+      (p1, p2) => composite(changePath, p1, p2, maskPath || changePath, { change: { displace: dForw, ...rest }, mask }),
+      (p2, p3) => composite(p2, basePath, p3, undefined, { change: { compose: channelComposeCopyMap[channel] } }),
+      (p3, pO) => composite(changePath, p3, pO, maskPath || changePath, { change: { displace: dBack, ...rest }, mask })
+    ]);
   }
 
   const changeFlags = gmUtils.flagsObjToArray(change);
@@ -169,25 +174,41 @@ const composite = (
 };
 
 // TODO docs
-// convert piped to composite (allows for applying convert flags to the change image)
 const pipe = (
-  changePath: string,
-  basePath: string,
-  outPath: string = basePath,
-  maskPath: string = '',
-  convertFlags: ConvertFlagsObj = {},
-  compositeFlags: ChangeAndMaskFlags | CompositeFlagsObj = {}
+  inPath?: string,
+  outPath?: string,
+  processes: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[] = []
 ): ProcessPromise => {
-  const { change, mask } = formaliseCompositeFlags(compositeFlags);
+  const withIO = [...processes];
 
-  const chngFlags = gmUtils.flagsObjToArray(change);
-  const maskFlags = gmUtils.flagsObjToArray(mask);
-  const convFlags = gmUtils.flagsObjToArray(convertFlags);
+  if (inPath) withIO.unshift((p) => gm.convert(inPath, p, {}));
+  if (outPath) withIO.push((p) => gm.convert(p, outPath, {}));
 
-  return $`gm convert ${convFlags} ${changePath} MIFF:- | gm composite ${chngFlags} MIFF:- ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
+  const mapped = withIO.map((fn) => (index: number, arg?: any) => fn(PIPE, PIPE, index));
+
+  return $$.pipe(mapped);
 };
 
+// TODO docs
+// const pipe = (
+//   changePath: string,
+//   basePath: string,
+//   outPath: string = basePath,
+//   maskPath: string = '',
+//   convertFlags: ConvertFlagsObj = {},
+//   compositeFlags: ChangeAndMaskFlags | CompositeFlagsObj = {}
+// ): ProcessPromise => {
+//   const { change, mask } = formaliseCompositeFlags(compositeFlags);
+
+//   const chngFlags = gmUtils.flagsObjToArray(change);
+//   const maskFlags = gmUtils.flagsObjToArray(mask);
+//   const convFlags = gmUtils.flagsObjToArray(convertFlags);
+
+//   return $`gm convert ${convFlags} ${changePath} MIFF:- | gm composite ${chngFlags} MIFF:- ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
+// };
+
 export const gm = {
+  PIPE,
   convert,
   composite,
   pipe,

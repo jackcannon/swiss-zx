@@ -1,8 +1,9 @@
 import 'zx/globals';
 import { $, fs as fsO, cd as cdO } from 'zx';
 import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'swiss-ak';
-import { FindOptions } from '../utils/types';
-import { ExplodedPath, explodePath } from './PathUtils';
+import { PathUtils, explodePath, ExplodedPath } from 'swiss-node';
+
+import { FindOptions } from '../utils/findTypes';
 import { exiftool } from './exiftool';
 
 $.verbose = false;
@@ -19,39 +20,6 @@ const fs = fsO.promises;
  * ```
  */
 const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(fn.isTruthy);
-
-/**
- * $$.utils.removeTrailSlash
- *
- * Remove trailing slash from path (if one exists)
- *
- * ```typescript
- * '/path/to/file/' -> '/path/to/file'
- * ```
- */
-const removeTrailSlash = (path: string) => path.replace(/\/$/, '');
-
-/**
- * $$.utils.trailSlash
- *
- * Ensures there's a trailing slash on path
- *
- * ```typescript
- * '/path/to/file' -> '/path/to/file/'
- * ```
- */
-const trailSlash = (path: string) => removeTrailSlash(path) + '/';
-
-/**
- * $$.utils.removeDoubleSlashes
- *
- * Removes double slashes from path (an bug with Unix paths)
- *
- * ```typescript
- * '/path/to//file' -> '/path/to/file'
- * ```
- */
-const removeDoubleSlashes = (path: string) => path.replace(/\/\//g, '/');
 
 // todo docs
 const cd = async (dir: string = '.'): Promise<void> => {
@@ -151,13 +119,15 @@ const cat = (item: string) => $`cat ${item}`;
 const grep = async (pattern: string, file: string) => intoLines(await $`grep ${pattern} ${file}`);
 
 const convertFindOptionsToFlags = (options: FindOptions) => {
-  const { type, mindepth, maxdepth, name, regex, removePath } = options;
+  const { type, ext, mindepth, maxdepth, name, regex, removePath } = options;
   const flags = [];
+
   // TODO simplify this
   if (type) flags.push('-type', type);
   if (mindepth) flags.push('-mindepth', mindepth + '');
   if (maxdepth) flags.push('-maxdepth', maxdepth + '');
   if (name) flags.push('-name', name);
+  if (!regex && ext) flags.push('-regex', String.raw`^.*\.${ext}$`);
   if (regex) flags.push('-regex', regex);
   return flags;
 };
@@ -179,7 +149,7 @@ const find = async (dir: string = '.', options: FindOptions = {}): Promise<strin
     dir = await $$.pwd();
   }
 
-  const newDir = options.contentsOnly ? trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? PathUtils.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
 
   const pruneRegex = options.showHidden ? '.*(\\.Trash|\\.DS_Store).*' : '.*(/\\.|\\.Trash|\\.DS_Store).*';
@@ -194,10 +164,10 @@ const find = async (dir: string = '.', options: FindOptions = {}): Promise<strin
   }
 
   return intoLines(result)
-    .map(removeDoubleSlashes)
+    .map(PathUtils.removeDoubleSlashes)
     .filter(fn.isNotEqual('.'))
     .filter((str) => !str.includes('.Trash'))
-    .map(options.removeTrailingSlashes ? removeTrailSlash : fn.noact);
+    .map(options.removeTrailingSlashes ? PathUtils.removeTrailSlash : fn.noact);
 };
 
 /**
@@ -229,7 +199,7 @@ export interface ModifiedFile extends ExplodedPath {
 }
 // todo docs
 const findModified = async (dir: string = '.', options: FindOptions = {}): Promise<ModifiedFile[]> => {
-  const newDir = options.contentsOnly ? trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? PathUtils.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
 
   const pruneRegex = options.showHidden ? '.*(\\.Trash|\\.DS_Store).*' : '.*(/\\.|\\.Trash|\\.DS_Store).*';
@@ -237,17 +207,17 @@ const findModified = async (dir: string = '.', options: FindOptions = {}): Promi
   const result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print0 \\) | xargs -0 stat -f "%m %N"`;
 
   return intoLines(result)
-    .map(removeDoubleSlashes)
+    .map(PathUtils.removeDoubleSlashes)
     .filter((str) => !str.includes('.Trash'))
     .map((line) => {
       const [_blank, lastModified, file] = line.split(/^([0-9]+)\s/);
       return { lastModified: seconds(Number(lastModified)), file };
     })
     .filter(({ file }) => !['.', '.DS_Store'].includes(file))
-    .map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: removeDoubleSlashes(file), ...rest }) : fn.noact)
+    .map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: PathUtils.removeDoubleSlashes(file), ...rest }) : fn.noact)
     .map(({ lastModified, file }) => ({
       lastModified,
-      ...explodePath(file.replace(/^\./, removeTrailSlash(dir)))
+      ...explodePath(file.replace(/^\./, PathUtils.removeTrailSlash(dir)))
     }));
 };
 
@@ -301,7 +271,7 @@ const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts
  * ```
  */
 const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) =>
-  rsync(trailSlash(a), trailSlash(b), ['--delete'], progressBarOpts);
+  rsync(PathUtils.trailSlash(a), PathUtils.trailSlash(b), ['--delete'], progressBarOpts);
 
 /**
  * $$.isFileExist
@@ -377,6 +347,21 @@ const writeJSON = async <T extends Object>(filepath, obj: T): Promise<T> => {
   return obj;
 };
 
+// TODO write docs
+const pipe = <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T): ProcessPromise => {
+  if (processes.length === 0) return $``;
+
+  let result: ProcessPromise = undefined;
+
+  for (const index in processes) {
+    const processFn = processes[index];
+
+    result = result ? result.pipe(processFn(Number(index), arg)) : processFn(Number(index), arg);
+  }
+
+  return result;
+};
+
 export const $$ = {
   cd,
   pwd,
@@ -399,13 +384,11 @@ export const $$ = {
   writeFile,
   readJSON,
   writeJSON,
+  pipe,
   rsync,
   sync,
   exiftool,
   utils: {
-    intoLines,
-    removeTrailSlash,
-    trailSlash,
-    removeDoubleSlashes
+    intoLines
   }
 };
