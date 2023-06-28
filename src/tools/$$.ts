@@ -1,7 +1,7 @@
 import 'zx/globals';
 import { $, fs as fsO, cd as cdO } from 'zx';
 import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'swiss-ak';
-import { PathUtils, explodePath, ExplodedPath } from 'swiss-node';
+import { PathTools, explodePath, ExplodedPath } from 'swiss-node';
 
 import { FindOptions } from '../utils/findTypes';
 import { exiftool } from './exiftool';
@@ -149,7 +149,7 @@ const find = async (dir: string = '.', options: FindOptions = {}): Promise<strin
     dir = await $$.pwd();
   }
 
-  const newDir = options.contentsOnly ? PathUtils.trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? PathTools.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
 
   const pruneRegex = options.showHidden ? '.*(\\.Trash|\\.DS_Store).*' : '.*(/\\.|\\.Trash|\\.DS_Store).*';
@@ -158,16 +158,16 @@ const find = async (dir: string = '.', options: FindOptions = {}): Promise<strin
   // s - sort lexicographically
   // L - follow symbolic links
   if (options.removePath) {
-    result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\)`;
+    result = await $`[[ -d ${newDir} ]] && find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\) || echo ''`;
   } else {
-    result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\)`;
+    result = await $`[[ -d ${newDir} ]] && find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\) || echo ''`;
   }
 
   return intoLines(result)
-    .map(PathUtils.removeDoubleSlashes)
+    .map(PathTools.removeDoubleSlashes)
     .filter(fn.isNotEqual('.'))
     .filter((str) => !str.includes('.Trash'))
-    .map(options.removeTrailingSlashes ? PathUtils.removeTrailSlash : fn.noact);
+    .map(options.removeTrailingSlashes ? PathTools.removeTrailSlash : fn.noact);
 };
 
 /**
@@ -199,7 +199,7 @@ export interface ModifiedFile extends ExplodedPath {
 }
 // todo docs
 const findModified = async (dir: string = '.', options: FindOptions = {}): Promise<ModifiedFile[]> => {
-  const newDir = options.contentsOnly ? PathUtils.trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? PathTools.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
 
   const pruneRegex = options.showHidden ? '.*(\\.Trash|\\.DS_Store).*' : '.*(/\\.|\\.Trash|\\.DS_Store).*';
@@ -207,17 +207,17 @@ const findModified = async (dir: string = '.', options: FindOptions = {}): Promi
   const result = await $`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print0 \\) | xargs -0 stat -f "%m %N"`;
 
   return intoLines(result)
-    .map(PathUtils.removeDoubleSlashes)
+    .map(PathTools.removeDoubleSlashes)
     .filter((str) => !str.includes('.Trash'))
     .map((line) => {
       const [_blank, lastModified, file] = line.split(/^([0-9]+)\s/);
       return { lastModified: seconds(Number(lastModified)), file };
     })
     .filter(({ file }) => !['.', '.DS_Store'].includes(file))
-    .map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: PathUtils.removeDoubleSlashes(file), ...rest }) : fn.noact)
+    .map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: PathTools.removeDoubleSlashes(file), ...rest }) : fn.noact)
     .map(({ lastModified, file }) => ({
       lastModified,
-      ...explodePath(file.replace(/^\./, PathUtils.removeTrailSlash(dir)))
+      ...explodePath(file.replace(/^\./, PathTools.removeTrailSlash(dir)))
     }));
 };
 
@@ -271,7 +271,7 @@ const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts
  * ```
  */
 const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) =>
-  rsync(PathUtils.trailSlash(a), PathUtils.trailSlash(b), ['--delete'], progressBarOpts);
+  rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ['--delete'], progressBarOpts);
 
 /**
  * $$.isFileExist

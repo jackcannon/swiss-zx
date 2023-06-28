@@ -2,7 +2,7 @@
 import "zx/globals";
 import { $ as $2, fs as fsO, cd as cdO } from "zx";
 import { fn, getProgressBar, retryOr, seconds } from "swiss-ak";
-import { PathUtils, explodePath } from "swiss-node";
+import { PathTools, explodePath } from "swiss-node";
 
 // src/tools/exiftool.ts
 var exiftool = async (file, setAttr, getAttr, outFile) => {
@@ -62,29 +62,29 @@ var find = async (dir = ".", options = {}) => {
   if (dir === ".") {
     dir = await $$.pwd();
   }
-  const newDir = options.contentsOnly ? PathUtils.trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? PathTools.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
   const pruneRegex = options.showHidden ? ".*(\\.Trash|\\.DS_Store).*" : ".*(/\\.|\\.Trash|\\.DS_Store).*";
   if (options.removePath) {
-    result = await $2`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\)`;
+    result = await $2`[[ -d ${newDir} ]] && find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\) || echo ''`;
   } else {
-    result = await $2`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\)`;
+    result = await $2`[[ -d ${newDir} ]] && find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\) || echo ''`;
   }
-  return intoLines(result).map(PathUtils.removeDoubleSlashes).filter(fn.isNotEqual(".")).filter((str) => !str.includes(".Trash")).map(options.removeTrailingSlashes ? PathUtils.removeTrailSlash : fn.noact);
+  return intoLines(result).map(PathTools.removeDoubleSlashes).filter(fn.isNotEqual(".")).filter((str) => !str.includes(".Trash")).map(options.removeTrailingSlashes ? PathTools.removeTrailSlash : fn.noact);
 };
 var findDirs = (dir = ".", options = {}) => find(dir, { type: "d", maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
 var findFiles = (dir = ".", options = {}) => find(dir, { type: "f", maxdepth: 1, removePath: true, contentsOnly: true, ...options });
 var findModified = async (dir = ".", options = {}) => {
-  const newDir = options.contentsOnly ? PathUtils.trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? PathTools.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
   const pruneRegex = options.showHidden ? ".*(\\.Trash|\\.DS_Store).*" : ".*(/\\.|\\.Trash|\\.DS_Store).*";
   const result = await $2`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print0 \\) | xargs -0 stat -f "%m %N"`;
-  return intoLines(result).map(PathUtils.removeDoubleSlashes).filter((str) => !str.includes(".Trash")).map((line) => {
+  return intoLines(result).map(PathTools.removeDoubleSlashes).filter((str) => !str.includes(".Trash")).map((line) => {
     const [_blank, lastModified2, file] = line.split(/^([0-9]+)\s/);
     return { lastModified: seconds(Number(lastModified2)), file };
-  }).filter(({ file }) => ![".", ".DS_Store"].includes(file)).map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: PathUtils.removeDoubleSlashes(file), ...rest }) : fn.noact).map(({ lastModified: lastModified2, file }) => ({
+  }).filter(({ file }) => ![".", ".DS_Store"].includes(file)).map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: PathTools.removeDoubleSlashes(file), ...rest }) : fn.noact).map(({ lastModified: lastModified2, file }) => ({
     lastModified: lastModified2,
-    ...explodePath(file.replace(/^\./, PathUtils.removeTrailSlash(dir)))
+    ...explodePath(file.replace(/^\./, PathTools.removeTrailSlash(dir)))
   }));
 };
 var lastModified = async (path) => {
@@ -114,7 +114,7 @@ var rsync = async (a, b, flags = [], progressBarOpts) => {
     return $2`rsync -rut ${a} ${b} ${flags}`;
   }
 };
-var sync = (a, b, progressBarOpts) => rsync(PathUtils.trailSlash(a), PathUtils.trailSlash(b), ["--delete"], progressBarOpts);
+var sync = (a, b, progressBarOpts) => rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ["--delete"], progressBarOpts);
 var isFileExist = async (file) => await $2`[[ -f ${file} ]]`.exitCode === 0;
 var isDirExist = async (dir) => await $2`[[ -d ${dir} ]]`.exitCode === 0;
 var readFile = (filepath) => retryOr("", 2, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));

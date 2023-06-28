@@ -94,29 +94,29 @@ var find = async (dir = ".", options = {}) => {
   if (dir === ".") {
     dir = await $$.pwd();
   }
-  const newDir = options.contentsOnly ? import_swiss_node.PathUtils.trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? import_swiss_node.PathTools.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
   const pruneRegex = options.showHidden ? ".*(\\.Trash|\\.DS_Store).*" : ".*(/\\.|\\.Trash|\\.DS_Store).*";
   if (options.removePath) {
-    result = await import_zx.$`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\)`;
+    result = await import_zx.$`[[ -d ${newDir} ]] && find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -execdir echo {} ';' \\) || echo ''`;
   } else {
-    result = await import_zx.$`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\)`;
+    result = await import_zx.$`[[ -d ${newDir} ]] && find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print \\) || echo ''`;
   }
-  return intoLines(result).map(import_swiss_node.PathUtils.removeDoubleSlashes).filter(import_swiss_ak.fn.isNotEqual(".")).filter((str) => !str.includes(".Trash")).map(options.removeTrailingSlashes ? import_swiss_node.PathUtils.removeTrailSlash : import_swiss_ak.fn.noact);
+  return intoLines(result).map(import_swiss_node.PathTools.removeDoubleSlashes).filter(import_swiss_ak.fn.isNotEqual(".")).filter((str) => !str.includes(".Trash")).map(options.removeTrailingSlashes ? import_swiss_node.PathTools.removeTrailSlash : import_swiss_ak.fn.noact);
 };
 var findDirs = (dir = ".", options = {}) => find(dir, { type: "d", maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
 var findFiles = (dir = ".", options = {}) => find(dir, { type: "f", maxdepth: 1, removePath: true, contentsOnly: true, ...options });
 var findModified = async (dir = ".", options = {}) => {
-  const newDir = options.contentsOnly ? import_swiss_node.PathUtils.trailSlash(dir) : dir;
+  const newDir = options.contentsOnly ? import_swiss_node.PathTools.trailSlash(dir) : dir;
   const flags = convertFindOptionsToFlags(options);
   const pruneRegex = options.showHidden ? ".*(\\.Trash|\\.DS_Store).*" : ".*(/\\.|\\.Trash|\\.DS_Store).*";
   const result = await import_zx.$`find -EsL ${newDir} -regex ${pruneRegex} -prune -o \\( ${flags} -print0 \\) | xargs -0 stat -f "%m %N"`;
-  return intoLines(result).map(import_swiss_node.PathUtils.removeDoubleSlashes).filter((str) => !str.includes(".Trash")).map((line) => {
+  return intoLines(result).map(import_swiss_node.PathTools.removeDoubleSlashes).filter((str) => !str.includes(".Trash")).map((line) => {
     const [_blank, lastModified2, file] = line.split(/^([0-9]+)\s/);
     return { lastModified: (0, import_swiss_ak.seconds)(Number(lastModified2)), file };
-  }).filter(({ file }) => ![".", ".DS_Store"].includes(file)).map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: import_swiss_node.PathUtils.removeDoubleSlashes(file), ...rest }) : import_swiss_ak.fn.noact).map(({ lastModified: lastModified2, file }) => ({
+  }).filter(({ file }) => ![".", ".DS_Store"].includes(file)).map(options.removeTrailingSlashes ? ({ file, ...rest }) => ({ file: import_swiss_node.PathTools.removeDoubleSlashes(file), ...rest }) : import_swiss_ak.fn.noact).map(({ lastModified: lastModified2, file }) => ({
     lastModified: lastModified2,
-    ...(0, import_swiss_node.explodePath)(file.replace(/^\./, import_swiss_node.PathUtils.removeTrailSlash(dir)))
+    ...(0, import_swiss_node.explodePath)(file.replace(/^\./, import_swiss_node.PathTools.removeTrailSlash(dir)))
   }));
 };
 var lastModified = async (path) => {
@@ -146,7 +146,7 @@ var rsync = async (a, b, flags = [], progressBarOpts) => {
     return import_zx.$`rsync -rut ${a} ${b} ${flags}`;
   }
 };
-var sync = (a, b, progressBarOpts) => rsync(import_swiss_node.PathUtils.trailSlash(a), import_swiss_node.PathUtils.trailSlash(b), ["--delete"], progressBarOpts);
+var sync = (a, b, progressBarOpts) => rsync(import_swiss_node.PathTools.trailSlash(a), import_swiss_node.PathTools.trailSlash(b), ["--delete"], progressBarOpts);
 var isFileExist = async (file) => await import_zx.$`[[ -f ${file} ]]`.exitCode === 0;
 var isDirExist = async (dir) => await import_zx.$`[[ -d ${dir} ]]`.exitCode === 0;
 var readFile = (filepath) => (0, import_swiss_ak.retryOr)("", 2, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
