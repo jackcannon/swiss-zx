@@ -2,7 +2,89 @@ import * as zx from 'zx';
 import { ms, ProgressBarOptions } from 'swiss-ak';
 import { ExplodedPath } from 'swiss-node';
 
-/**<!-- DOCS: exif.ExifToolAttributesObj #### -->
+/**<!-- DOCS-ALIAS: $$.FindType -->
+ * FindType
+ * 
+ * Type of item to find
+ * 
+ * |   | Description       |
+ * |---|-------------------|
+ * | d | directory         |
+ * | f | regular file      |
+ * | b | block special     |
+ * | c | character special |
+ * | l | symbolic link     |
+ * | p | FIFO              |
+ * | s | socket            |
+ */
+declare type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
+/**<!-- DOCS-ALIAS: $$.FindOptions -->
+ * FindOptions
+ * 
+ * Options for $$.find (and related other tools)
+ */
+interface FindOptions {
+    /**
+     * Type of item to find
+     *
+     * |   | Description       |
+     * |---|-------------------|
+     * | d | directory         |
+     * | f | regular file      |
+     * | b | block special     |
+     * | c | character special |
+     * | l | symbolic link     |
+     * | p | FIFO              |
+     * | s | socket            |
+     */
+    type?: FindType;
+    /**
+     * TODO docs
+     * Minimum depth to search
+     */
+    mindepth?: number;
+    /**
+     * Maximum depth to search
+     */
+    maxdepth?: number;
+    /**
+     * Name of file/directory to find
+     */
+    name?: string;
+    ext?: string;
+    /**
+     * Regular expression to match
+     *
+     * IMPORTANT: use String.raw to make sure the backslashes are escaped
+     *
+     * ```typescript
+     * const regex = String.raw`^.*\.js$` // '^.*\.js$'
+     * ```
+     */
+    regex?: string;
+    /**
+     * If true, removes the path from the result (so you just get the file/directory name)
+     */
+    removePath?: boolean;
+    /**
+     * TODO docs
+     */
+    absolutePath?: boolean;
+    /**
+     * If true, ensures the provided path has a trailing slash.
+     */
+    contentsOnly?: boolean;
+    /**
+     * If true, removes trailing slashes from the results.
+     */
+    removeTrailingSlashes?: boolean;
+    /**
+     * If true, includes files that start with a dot.
+     */
+    showHidden?: boolean;
+}
+
+/**<!-- DOCS: $$.exif.ExifToolAttributesObj #### -->
  * ExifToolAttributesObj
  *
  * Interface for the attributes returned by exiftool
@@ -299,211 +381,463 @@ interface ExifToolAttributesObj {
     LensID?: string;
     [anykey: string]: string;
 }
+/**<!-- DOCS: $$.exif.ExifToolAttributes #### -->
+ * ExifToolAttributes
+ *
+ * Type for the names of the attributes returned by exiftool
+ */
+declare type ExifToolAttributes = keyof ExifToolAttributesObj;
 
-declare type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
-interface FindOptions {
-    /**
-     * Type of item to find
+/**<!-- DOCS: $$ ##! -->
+ * $$ (double dollar)
+ */
+declare namespace $$ {
+    /**<!-- DOCS: $$.cd ### @ -->
+     * cd
      *
-     * * d = directory
-     * * f = regular file
-     * * b = block special
-     * * c = character special
-     * * l = symbolic link
-     * * p = FIFO
-     * * s = socket
-     */
-    type?: FindType;
-    /**
-     * TODO docs
-     * Minimum depth to search
-     */
-    mindepth?: number;
-    /**
-     * Maximum depth to search
-     */
-    maxdepth?: number;
-    /**
-     * Name of file/directory to find
-     */
-    name?: string;
-    ext?: string;
-    /**
-     * Regular expression to match
-     *
-     * IMPORTANT: use String.raw to make sure the backslashes are escaped
+     * Change the current working directory
      *
      * ```typescript
-     * const regex = String.raw`^.*\.js$` // '^.*\.js$'
+     * await $$.pwd(); // '/Users/username'
+     * await $$.cd('./some/folder');
+     * await $$.pwd(); // '/Users/username/some/folder'
      * ```
      */
-    regex?: string;
-    /**
-     * If true, removes the path from the result (so you just get the file/directory name)
+    const cd: (dir?: string) => Promise<void>;
+    /**<!-- DOCS: $$.pwd ### @ -->
+     * pwd
+     *
+     * Get the current working directory
+     *
+     * ```typescript
+     * await $$.pwd(); // '/Users/username'
+     * await $$.cd('./some/folder');
+     * await $$.pwd(); // '/Users/username/some/folder'
+     * ```
      */
-    removePath?: boolean;
-    /**
+    const pwd: () => Promise<string>;
+    /**<!-- DOCS: $$.ls ### @ -->
+     * ls
+     *
+     * Wrapper for ls (list) command
+     *
+     * ```typescript
+     * await $$.ls('example') // ['a', 'b']
+     * ```
+     */
+    const ls: (dir?: string, flags?: string[]) => Promise<string[]>;
+    /**<!-- DOCS: $$.rm ### @ -->
+     * rm
+     *
+     * Wrapper for rm (remove) command
+     *
+     * ```typescript
+     * await $$.rm('example') // same as $`rm -rf 'example'`
+     * ```
+     */
+    const rm: (item: string) => zx.ProcessPromise;
+    /**<!-- DOCS: $$.mkdir ### @ -->
+     * mkdir
+     *
+     * Wrapper for mkdir (make directory) command
+     *
+     * ```typescript
+     * await $$.mkdir('example') // same as $`mkdir -p 'example'`
+     * ```
+     */
+    const mkdir: (item: string) => zx.ProcessPromise;
+    /**<!-- DOCS: $$.cp ### @ -->
+     * cp
+     *
+     * Wrapper for cp (copy) command
+     *
+     * ```typescript
+     * await $$.cp('example1', 'example2') // same as $`cp -r 'example1' 'example2'`
+     * ```
+     */
+    const cp: (a: string, b: string) => zx.ProcessPromise;
+    /**<!-- DOCS: $$.mv ### @ -->
+     * mv
+     *
+     * Wrapper for mv (move) command
+     *
+     * ```typescript
+     * await $$.mv('example1', 'example2') // same as $`mv 'example1' 'example2'`
+     * ```
+     */
+    const mv: (a: string, b: string) => zx.ProcessPromise;
+    /**<!-- DOCS: $$.touch ### @ -->
+     * touch
+     *
+     * Wrapper for touch (create blank file) command
+     *
+     * ```typescript
+     * await $$.touch('example') // same as $`touch 'example'`
+     * ```
+     */
+    const touch: (item: string) => zx.ProcessPromise;
+    /**<!-- DOCS: $$.cat ### @ -->
+     * cat
+     *
+     * Wrapper for cat (concatenate) command
+     *
+     * ```typescript
+     * await $$.cat('example') // same as $`cat 'example'`
+     * ```
+     */
+    const cat: (item: string) => zx.ProcessPromise;
+    /**<!-- DOCS: $$.grep ### @ -->
+     * grep
+     *
+     * Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
+     *
+     * ```typescript
+     * await $$.grep('example', '.') // same as $`grep 'example' '.'`
+     * ```
+     */
+    const grep: (pattern: string, file: string) => Promise<string[]>;
+    /**<!-- DOCS: $$.find ### @ -->
+     * find
+     *
+     * Helper function for finding files
+     *
+     * ```typescript
+     * await $$.find('.', { type: 'f' }) // ['a', 'b']
+     * ```
+     */
+    const find: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    /**<!-- DOCS: $$.FindOptions #### -->
+     * FindOptions
+     *
+     * Options for $$.find (and related other tools)
+     */
+    type FindOptions = FindOptions;
+    /**<!-- DOCS: $$.FindType #### -->
+     * FindType
+     *
+     * Type of item to find
+     *
+     * |   | Description       |
+     * |---|-------------------|
+     * | d | directory         |
+     * | f | regular file      |
+     * | b | block special     |
+     * | c | character special |
+     * | l | symbolic link     |
+     * | p | FIFO              |
+     * | s | socket            |
+     */
+    type FindType = FindType;
+    /**<!-- DOCS: $$.findDirs ### @ -->
+     * findDirs
+     *
+     * Find all directories in a given directory (shallow)
+     *
+     * ```typescript
+     * await $$.findDirs('.') // ['a', 'b']
+     * ```
+     */
+    const findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    /**<!-- DOCS: $$.findFiles ### @ -->
+     * findFiles
+     *
+     * Find all files in a given directory (shallow)
+     *
+     * ```typescript
+     * await $$.findFiles('.') // ['a', 'b']
+     * ```
+     */
+    const findFiles: (dir?: string, options?: FindOptions) => Promise<string[]>;
+    /**<!-- DOCS: $$.findModified ### @ -->
+     * findModified
+     *
      * TODO docs
      */
-    absolutePath?: boolean;
-    /**
-     * If true, ensures the provided path has a trailing slash.
+    const findModified: (dir?: string, options?: FindOptions) => Promise<ModifiedFile[]>;
+    /**<!-- DOCS: $$.ModifiedFile #### -->
+     * ModifiedFile
+     *
+     * TODO docs
      */
-    contentsOnly?: boolean;
-    /**
-     * If true, removes trailing slashes from the results.
+    interface ModifiedFile extends ExplodedPath {
+        lastModified: ms;
+    }
+    /**<!-- DOCS: $$.lastModified ### @ -->
+     * lastModified
+     *
+     * TODO docs
      */
-    removeTrailingSlashes?: boolean;
-    /**
-     * If true, includes files that start with a dot.
+    const lastModified: (path: string) => Promise<number>;
+    /**<!-- DOCS: $$.rsync ### @ -->
+     * rsync
+     *
+     * Wrapper for rsync command
+     *
+     * ```typescript
+     * await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2'`
+     * ```
      */
-    showHidden?: boolean;
+    const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
+    /**<!-- DOCS: $$.sync ### @ -->
+     * sync
+     *
+     * Helper function for syncing files
+     *
+     * ```typescript
+     * await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2' --delete`
+     * ```
+     */
+    const sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
+    /**<!-- DOCS: $$.isFileExist ### @ -->
+     * isFileExist
+     *
+     * Check if a file exists
+     *
+     * ```typescript
+     * await $$.isFileExist('example') // true
+     * ```
+     */
+    const isFileExist: (file: string) => Promise<boolean>;
+    /**<!-- DOCS: $$.isDirExist ### @ -->
+     * isDirExist
+     *
+     * Check if a directory exists
+     *
+     * ```typescript
+     * await $$.isDirExist('example') // true
+     * ```
+     */
+    const isDirExist: (dir: string) => Promise<boolean>;
+    /**<!-- DOCS: $$.readFile ### @ -->
+     * readFile
+     *
+     * Read a file's contents
+     *
+     * ```typescript
+     * await $$.readFile('example') // 'hello world'
+     * ```
+     */
+    const readFile: (filepath: string) => Promise<string>;
+    /**<!-- DOCS: $$.writeFile ### @ -->
+     * writeFile
+     *
+     * Write to a file
+     *
+     * ```typescript
+     * await $$.writeFile('example', 'hello world') // saves a new file called 'example' with the contents 'hello world'
+     * ```
+     */
+    const writeFile: (filepath: string, contents: string) => Promise<void>;
+    /**<!-- DOCS: $$.readJSON ### @ -->
+     * readJSON
+     *
+     * Read a JSON file
+     *
+     * ```typescript
+     * await $$.readJSON('example.json') // { hello: 'world' }
+     * ```
+     */
+    const readJSON: <T extends unknown>(filepath: string) => Promise<T>;
+    /**<!-- DOCS: $$.writeJSON ### @ -->
+     * writeJSON
+     *
+     * Write to a JSON file
+     *
+     * ```typescript
+     * await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file called 'example.json' with the contents {'hello':'world'}
+     * ```
+     */
+    const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<T>;
+    /**<!-- DOCS: $$.pipe ### @ -->
+     * pipe
+     *
+     * TODO docs
+     */
+    const pipe: <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T) => ProcessPromise;
+    /**<!-- DOCS-ALIAS: $$.exif.exiftool -->
+     * exiftool
+     * 
+     * Usage:
+     * ```typescript
+     * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
+     * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
+     * ```
+     */
+    const exiftool: (file: string, setAttr?: ExifToolAttributesObj, getAttr?: (keyof ExifToolAttributesObj)[], outFile?: string) => Promise<ExifToolAttributesObj>;
+    /**<!-- DOCS-ALIAS: $$.exif.ExifToolAttributesObj -->
+     * ExifToolAttributesObj
+     * 
+     * Interface for the attributes returned by exiftool
+     */
+    type ExifToolAttributesObj = ExifToolAttributesObj;
+    /**<!-- DOCS-ALIAS: $$.exif.ExifToolAttributes -->
+     * ExifToolAttributes
+     * 
+     * Type for the names of the attributes returned by exiftool
+     */
+    type ExifToolAttributes = ExifToolAttributes;
+    /**<!-- DOCS: $$.utils ### -->
+     * utils
+     */
+    namespace utils {
+        /**<!-- DOCS: $$.utils.intoLines #### @ -->
+         * intoLines
+         *
+         * Turns ProcessOutput into string array, split into lines
+         *
+         * ```typescript
+         * utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
+         * ```
+         */
+        const intoLines: (out: ProcessOutput) => string[];
+    }
 }
-
-interface ModifiedFile extends ExplodedPath {
-    lastModified: ms;
-}
-declare const $$: {
-    cd: (dir?: string) => Promise<void>;
-    pwd: () => Promise<string>;
-    ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-    find: (dir?: string, options?: FindOptions) => Promise<string[]>;
-    findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
-    findFiles: (dir?: string, options?: FindOptions) => Promise<string[]>;
-    findModified: (dir?: string, options?: FindOptions) => Promise<ModifiedFile[]>;
-    lastModified: (path: string) => Promise<number>;
-    rm: (item: string) => zx.ProcessPromise;
-    mkdir: (item: string) => zx.ProcessPromise;
-    cp: (a: string, b: string) => zx.ProcessPromise;
-    mv: (a: string, b: string) => zx.ProcessPromise;
-    touch: (item: string) => zx.ProcessPromise;
-    cat: (item: string) => zx.ProcessPromise;
-    grep: (pattern: string, file: string) => Promise<string[]>;
-    isFileExist: (file: string) => Promise<boolean>;
-    isDirExist: (dir: string) => Promise<boolean>;
-    readFile: (filepath: string) => Promise<string>;
-    writeFile: (filepath: string, contents: string) => Promise<void>;
-    readJSON: <T extends unknown>(filepath: string) => Promise<T>;
-    writeJSON: <T_1 extends Object>(filepath: any, obj: T_1) => Promise<T_1>;
-    pipe: <T_2 extends unknown>(processes: ((index?: number, arg?: T_2) => ProcessPromise)[], arg?: T_2) => ProcessPromise;
-    rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
-    sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
-    exiftool: (file: string, setAttr?: ExifToolAttributesObj, getAttr?: (keyof ExifToolAttributesObj)[], outFile?: string) => Promise<ExifToolAttributesObj>;
-    utils: {
-        intoLines: (out: ProcessOutput) => string[];
-    };
-};
 
 /**<!-- DOCS: os ##! -->
  * os
  */
-/**<!-- DOCS: os.closeFinder ### @ -->
+declare namespace os {
+    /**<!-- DOCS: os.closeFinder ### @ -->
+     * closeFinder
+     *
+     * - `closeFinder`
+     * - `os.closeFinder`
+     *
+     * Close all Mac OS X Finder windows.
+     *
+     * ```typescript
+     * await closeFinder();
+     * ```
+     */
+    const closeFinder: () => Promise<void>;
+}
+/**<!-- DOCS-ALIAS: os.closeFinder -->
  * closeFinder
- *
+ * 
  * - `closeFinder`
- *
+ * - `os.closeFinder`
+ * 
  * Close all Mac OS X Finder windows.
- *
+ * 
  * ```typescript
  * await closeFinder();
  * ```
  */
 declare const closeFinder: () => Promise<void>;
 
-/**<!-- DOCS: ffmpeg ##! -->
- * ffmpeg
+/**<!-- DOCS: ffmpegTools ##! -->
+ * ffmpegTools
  */
-/**<!-- DOCS: ffmpeg.toFFmpegTimeFormat ### @ -->
- * toFFmpegTimeFormat
- *
- * Convert a number of milliseconds to a time format usable by FFmpeg.
- */
-declare const toFFmpegTimeFormat: (time: ms) => string;
-/**<!-- DOCS: ffmpeg.getProbeValue ### @ -->
- * getProbeValue
- *
- * Get a value from ffprobe output
- *
- * ```typescript
- * const probe = await getProbe('file.mp4', 'width'); // '1280'
- * ```
- */
-declare const getProbeValue: (file: string, propertyName: string) => Promise<string>;
-/**<!-- DOCS: ffmpeg.ProbeResult ### -->
- * ProbeResult
- *
- * Note: this interface is a guide, and other properties may exist, and some may be have different types
- */
-interface ProbeResult {
-    index: number;
-    codec_name: string;
-    codec_long_name: string;
-    profile: string;
-    codec_type: string;
-    codec_time_base: string;
-    codec_tag_string: string;
-    codec_tag: number;
-    width: number;
-    height: number;
-    coded_width: number;
-    coded_height: number;
-    closed_captions: number;
-    has_b_frames: number;
-    sample_aspect_ratio: string;
-    display_aspect_ratio: string;
-    pix_fmt: string;
-    level: number;
-    color_range: string;
-    color_space: string;
-    color_transfer: string;
-    color_primaries: string;
-    chroma_location: string;
-    field_order: string;
-    timecode: string;
-    refs: number;
-    is_avc?: string;
-    nal_length_size?: number;
-    id: string;
-    r_frame_rate: string;
-    avg_frame_rate: string;
-    time_base: string;
-    start_pts: number;
-    start_time: number;
-    duration_ts: number;
-    duration: number;
-    bit_rate: number;
-    max_bit_rate: string;
-    bits_per_raw_sample: number;
-    nb_frames: number;
-    nb_read_frames: string;
-    nb_read_packets: string;
-    framerate: number;
+declare namespace ffmpegTools {
+    /**<!-- DOCS: ffmpegTools.ffmpeg ### @ -->
+     * ffmpeg
+     *
+     * - `ffmpeg`
+     * - `ffmpegTools.ffmpeg`
+     *
+     * Wrapper for ffmpeg command that provides progress bar to track progress
+     *
+     * ```typescript
+     * const progBarOpts = {}; // Same options as getProgressBar
+     * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
+     * ```
+     */
+    const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
+    /**<!-- DOCS: ffmpegTools.toFFmpegTimeFormat ### @ -->
+     * toFFmpegTimeFormat
+     *
+     * Convert a number of milliseconds to a time format usable by FFmpeg.
+     */
+    const toFFmpegTimeFormat: (time: ms) => string;
+    /**<!-- DOCS: ffmpegTools.getProbe ### @ -->
+     * getProbe
+     *
+     * Get the probe of a file as an object
+     *
+     * ```typescript
+     * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
+     * ```
+     */
+    const getProbe: (file: string) => Promise<ProbeResult>;
+    /**<!-- DOCS: ffmpegTools.ProbeResult #### -->
+     * ProbeResult
+     *
+     * Note: this interface is a guide, and other properties may exist, and some may be have different types
+     */
+    interface ProbeResult {
+        index: number;
+        codec_name: string;
+        codec_long_name: string;
+        profile: string;
+        codec_type: string;
+        codec_time_base: string;
+        codec_tag_string: string;
+        codec_tag: number;
+        width: number;
+        height: number;
+        coded_width: number;
+        coded_height: number;
+        closed_captions: number;
+        has_b_frames: number;
+        sample_aspect_ratio: string;
+        display_aspect_ratio: string;
+        pix_fmt: string;
+        level: number;
+        color_range: string;
+        color_space: string;
+        color_transfer: string;
+        color_primaries: string;
+        chroma_location: string;
+        field_order: string;
+        timecode: string;
+        refs: number;
+        is_avc?: string;
+        nal_length_size?: number;
+        id: string;
+        r_frame_rate: string;
+        avg_frame_rate: string;
+        time_base: string;
+        start_pts: number;
+        start_time: number;
+        duration_ts: number;
+        duration: number;
+        bit_rate: number;
+        max_bit_rate: string;
+        bits_per_raw_sample: number;
+        nb_frames: number;
+        nb_read_frames: string;
+        nb_read_packets: string;
+        framerate: number;
+    }
+    /**<!-- DOCS: ffmpegTools.getProbeValue ### @ -->
+     * getProbeValue
+     *
+     * Get a value from ffprobe output
+     *
+     * ```typescript
+     * const probe = await getProbe('file.mp4', 'width'); // '1280'
+     * ```
+     */
+    const getProbeValue: (file: string, propertyName: string) => Promise<string>;
+    /**<!-- DOCS: ffmpegTools.getTotalFrames ### @ -->
+     * getTotalFrames
+     *
+     * Get the total number of frames in a video file.
+     *
+     * ```typescript
+     * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
+     * ```
+     */
+    const getTotalFrames: (list?: string | string[]) => Promise<number>;
 }
-/**<!-- DOCS: ffmpeg.getProbe ### @ -->
- * getProbe
- *
- * Get the probe of a file as an object
- *
- * ```typescript
- * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
- * ```
- */
-declare const getProbe: (file: string) => Promise<ProbeResult>;
-/**<!-- DOCS: ffmpeg.getTotalFrames ### @ -->
- * getTotalFrames
- *
- * Get the total number of frames in a video file.
- *
- * ```typescript
- * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
- * ```
- */
-declare const getTotalFrames: (list?: string | string[]) => Promise<number>;
-/**<!-- DOCS: ffmpeg.ffmpeg ### @ -->
+/**<!-- DOCS-ALIAS: ffmpegTools.ffmpeg -->
  * ffmpeg
- *
+ * 
+ * - `ffmpeg`
+ * - `ffmpegTools.ffmpeg`
+ * 
  * Wrapper for ffmpeg command that provides progress bar to track progress
- *
+ * 
  * ```typescript
  * const progBarOpts = {}; // Same options as getProgressBar
  * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
@@ -511,10 +845,17 @@ declare const getTotalFrames: (list?: string | string[]) => Promise<number>;
  */
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
 
-/**<!-- DOCS: gm.utils ### -->
- * utils
+/**<!-- DOCS: gm.utils.GMCommand ##### -->
+ * GMCommand
+ *
+ * TODO docs
  */
 declare type GMCommand = 'convert' | 'composite';
+/**<!-- DOCS: gm.utils.SupportedFlag ##### -->
+ * SupportedFlag
+ *
+ * TODO docs
+ */
 interface SupportedFlag {
     name: string;
     type: 'string' | 'number' | 'boolean';
@@ -526,66 +867,178 @@ interface SupportedFlag {
     hint?: string;
 }
 
-interface CommonFlagsObj {
-    compose?: string;
-    geometry?: string;
-    gravity?: string;
-    monochrome?: boolean;
-    negate?: boolean;
-    quality?: number;
-    resize?: string;
-    rotate?: number;
-    size?: string;
-    font?: string;
-}
-interface ConvertFlagsObj extends CommonFlagsObj {
-    'black-threshold'?: number;
-    blur?: string;
-    colorize?: string;
-    crop?: string;
-    fill?: string;
-    flip?: boolean;
-    flop?: boolean;
-    threshold?: number;
-    'white-threshold'?: number;
-    format?: string;
-    bordercolor?: string;
-    border?: number;
-    fuzz?: string;
-    transparent?: string;
-    pointsize?: number;
-    draw?: string;
-    channel?: string;
-    modulate?: string;
-    /** brightness - shortcut/alias for `-modulate x,100,100` */
-    brightness?: number;
-    /** saturation - shortcut/alias for `-modulate 100,x,100` */
-    saturation?: number;
-    /** hue - shortcut/alias for `-modulate 100,100,x` */
-    hue?: number;
-}
-declare type channel = 'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte';
-interface CompositeFlagsObj extends CommonFlagsObj {
-    displace?: string;
-    dissolve?: number;
-    prism?: [channel, number | `${number}` | `${number}x${number}`] | string;
-}
-declare type FlagsObj = ConvertFlagsObj & CompositeFlagsObj;
-interface ChangeAndMaskFlags {
-    change?: CompositeFlagsObj;
-    mask?: CompositeFlagsObj;
-}
-declare const gm: {
-    PIPE: string;
-    convert: (inPath?: string, outPath?: string, flags?: ConvertFlagsObj) => ProcessPromise;
-    composite: (changePath?: string, basePath?: string, outPath?: string, maskPath?: string, flags?: ChangeAndMaskFlags | CompositeFlagsObj) => ProcessPromise;
-    pipe: (inPath?: string, outPath?: string, processes?: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]) => ProcessPromise;
-    utils: {
-        supportedFlags: {
+/**<!-- DOCS: gm ##! -->
+ * gm
+ */
+declare namespace gm {
+    /**<!-- DOCS: gm.convert ### @ -->
+     * convert
+     *
+     * Wrapper function for gm (GraphicsMagick) convert command
+     *
+     * ```typescript
+     * const converted = await gm.convert(input, output, {});
+     * ```
+     */
+    const convert: (inPath?: string, outPath?: string, flags?: ConvertFlagsObj) => ProcessPromise;
+    /**<!-- DOCS: gm.ConvertFlagsObj #### -->
+     * ConvertFlagsObj
+     *
+     * TODO docs
+     *
+     * Extends CommonFlagsObj
+     */
+    interface ConvertFlagsObj extends CommonFlagsObj {
+        'black-threshold'?: number;
+        blur?: string;
+        colorize?: string;
+        crop?: string;
+        fill?: string;
+        flip?: boolean;
+        flop?: boolean;
+        threshold?: number;
+        'white-threshold'?: number;
+        format?: string;
+        bordercolor?: string;
+        border?: number;
+        fuzz?: string;
+        transparent?: string;
+        pointsize?: number;
+        draw?: string;
+        channel?: string;
+        modulate?: string;
+        /** brightness - shortcut/alias for `-modulate x,100,100` */
+        brightness?: number;
+        /** saturation - shortcut/alias for `-modulate 100,x,100` */
+        saturation?: number;
+        /** hue - shortcut/alias for `-modulate 100,100,x` */
+        hue?: number;
+    }
+    /**<!-- DOCS: gm.composite ### @ -->
+     * composite
+     *
+     * Wrapper function for gm (GraphicsMagick) composite command
+     *
+     * Has extra functionality for using a 'Screen' blending mode (similar to Photoshop)
+     *
+     * ```typescript
+     * const composited = await gm.composite(change, base, out, undefined, {});
+     * ```
+     */
+    const composite: (changePath?: string, basePath?: string, outPath?: string, maskPath?: string, flags?: ChangeAndMaskFlags | CompositeFlagsObj) => ProcessPromise;
+    /**<!-- DOCS: gm.CompositeFlagsObj #### -->
+     * CompositeFlagsObj
+     *
+     * TODO docs
+     *
+     * Extends CommonFlagsObj
+     */
+    interface CompositeFlagsObj extends CommonFlagsObj {
+        displace?: string;
+        dissolve?: number;
+        prism?: [channel, number | `${number}` | `${number}x${number}`] | string;
+    }
+    /**<!-- DOCS: gm.ChangeAndMaskFlags #### -->
+     * ChangeAndMaskFlags
+     *
+     * TODO docs
+     */
+    interface ChangeAndMaskFlags {
+        change?: CompositeFlagsObj;
+        mask?: CompositeFlagsObj;
+    }
+    /**<!-- DOCS: gm.pipe ### @ -->
+     * pipe
+     *
+     * TODO docs
+     */
+    const pipe: (inPath?: string, outPath?: string, processes?: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]) => ProcessPromise;
+    /**<!-- DOCS: gm.PIPE_constant ### -->
+     * PIPE
+     *
+     * TODO docs
+     */
+    const PIPE = "MIFF:-";
+    /**<!-- DOCS: gm.Types ### -->
+     * Types
+     */
+    /**<!-- DOCS: gm.CommonFlagsObj #### -->
+     * CommonFlagsObj
+     *
+     * TODO docs
+     */
+    interface CommonFlagsObj {
+        compose?: string;
+        geometry?: string;
+        gravity?: string;
+        monochrome?: boolean;
+        negate?: boolean;
+        quality?: number;
+        resize?: string;
+        rotate?: number;
+        size?: string;
+        font?: string;
+    }
+    /**<!-- DOCS: gm.FlagsObj #### -->
+     * FlagsObj
+     *
+     * `ConvertFlagsObj & CompositeFlagsObj`
+     */
+    type FlagsObj = ConvertFlagsObj & CompositeFlagsObj;
+    /**<!-- DOCS: gm.channel #### -->
+     * channel
+     *
+     * `'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte'`
+     */
+    type channel = 'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte';
+    /**<!-- DOCS-ALIAS: gm.utils -->
+     * utils
+     */
+    namespace utils {
+        /**<!-- DOCS-ALIAS: gm.utils.flagsObjToArray -->
+         * flagsObjToArray
+         * 
+         * Converts a FlagsObj to an array of flags and values (for zx).
+         */
+        const flagsObjToArray: (obj: FlagsObj) => any[];
+        /**<!-- DOCS-ALIAS: gm.utils.supportedFlags -->
+         * supportedFlags
+         * 
+         * An object containing the supported flags and their types (or options).
+         */
+        const supportedFlags: {
             [key: string]: SupportedFlag;
         };
-        flagsObjToArray: (obj: FlagsObj) => any[];
-    };
-};
+        /**<!-- DOCS-ALIAS: gm.utils.channelComposeCopyMap -->
+         * channelComposeCopyMap
+         * 
+         * TODO docs
+         */
+        const channelComposeCopyMap: {
+            red: string;
+            green: string;
+            blue: string;
+            cyan: string;
+            magenta: string;
+            yellow: string;
+            black: string;
+            opacity: string;
+            gray: string;
+            matte: string;
+        };
+        /**<!-- DOCS-ALIAS: gm.utils.GMCommand -->
+         * GMCommand
+         * 
+         * TODO docs
+         */
+        type GMCommand = GMCommand;
+        /**<!-- DOCS-ALIAS: gm.utils.SupportedFlag -->
+         * SupportedFlag
+         * 
+         * TODO docs
+         */
+        type SupportedFlag = SupportedFlag;
+    }
+}
 
-export { $$, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, FlagsObj, ModifiedFile, ProbeResult, closeFinder, ffmpeg, getProbe, getProbeValue, getTotalFrames, gm, toFFmpegTimeFormat };
+export { $$, closeFinder, ffmpeg, ffmpegTools, gm, os };

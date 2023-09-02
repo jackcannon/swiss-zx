@@ -8,9 +8,8 @@ Uses `swiss-ak`
 
   - [**Table of Contents**](#)
     - [**$$ (double dollar)**](#-double-dollar)
-    - [**Exif**](#exif)
     - [**os**](#os)
-    - [**ffmpeg**](#ffmpeg)
+    - [**ffmpegTools**](#ffmpegtools)
     - [**gm**](#gm)
 
 <!-- DOCS: TOC END -->
@@ -41,9 +40,14 @@ yarn add swiss-zx
     - [touch](#touch)
     - [cat](#cat)
     - [grep](#grep)
-    - [find](#find)
+    - [**find**](#find)
+      - [FindOptions](#findoptions)
+      - [FindType](#findtype)
     - [findDirs](#finddirs)
     - [findFiles](#findfiles)
+    - [**findModified**](#findmodified)
+      - [ModifiedFile](#modifiedfile)
+    - [lastModified](#lastmodified)
     - [rsync](#rsync)
     - [sync](#sync)
     - [isFileExist](#isfileexist)
@@ -52,6 +56,10 @@ yarn add swiss-zx
     - [writeFile](#writefile)
     - [readJSON](#readjson)
     - [writeJSON](#writejson)
+    - [pipe](#___pipe)
+    - [**exiftool**](#exiftool)
+      - [ExifToolAttributesObj](#exiftoolattributesobj)
+      - [ExifToolAttributes](#exiftoolattributes)
     - [**utils**](#___utils)
       - [intoLines](#intolines)
 
@@ -160,6 +168,26 @@ await $$.find('.', { type: 'f' }) // ['a', 'b']
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
+#### FindOptions
+Options for $$.find (and related other tools)
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+#### FindType
+Type of item to find
+
+|   | Description       |
+|---|-------------------|
+| d | directory         |
+| f | regular file      |
+| b | block special     |
+| c | character special |
+| l | symbolic link     |
+| p | FIFO              |
+| s | socket            |
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
 ### findDirs
 Find all directories in a given directory (shallow)
 
@@ -175,6 +203,21 @@ Find all files in a given directory (shallow)
 ```typescript
 await $$.findFiles('.') // ['a', 'b']
 ```
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+### findModified
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+#### ModifiedFile
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+### lastModified
+TODO docs
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -250,6 +293,30 @@ await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file calle
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
+### <span id="___pipe">pipe</span>
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+### exiftool
+Usage:
+```typescript
+$$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
+$$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
+```
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+#### ExifToolAttributesObj
+Interface for the attributes returned by exiftool
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
+#### ExifToolAttributes
+Type for the names of the attributes returned by exiftool
+
+<p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
+
 ### <span id="___utils">utils</span>
 
 #### intoLines
@@ -261,33 +328,6 @@ utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
-## Exif
-  - [**Exif**](#exif)
-    - [**exiftool**](#exiftool)
-      - [ExifToolAttributesObj](#exiftoolattributesobj)
-      - [ExifToolAttributes](#exiftoolattributes)
-
-<p style="text-align: right" align="right"><a href="#"> [↑ Back to top ↑] </a></p>
-
-### exiftool
-Usage:
-```typescript
-$$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
-$$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
-```
-
-<p style="text-align: right" align="right"><a href="#exif"> [↑ Back to <b>Exif</b> ↑] </a></p>
-
-#### ExifToolAttributesObj
-Interface for the attributes returned by exiftool
-
-<p style="text-align: right" align="right"><a href="#exif"> [↑ Back to <b>Exif</b> ↑] </a></p>
-
-#### ExifToolAttributes
-Type for the names of the attributes returned by exiftool
-
-<p style="text-align: right" align="right"><a href="#exif"> [↑ Back to <b>Exif</b> ↑] </a></p>
-
 ## os
   - [**os**](#os)
     - [closeFinder](#closefinder)
@@ -298,6 +338,7 @@ Type for the names of the attributes returned by exiftool
 
 ```typescript
 closeFinder;
+os.closeFinder;
 ```
 
 Close all Mac OS X Finder windows.
@@ -308,35 +349,37 @@ await closeFinder();
 
 <p style="text-align: right" align="right"><a href="#os"> [↑ Back to <b>os</b> ↑] </a></p>
 
-## <span id="ffmpeg">ffmpeg</span>
-  - [**ffmpeg**](#ffmpeg)
+## ffmpegTools
+  - [**ffmpegTools**](#ffmpegtools)
+    - [ffmpeg](#ffmpeg)
     - [toFFmpegTimeFormat](#toffmpegtimeformat)
+    - [**getProbe**](#getprobe)
+      - [ProbeResult](#proberesult)
     - [getProbeValue](#getprobevalue)
-    - [ProbeResult](#proberesult)
-    - [getProbe](#getprobe)
     - [getTotalFrames](#gettotalframes)
-    - [ffmpeg](#ffmpeg_ffmpeg)
 
 <p style="text-align: right" align="right"><a href="#"> [↑ Back to top ↑] </a></p>
+
+### ffmpeg
+
+```typescript
+ffmpeg;
+ffmpegTools.ffmpeg;
+```
+
+Wrapper for ffmpeg command that provides progress bar to track progress
+
+```typescript
+const progBarOpts = {}; // Same options as getProgressBar
+await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
+```
+
+<p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### toFFmpegTimeFormat
 Convert a number of milliseconds to a time format usable by FFmpeg.
 
-<p style="text-align: right" align="right"><a href="#ffmpeg"> [↑ Back to <b>ffmpeg</b> ↑] </a></p>
-
-### getProbeValue
-Get a value from ffprobe output
-
-```typescript
-const probe = await getProbe('file.mp4', 'width'); // '1280'
-```
-
-<p style="text-align: right" align="right"><a href="#ffmpeg"> [↑ Back to <b>ffmpeg</b> ↑] </a></p>
-
-### ProbeResult
-Note: this interface is a guide, and other properties may exist, and some may be have different types
-
-<p style="text-align: right" align="right"><a href="#ffmpeg"> [↑ Back to <b>ffmpeg</b> ↑] </a></p>
+<p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### getProbe
 Get the probe of a file as an object
@@ -345,7 +388,21 @@ Get the probe of a file as an object
 const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
 ```
 
-<p style="text-align: right" align="right"><a href="#ffmpeg"> [↑ Back to <b>ffmpeg</b> ↑] </a></p>
+<p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
+
+#### ProbeResult
+Note: this interface is a guide, and other properties may exist, and some may be have different types
+
+<p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
+
+### getProbeValue
+Get a value from ffprobe output
+
+```typescript
+const probe = await getProbe('file.mp4', 'width'); // '1280'
+```
+
+<p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### getTotalFrames
 Get the total number of frames in a video file.
@@ -354,25 +411,27 @@ Get the total number of frames in a video file.
 const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
 ```
 
-<p style="text-align: right" align="right"><a href="#ffmpeg"> [↑ Back to <b>ffmpeg</b> ↑] </a></p>
-
-### <span id="ffmpeg_ffmpeg">ffmpeg</span>
-Wrapper for ffmpeg command that provides progress bar to track progress
-
-```typescript
-const progBarOpts = {}; // Same options as getProgressBar
-await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
-```
-
-<p style="text-align: right" align="right"><a href="#ffmpeg"> [↑ Back to <b>ffmpeg</b> ↑] </a></p>
+<p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ## gm
   - [**gm**](#gm)
-    - [convert](#convert)
-    - [composite](#composite)
+    - [**convert**](#convert)
+      - [ConvertFlagsObj](#convertflagsobj)
+    - [**composite**](#composite)
+      - [CompositeFlagsObj](#compositeflagsobj)
+      - [ChangeAndMaskFlags](#changeandmaskflags)
+    - [pipe](#gm_pipe)
+    - [PIPE](#gm_pipe_constant)
+    - [**Types**](#types)
+      - [CommonFlagsObj](#commonflagsobj)
+      - [FlagsObj](#flagsobj)
+      - [channel](#channel)
     - [**utils**](#gm_utils)
-      - [supportedFlags](#supportedflags)
       - [flagsObjToArray](#flagsobjtoarray)
+      - [channelComposeCopyMap](#channelcomposecopymap)
+      - [**supportedFlags**](#supportedflags)
+        - [GMCommand](#gmcommand)
+        - [SupportedFlag](#supportedflag)
 
 <p style="text-align: right" align="right"><a href="#"> [↑ Back to top ↑] </a></p>
 
@@ -382,6 +441,13 @@ Wrapper function for gm (GraphicsMagick) convert command
 ```typescript
 const converted = await gm.convert(input, output, {});
 ```
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+#### ConvertFlagsObj
+TODO docs
+
+Extends CommonFlagsObj
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -396,15 +462,69 @@ const composited = await gm.composite(change, base, out, undefined, {});
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
+#### CompositeFlagsObj
+TODO docs
+
+Extends CommonFlagsObj
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+#### ChangeAndMaskFlags
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+### <span id="gm_pipe">pipe</span>
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+### <span id="gm_pipe_constant">PIPE</span>
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+### Types
+
+#### CommonFlagsObj
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+#### FlagsObj
+`ConvertFlagsObj & CompositeFlagsObj`
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+#### channel
+`'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte'`
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
 ### <span id="gm_utils">utils</span>
+
+#### flagsObjToArray
+Converts a FlagsObj to an array of flags and values (for zx).
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+#### channelComposeCopyMap
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
 #### supportedFlags
 An object containing the supported flags and their types (or options).
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
-#### flagsObjToArray
-Converts a FlagsObj to an array of flags and values (for zx).
+##### GMCommand
+TODO docs
+
+<p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
+
+##### SupportedFlag
+TODO docs
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 

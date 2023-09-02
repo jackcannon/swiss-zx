@@ -1,18 +1,20 @@
-// TODO docs
+/**<!-- DOCS-ALIAS: $$.FindType -->*/
 export type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
 
-// TODO docs
+/**<!-- DOCS-ALIAS: $$.FindOptions -->*/
 export interface FindOptions {
   /**
    * Type of item to find
    *
-   * * d = directory
-   * * f = regular file
-   * * b = block special
-   * * c = character special
-   * * l = symbolic link
-   * * p = FIFO
-   * * s = socket
+   * |   | Description       |
+   * |---|-------------------|
+   * | d | directory         |
+   * | f | regular file      |
+   * | b | block special     |
+   * | c | character special |
+   * | l | symbolic link     |
+   * | p | FIFO              |
+   * | s | socket            |
    */
   type?: FindType;
   /**

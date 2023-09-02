@@ -1,30 +1,54 @@
 import { fn } from 'swiss-ak';
-import { FlagsObj } from '../gm';
+import { gm } from '../gm';
 
-//<!-- DOCS: 450 -->
+//<!-- DOCS: 410 -->
+
 /**<!-- DOCS: gm.utils ### -->
  * utils
  */
+/**<!-- DOCS: gm.utils.flagsObjToArray #### @ -->
+ * flagsObjToArray
+ *
+ * Converts a FlagsObj to an array of flags and values (for zx).
+ */
+export const flagsObjToArray = (obj: gm.FlagsObj) => {
+  const { brightness, saturation, hue, ...rest } = obj;
 
-type GMCommand = 'convert' | 'composite';
+  if (rest.modulate === undefined && (brightness !== undefined || saturation !== undefined || hue !== undefined)) {
+    rest.modulate = `${brightness ?? 100},${saturation ?? 100},${hue ?? 100}`;
+  }
 
-export interface SupportedFlag {
-  name: string;
-  type: 'string' | 'number' | 'boolean';
-  commands: GMCommand[];
-  options?: string[];
-  canOverrideOpts?: boolean;
-  processOutput?: (value: any) => any;
-  description: string;
-  hint?: string;
-}
+  return Object.entries(obj)
+    .filter(([name, value]) => value !== undefined && value !== null && value !== false)
+    .map(([name, value]) => ['-' + name, (supportedFlags[name]?.processOutput || fn.noact)(value)])
+    .flat()
+    .filter((x) => x !== undefined && x !== true);
+};
 
-/**<!-- DOCS: gm.utils.supportedFlags #### @ -->
+/**<!-- DOCS: gm.utils.channelComposeCopyMap #### -->
+ * channelComposeCopyMap
+ *
+ * TODO docs
+ */
+export const channelComposeCopyMap: { [key in gm.channel]: string } = {
+  red: 'CopyRed',
+  green: 'CopyGreen',
+  blue: 'CopyBlue',
+  cyan: 'CopyCyan',
+  magenta: 'CopyMagenta',
+  yellow: 'CopyYellow',
+  black: 'CopyBlack',
+  opacity: 'CopyOpacity',
+  gray: 'Copy',
+  matte: 'Copy'
+};
+
+/**<!-- DOCS: gm.utils.supportedFlags #### -->
  * supportedFlags
  *
  * An object containing the supported flags and their types (or options).
  */
-const supportedFlags: { [key: string]: SupportedFlag } = {
+export const supportedFlags: { [key: string]: SupportedFlag } = {
   'black-threshold': {
     name: 'black-threshold',
     type: 'number',
@@ -230,26 +254,25 @@ const supportedFlags: { [key: string]: SupportedFlag } = {
   }
 };
 
-/**<!-- DOCS: gm.utils.flagsObjToArray #### @ -->
- * flagsObjToArray
+/**<!-- DOCS: gm.utils.GMCommand ##### -->
+ * GMCommand
  *
- * Converts a FlagsObj to an array of flags and values (for zx).
+ * TODO docs
  */
-const flagsObjToArray = (obj: FlagsObj) => {
-  const { brightness, saturation, hue, ...rest } = obj;
+export type GMCommand = 'convert' | 'composite';
 
-  if (rest.modulate === undefined && (brightness !== undefined || saturation !== undefined || hue !== undefined)) {
-    rest.modulate = `${brightness ?? 100},${saturation ?? 100},${hue ?? 100}`;
-  }
-
-  return Object.entries(obj)
-    .filter(([name, value]) => value !== undefined && value !== null && value !== false)
-    .map(([name, value]) => ['-' + name, (supportedFlags[name]?.processOutput || fn.noact)(value)])
-    .flat()
-    .filter((x) => x !== undefined && x !== true);
-};
-
-export const gmUtils = {
-  supportedFlags,
-  flagsObjToArray
-};
+/**<!-- DOCS: gm.utils.SupportedFlag ##### -->
+ * SupportedFlag
+ *
+ * TODO docs
+ */
+export interface SupportedFlag {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+  commands: GMCommand[];
+  options?: string[];
+  canOverrideOpts?: boolean;
+  processOutput?: (value: any) => any;
+  description: string;
+  hint?: string;
+}

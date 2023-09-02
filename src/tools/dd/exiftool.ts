@@ -1,11 +1,8 @@
 import { $$ } from '../$$';
 
 //<!-- DOCS: 110 -->
-/**<!-- DOCS: exif ##! -->
- * Exif
- */
 
-/**<!-- DOCS: exif.exiftool ### @ -->
+/**<!-- DOCS: $$.exif.exiftool ### @ -->
  * exiftool
  *
  * Usage:
@@ -43,7 +40,7 @@ export const exiftool = async (
   return Object.fromEntries(entries);
 };
 
-/**<!-- DOCS: exif.ExifToolAttributesObj #### -->
+/**<!-- DOCS: $$.exif.ExifToolAttributesObj #### -->
  * ExifToolAttributesObj
  *
  * Interface for the attributes returned by exiftool
@@ -341,7 +338,7 @@ export interface ExifToolAttributesObj {
   [anykey: string]: string;
 }
 
-/**<!-- DOCS: exif.ExifToolAttributes #### -->
+/**<!-- DOCS: $$.exif.ExifToolAttributes #### -->
  * ExifToolAttributes
  *
  * Type for the names of the attributes returned by exiftool
