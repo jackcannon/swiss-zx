@@ -1,4 +1,4 @@
 export * from './tools/$$';
-export * from './tools/ffmpeg';
-export * from './tools/gm';
 export * from './tools/os';
+export * from './tools/ffmpegTools';
+export * from './tools/gm';

@@ -4,14 +4,19 @@ import { $$ } from './$$';
 
 $.verbose = false;
 
-/**
+//<!-- DOCS: 300 -->
+
+/**<!-- DOCS: ffmpeg ##! -->
+ * ffmpeg
+ */
+/**<!-- DOCS: ffmpeg.toFFmpegTimeFormat ### @ -->
  * toFFmpegTimeFormat
  *
  * Convert a number of milliseconds to a time format usable by FFmpeg.
  */
 export const toFFmpegTimeFormat = (time: ms) => new Date(time).toISOString().slice(14, 23);
 
-/**
+/**<!-- DOCS: ffmpeg.getProbeValue ### @ -->
  * getProbeValue
  *
  * Get a value from ffprobe output
@@ -23,7 +28,9 @@ export const toFFmpegTimeFormat = (time: ms) => new Date(time).toISOString().sli
 export const getProbeValue = async (file: string, propertyName: string): Promise<string> =>
   (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
 
-/**
+/**<!-- DOCS: ffmpeg.ProbeResult ### -->
+ * ProbeResult
+ *
  * Note: this interface is a guide, and other properties may exist, and some may be have different types
  */
 export interface ProbeResult {
@@ -73,7 +80,7 @@ export interface ProbeResult {
   framerate: number;
 }
 
-/**
+/**<!-- DOCS: ffmpeg.getProbe ### @ -->
  * getProbe
  *
  * Get the probe of a file as an object
@@ -144,7 +151,7 @@ export const getProbe = async (file: string): Promise<ProbeResult> => {
   };
 };
 
-/**
+/**<!-- DOCS: ffmpeg.getTotalFrames ### @ -->
  * getTotalFrames
  *
  * Get the total number of frames in a video file.
@@ -180,7 +187,7 @@ const readChunk = (chunk) =>
       )
   );
 
-/**
+/**<!-- DOCS: ffmpeg.ffmpeg ### @ -->
  * ffmpeg
  *
  * Wrapper for ffmpeg command that provides progress bar to track progress

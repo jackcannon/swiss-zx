@@ -2,6 +2,11 @@ import * as zx from 'zx';
 import { ms, ProgressBarOptions } from 'swiss-ak';
 import { ExplodedPath } from 'swiss-node';
 
+/**<!-- DOCS: exif.ExifToolAttributesObj #### -->
+ * ExifToolAttributesObj
+ *
+ * Interface for the attributes returned by exiftool
+ */
 interface ExifToolAttributesObj {
     ExifToolVersion?: string;
     FileName?: string;
@@ -389,13 +394,32 @@ declare const $$: {
     };
 };
 
-/**
+/**<!-- DOCS: os ##! -->
+ * os
+ */
+/**<!-- DOCS: os.closeFinder ### @ -->
+ * closeFinder
+ *
+ * - `closeFinder`
+ *
+ * Close all Mac OS X Finder windows.
+ *
+ * ```typescript
+ * await closeFinder();
+ * ```
+ */
+declare const closeFinder: () => Promise<void>;
+
+/**<!-- DOCS: ffmpeg ##! -->
+ * ffmpeg
+ */
+/**<!-- DOCS: ffmpeg.toFFmpegTimeFormat ### @ -->
  * toFFmpegTimeFormat
  *
  * Convert a number of milliseconds to a time format usable by FFmpeg.
  */
 declare const toFFmpegTimeFormat: (time: ms) => string;
-/**
+/**<!-- DOCS: ffmpeg.getProbeValue ### @ -->
  * getProbeValue
  *
  * Get a value from ffprobe output
@@ -405,7 +429,9 @@ declare const toFFmpegTimeFormat: (time: ms) => string;
  * ```
  */
 declare const getProbeValue: (file: string, propertyName: string) => Promise<string>;
-/**
+/**<!-- DOCS: ffmpeg.ProbeResult ### -->
+ * ProbeResult
+ *
  * Note: this interface is a guide, and other properties may exist, and some may be have different types
  */
 interface ProbeResult {
@@ -453,7 +479,7 @@ interface ProbeResult {
     nb_read_packets: string;
     framerate: number;
 }
-/**
+/**<!-- DOCS: ffmpeg.getProbe ### @ -->
  * getProbe
  *
  * Get the probe of a file as an object
@@ -463,7 +489,7 @@ interface ProbeResult {
  * ```
  */
 declare const getProbe: (file: string) => Promise<ProbeResult>;
-/**
+/**<!-- DOCS: ffmpeg.getTotalFrames ### @ -->
  * getTotalFrames
  *
  * Get the total number of frames in a video file.
@@ -473,7 +499,7 @@ declare const getProbe: (file: string) => Promise<ProbeResult>;
  * ```
  */
 declare const getTotalFrames: (list?: string | string[]) => Promise<number>;
-/**
+/**<!-- DOCS: ffmpeg.ffmpeg ### @ -->
  * ffmpeg
  *
  * Wrapper for ffmpeg command that provides progress bar to track progress
@@ -485,6 +511,9 @@ declare const getTotalFrames: (list?: string | string[]) => Promise<number>;
  */
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
 
+/**<!-- DOCS: gm.utils ### -->
+ * utils
+ */
 declare type GMCommand = 'convert' | 'composite';
 interface SupportedFlag {
     name: string;
@@ -558,10 +587,5 @@ declare const gm: {
         flagsObjToArray: (obj: FlagsObj) => any[];
     };
 };
-
-/**
- * Close all Mac OS X Finder windows.
- */
-declare const closeFinder: () => Promise<void>;
 
 export { $$, CommonFlagsObj, CompositeFlagsObj, ConvertFlagsObj, FlagsObj, ModifiedFile, ProbeResult, closeFinder, ffmpeg, getProbe, getProbeValue, getTotalFrames, gm, toFFmpegTimeFormat };

@@ -2,6 +2,11 @@ import { fn } from 'swiss-ak';
 import { $$ } from './$$';
 import { gmUtils } from './gm/utils';
 
+//<!-- DOCS: 400 -->
+/**<!-- DOCS: gm ##! -->
+ * gm
+ */
+
 const PIPE = 'MIFF:-';
 
 export interface CommonFlagsObj {
@@ -95,8 +100,8 @@ const formaliseCompositeFlags = (flags: ChangeAndMaskFlags | CompositeFlagsObj):
   };
 };
 
-/**
- * gm.convert
+/**<!-- DOCS: gm.convert ### @ -->
+ * convert
  *
  * Wrapper function for gm (GraphicsMagick) convert command
  *
@@ -109,8 +114,8 @@ const convert = (inPath: string = PIPE, outPath: string = PIPE, flags: ConvertFl
   return $`gm convert ${flagsArray} ${inPath} ${outPath}`;
 };
 
-/**
- * gm.composite
+/**<!-- DOCS: gm.composite ### @ -->
+ * composite
  *
  * Wrapper function for gm (GraphicsMagick) composite command
  *

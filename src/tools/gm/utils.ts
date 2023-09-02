@@ -1,6 +1,11 @@
 import { fn } from 'swiss-ak';
 import { FlagsObj } from '../gm';
 
+//<!-- DOCS: 450 -->
+/**<!-- DOCS: gm.utils ### -->
+ * utils
+ */
+
 type GMCommand = 'convert' | 'composite';
 
 export interface SupportedFlag {
@@ -14,8 +19,8 @@ export interface SupportedFlag {
   hint?: string;
 }
 
-/**
- * gm.utils.supportedFlags
+/**<!-- DOCS: gm.utils.supportedFlags #### @ -->
+ * supportedFlags
  *
  * An object containing the supported flags and their types (or options).
  */
@@ -225,8 +230,8 @@ const supportedFlags: { [key: string]: SupportedFlag } = {
   }
 };
 
-/**
- * gm.utils.flagsObjToArray
+/**<!-- DOCS: gm.utils.flagsObjToArray #### @ -->
+ * flagsObjToArray
  *
  * Converts a FlagsObj to an array of flags and values (for zx).
  */

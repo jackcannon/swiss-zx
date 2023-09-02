@@ -36,7 +36,7 @@ var import_zx = require("zx");
 var import_swiss_ak = require("swiss-ak");
 var import_swiss_node = require("swiss-node");
 
-// src/tools/exiftool.ts
+// src/tools/dd/exiftool.ts
 var exiftool = async (file, setAttr, getAttr, outFile) => {
   const getFlags = (getAttr == null ? void 0 : getAttr.map((attr) => `-${(attr + "").replace(/[^a-zA-Z0-9-]/g, "")}`)) ?? [];
   const setFlags = Object.entries(setAttr || {}).map(([k, v]) => {
@@ -58,7 +58,6 @@ var exiftool = async (file, setAttr, getAttr, outFile) => {
 // src/tools/$$.ts
 import_zx.$.verbose = false;
 var fs = import_zx.fs.promises;
-var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak.fn.isTruthy);
 var cd = async (dir = ".") => {
   (0, import_zx.cd)(dir);
   await import_zx.$`cd ${dir}`;
@@ -170,6 +169,7 @@ var pipe = (processes, arg) => {
   }
   return result;
 };
+var intoLines = (out) => out.toString().split("\n").filter(import_swiss_ak.fn.isTruthy);
 var $$ = {
   cd,
   pwd,
@@ -199,6 +199,11 @@ var $$ = {
   utils: {
     intoLines
   }
+};
+
+// src/tools/os.ts
+var closeFinder = async () => {
+  await $`osascript -e 'tell application "Finder" to close every window'`;
 };
 
 // src/tools/ffmpeg.ts
@@ -604,11 +609,6 @@ var gm = {
   composite,
   pipe: pipe2,
   utils: gmUtils
-};
-
-// src/tools/os.ts
-var closeFinder = async () => {
-  await $`osascript -e 'tell application "Finder" to close every window'`;
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

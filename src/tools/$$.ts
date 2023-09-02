@@ -4,34 +4,48 @@ import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'sw
 import { PathTools, explodePath, ExplodedPath } from 'swiss-node';
 
 import { FindOptions } from '../utils/findTypes';
-import { exiftool } from './exiftool';
+import { exiftool } from './dd/exiftool';
 
 $.verbose = false;
 
 const fs = fsO.promises;
 
-/**
- * $$.utils.intoLines
+//<!-- DOCS: 100 -->
+
+/**<!-- DOCS: $$ ##! -->
+ * $$ (double dollar)
+ */
+/**<!-- DOCS: $$.cd ### @ -->
+ * cd
  *
- * Turns ProcessOutput into string array, split into lines
+ * Change the current working directory
  *
  * ```typescript
- * $$.utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
+ * await $$.pwd(); // '/Users/username'
+ * await $$.cd('./some/folder');
+ * await $$.pwd(); // '/Users/username/some/folder'
  * ```
  */
-const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(fn.isTruthy);
-
-// todo docs
 const cd = async (dir: string = '.'): Promise<void> => {
   cdO(dir);
   await $`cd ${dir}`;
 };
 
-// todo docs
+/**<!-- DOCS: $$.pwd ### @ -->
+ * pwd
+ *
+ * Get the current working directory
+ *
+ * ```typescript
+ * await $$.pwd(); // '/Users/username'
+ * await $$.cd('./some/folder');
+ * await $$.pwd(); // '/Users/username/some/folder'
+ * ```
+ */
 const pwd = async (): Promise<string> => intoLines(await $`pwd`)[0];
 
-/**
- * $$.ls
+/**<!-- DOCS: $$.ls ### @ -->
+ * ls
  *
  * Wrapper for ls (list) command
  *
@@ -41,8 +55,8 @@ const pwd = async (): Promise<string> => intoLines(await $`pwd`)[0];
  */
 const ls = async (dir: string = '.', flags: string[] = []): Promise<string[]> => intoLines(await $`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
 
-/**
- * $$.rm
+/**<!-- DOCS: $$.rm ### @ -->
+ * rm
  *
  * Wrapper for rm (remove) command
  *
@@ -52,8 +66,8 @@ const ls = async (dir: string = '.', flags: string[] = []): Promise<string[]> =>
  */
 const rm = (item: string) => $`rm -rf ${item}`;
 
-/**
- * $$.mkdir
+/**<!-- DOCS: $$.mkdir ### @ -->
+ * mkdir
  *
  * Wrapper for mkdir (make directory) command
  *
@@ -63,8 +77,8 @@ const rm = (item: string) => $`rm -rf ${item}`;
  */
 const mkdir = (item: string) => $`mkdir -p ${item}`;
 
-/**
- * $$.cp
+/**<!-- DOCS: $$.cp ### @ -->
+ * cp
  *
  * Wrapper for cp (copy) command
  *
@@ -74,8 +88,8 @@ const mkdir = (item: string) => $`mkdir -p ${item}`;
  */
 const cp = (a: string, b: string) => $`cp -r ${a} ${b}`;
 
-/**
- * $$.mv
+/**<!-- DOCS: $$.mv ### @ -->
+ * mv
  *
  * Wrapper for mv (move) command
  *
@@ -85,8 +99,8 @@ const cp = (a: string, b: string) => $`cp -r ${a} ${b}`;
  */
 const mv = (a: string, b: string) => $`mv ${a} ${b}`;
 
-/**
- * $$.touch
+/**<!-- DOCS: $$.touch ### @ -->
+ * touch
  *
  * Wrapper for touch (create blank file) command
  *
@@ -96,8 +110,8 @@ const mv = (a: string, b: string) => $`mv ${a} ${b}`;
  */
 const touch = (item: string) => $`touch ${item}`;
 
-/**
- * $$.cat
+/**<!-- DOCS: $$.cat ### @ -->
+ * cat
  *
  * Wrapper for cat (concatenate) command
  *
@@ -107,8 +121,8 @@ const touch = (item: string) => $`touch ${item}`;
  */
 const cat = (item: string) => $`cat ${item}`;
 
-/**
- * $$.grep
+/**<!-- DOCS: $$.grep ### @ -->
+ * grep
  *
  * Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
  *
@@ -132,8 +146,8 @@ const convertFindOptionsToFlags = (options: FindOptions) => {
   return flags;
 };
 
-/**
- * $$.find
+/**<!-- DOCS: $$.find ### @ -->
+ * find
  *
  * Helper function for finding files
  *
@@ -170,8 +184,8 @@ const find = async (dir: string = '.', options: FindOptions = {}): Promise<strin
     .map(options.removeTrailingSlashes ? PathTools.removeTrailSlash : fn.noact);
 };
 
-/**
- * $$.findDirs
+/**<!-- DOCS: $$.findDirs ### @ -->
+ * findDirs
  *
  * Find all directories in a given directory (shallow)
  *
@@ -182,8 +196,8 @@ const find = async (dir: string = '.', options: FindOptions = {}): Promise<strin
 const findDirs = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
   find(dir, { type: 'd', maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
 
-/**
- * $$.findFiles
+/**<!-- DOCS: $$.findFiles ### @ -->
+ * findFiles
  *
  * Find all files in a given directory (shallow)
  *
@@ -229,8 +243,8 @@ const lastModified = async (path: string): Promise<number> => {
   return max;
 };
 
-/**
- * $$.rsync
+/**<!-- DOCS: $$.rsync ### @ -->
+ * rsync
  *
  * Wrapper for rsync command
  *
@@ -261,8 +275,8 @@ const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts
   }
 };
 
-/**
- * $$.sync
+/**<!-- DOCS: $$.sync ### @ -->
+ * sync
  *
  * Helper function for syncing files
  *
@@ -273,8 +287,8 @@ const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts
 const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) =>
   rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ['--delete'], progressBarOpts);
 
-/**
- * $$.isFileExist
+/**<!-- DOCS: $$.isFileExist ### @ -->
+ * isFileExist
  *
  * Check if a file exists
  *
@@ -284,8 +298,8 @@ const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions
  */
 const isFileExist = async (file: string) => (await $`[[ -f ${file} ]]`.exitCode) === 0;
 
-/**
- * $$.isDirExist
+/**<!-- DOCS: $$.isDirExist ### @ -->
+ * isDirExist
  *
  * Check if a directory exists
  *
@@ -295,8 +309,8 @@ const isFileExist = async (file: string) => (await $`[[ -f ${file} ]]`.exitCode)
  */
 const isDirExist = async (dir: string) => (await $`[[ -d ${dir} ]]`.exitCode) === 0;
 
-/**
- * $$.readFile
+/**<!-- DOCS: $$.readFile ### @ -->
+ * readFile
  *
  * Read a file's contents
  *
@@ -304,10 +318,10 @@ const isDirExist = async (dir: string) => (await $`[[ -d ${dir} ]]`.exitCode) ==
  * await $$.readFile('example') // 'hello world'
  * ```
  */
-const readFile = (filepath: string): Promise<string> => retryOr<string>('', 2, 100, true, () => fs.readFile(filepath, { encoding: 'utf8' }));
+const readFile = (filepath: string): Promise<string> => retryOr<any>('', 2, 100, true, () => fs.readFile(filepath, { encoding: 'utf8' }));
 
-/**
- * $$.writeFile
+/**<!-- DOCS: $$.writeFile ### @ -->
+ * writeFile
  *
  * Write to a file
  *
@@ -316,10 +330,10 @@ const readFile = (filepath: string): Promise<string> => retryOr<string>('', 2, 1
  * ```
  */
 const writeFile = (filepath: string, contents: string): Promise<void> =>
-  retryOr<undefined>(undefined, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
+  retryOr<any>(undefined, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
 
-/**
- * $$.readJSON
+/**<!-- DOCS: $$.readJSON ### @ -->
+ * readJSON
  *
  * Read a JSON file
  *
@@ -332,8 +346,8 @@ const readJSON = async <T extends unknown>(filepath: string): Promise<T> => {
   return JSON.parse(raw || '{}');
 };
 
-/**
- * $$.writeJSON
+/**<!-- DOCS: $$.writeJSON ### @ -->
+ * writeJSON
  *
  * Write to a JSON file
  *
@@ -361,6 +375,20 @@ const pipe = <T extends unknown>(processes: ((index?: number, arg?: T) => Proces
 
   return result;
 };
+
+/**<!-- DOCS: $$.utils ### -->
+ * utils
+ */
+/**<!-- DOCS: $$.utils.intoLines #### @ -->
+ * intoLines
+ *
+ * Turns ProcessOutput into string array, split into lines
+ *
+ * ```typescript
+ * utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
+ * ```
+ */
+const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(fn.isTruthy);
 
 export const $$ = {
   cd,

@@ -1,5 +1,7 @@
+// TODO docs
 export type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
 
+// TODO docs
 export interface FindOptions {
   /**
    * Type of item to find

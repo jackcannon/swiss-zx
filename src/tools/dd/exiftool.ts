@@ -1,6 +1,53 @@
-import { fn } from 'swiss-ak';
-import { $$ } from './$$';
+import { $$ } from '../$$';
 
+//<!-- DOCS: 110 -->
+/**<!-- DOCS: exif ##! -->
+ * Exif
+ */
+
+/**<!-- DOCS: exif.exiftool ### @ -->
+ * exiftool
+ *
+ * Usage:
+ * ```typescript
+ * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
+ * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
+ * ```
+ */
+export const exiftool = async (
+  file: string,
+  setAttr?: ExifToolAttributesObj,
+  getAttr?: (ExifToolAttributes | string)[],
+  outFile?: string
+): Promise<ExifToolAttributesObj> => {
+  const getFlags = getAttr?.map((attr) => `-${(attr + '').replace(/[^a-zA-Z0-9-]/g, '')}`) ?? [];
+
+  const setFlags = Object.entries(setAttr || {}).map(([k, v]) => {
+    const attr = (k + '').replace(/[^a-zA-Z0-9-]/g, '');
+    return `-${attr}=${v}`;
+  });
+
+  let output: ProcessOutput;
+  if (outFile) {
+    await $$.rm(outFile);
+    output = await $`exiftool -s ${getFlags} ${setFlags} -ignoreMinorErrors -o ${outFile} ${file}`;
+  } else {
+    output = await $`exiftool -s ${getFlags} ${setFlags} -ignoreMinorErrors -overwrite_original ${file}`;
+  }
+
+  const lines = output.stdout.split('\n').filter((line) => line && line.match(/\s:\s(.*)/) !== null);
+  const entries = lines
+    .map((line) => line.trim().split(/\s+:\s+(.*)/s))
+    .map(([key, value]) => [(key || '').trim(), (value || '').trim()])
+    .filter(([key]) => key);
+  return Object.fromEntries(entries);
+};
+
+/**<!-- DOCS: exif.ExifToolAttributesObj #### -->
+ * ExifToolAttributesObj
+ *
+ * Interface for the attributes returned by exiftool
+ */
 export interface ExifToolAttributesObj {
   ExifToolVersion?: string;
   FileName?: string;
@@ -294,42 +341,9 @@ export interface ExifToolAttributesObj {
   [anykey: string]: string;
 }
 
-export type ExifToolAttributes = keyof ExifToolAttributesObj;
-
-/**
- * TODO docs
+/**<!-- DOCS: exif.ExifToolAttributes #### -->
+ * ExifToolAttributes
  *
- * Usage:
- * ```typescript
- * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
- * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
- * ```
+ * Type for the names of the attributes returned by exiftool
  */
-export const exiftool = async (
-  file: string,
-  setAttr?: ExifToolAttributesObj,
-  getAttr?: (ExifToolAttributes | string)[],
-  outFile?: string
-): Promise<ExifToolAttributesObj> => {
-  const getFlags = getAttr?.map((attr) => `-${(attr + '').replace(/[^a-zA-Z0-9-]/g, '')}`) ?? [];
-
-  const setFlags = Object.entries(setAttr || {}).map(([k, v]) => {
-    const attr = (k + '').replace(/[^a-zA-Z0-9-]/g, '');
-    return `-${attr}=${v}`;
-  });
-
-  let output: ProcessOutput;
-  if (outFile) {
-    await $$.rm(outFile);
-    output = await $`exiftool -s ${getFlags} ${setFlags} -ignoreMinorErrors -o ${outFile} ${file}`;
-  } else {
-    output = await $`exiftool -s ${getFlags} ${setFlags} -ignoreMinorErrors -overwrite_original ${file}`;
-  }
-
-  const lines = output.stdout.split('\n').filter((line) => line && line.match(/\s:\s(.*)/) !== null);
-  const entries = lines
-    .map((line) => line.trim().split(/\s+:\s+(.*)/s))
-    .map(([key, value]) => [(key || '').trim(), (value || '').trim()])
-    .filter(([key]) => key);
-  return Object.fromEntries(entries);
-};
+export type ExifToolAttributes = keyof ExifToolAttributesObj;
