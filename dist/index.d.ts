@@ -473,7 +473,6 @@ declare namespace $$ {
          */
         type?: FindType;
         /**
-         * TODO docs
          * Minimum depth to search
          */
         mindepth?: number;
@@ -500,10 +499,6 @@ declare namespace $$ {
          * If true, removes the path from the result (so you just get the file/directory name)
          */
         removePath?: boolean;
-        /**
-         * TODO docs
-         */
-        absolutePath?: boolean;
         /**
          * If true, ensures the provided path has a trailing slash.
          */
@@ -564,7 +559,22 @@ declare namespace $$ {
      *
      * - `$$.findModified`
      *
-     * Similar to $$.find, but returns a list of ModifiedFile objects, which includes infomation on what each item was last modified.
+     * Similar to $$.find, but returns a list of ModifiedFile objects, which includes information on what each item was last modified.
+     *
+     * ```typescript
+     * await $$.findModified('.')
+     * // [
+     * //   {
+     * //     lastModified: 1689206400000,
+     * //     path: './a.mp4',
+     * //     dir: '.',
+     * //     folders: ['.'],
+     * //     name: 'a',
+     * //     ext: 'mp4',
+     * //     filename: 'a.mp4'
+     * //   }
+     * // ]
+     * ```
      */
     const findModified: (dir?: string, options?: FindOptions) => Promise<ModifiedFile[]>;
     /**<!-- DOCS: $$.ModifiedFile #### -->
@@ -572,7 +582,21 @@ declare namespace $$ {
      *
      * - `$$.ModifiedFile`
      *
-     * TODO docs
+     * Returned by $$.findModified.
+     *
+     * Extends `swiss-node`'s `ExplodedPath`, adding a new `lastModified` number property.
+     *
+     * ```typescript
+     * {
+     *   lastModified: 1689206400000,
+     *   path: './a.mp4',
+     *   dir: '.',
+     *   folders: ['.'],
+     *   name: 'a',
+     *   ext: 'mp4',
+     *   filename: 'a.mp4'
+     * }
+     * ```
      */
     interface ModifiedFile extends ExplodedPath {
         lastModified: ms;
@@ -582,7 +606,11 @@ declare namespace $$ {
      *
      * - `$$.lastModified`
      *
-     * TODO docs
+     * Returns the last modified time of a file or files within a directory.
+     *
+     * ```typescript
+     * await $$.lastModified('a.mp4') // 1689206400000
+     * ```
      */
     const lastModified: (path: string) => Promise<number>;
     /**<!-- DOCS: $$.rsync ### @ -->
@@ -686,7 +714,14 @@ declare namespace $$ {
      *
      * - `$$.pipe`
      *
-     * TODO docs
+     * Pipes a series of $ or $$ commands sequentially
+     *
+     * ```typescript
+     * await $$.pipe([
+     *   () => gm.convert(basePath, gm.PIPE, opts1),
+     *   () => gm.composite(changePath, gm.PIPE, gm.PIPE, changePath, opts2)
+     * ]);
+     * ```
      */
     const pipe: <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T) => ProcessPromise;
     /**<!-- DOCS-ALIAS: $$.exif.exiftool -->
@@ -903,7 +938,13 @@ declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string
  *
  * - `gm.utils.GMCommand`
  *
- * TODO docs
+ * An internal string indictor for which gm command to use.
+ *
+ * Only used in configuration for `gm.utils.SupportedFlag`.
+ *
+ * ```typescript
+ * 'convert' | 'composite'
+ * ```
  */
 declare type GMCommand = 'convert' | 'composite';
 /**<!-- DOCS: gm.utils.SupportedFlag ##### -->
@@ -911,7 +952,7 @@ declare type GMCommand = 'convert' | 'composite';
  *
  * - `gm.utils.SupportedFlag`
  *
- * TODO docs
+ * An internal configuration object for a supported flag.
  */
 interface SupportedFlag {
     name: string;
@@ -945,7 +986,7 @@ declare namespace gm {
      *
      * - `gm.ConvertFlagsObj`
      *
-     * TODO docs
+     * Options configuration for the `gm.convert` function
      *
      * Extends CommonFlagsObj
      */
@@ -994,7 +1035,7 @@ declare namespace gm {
      *
      * - `gm.CompositeFlagsObj`
      *
-     * TODO docs
+     * Options configuration for the `gm.composite` function
      *
      * Extends CommonFlagsObj
      */
@@ -1008,7 +1049,14 @@ declare namespace gm {
      *
      * - `gm.ChangeAndMaskFlags`
      *
-     * TODO docs
+     * If compositing with a mask, you can specify the change and mask flags separately
+     *
+     * ```typescript
+     * {
+     *   change?: CompositeFlagsObj;
+     *   mask?: CompositeFlagsObj;
+     * }
+     * ```
      */
     interface ChangeAndMaskFlags {
         change?: CompositeFlagsObj;
@@ -1019,7 +1067,14 @@ declare namespace gm {
      *
      * - `gm.pipe`
      *
-     * TODO docs
+     * Pipe a series of gm commands together
+     *
+     * ```typescript
+     * await pipe(basePath, outPath, [
+     *   (p) => convert(p, p, opts1),
+     *   (p) => composite(changePath, p, p, changePath, opts2)
+     * ]);
+     * ```
      */
     const pipe: (inPath?: string, outPath?: string, processes?: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]) => ProcessPromise;
     /**<!-- DOCS: gm.PIPE_constant ### -->
@@ -1027,7 +1082,9 @@ declare namespace gm {
      *
      * - `gm.PIPE`
      *
-     * TODO docs
+     * A shortcut constant for the GraphicsMagick pipe path which is `MIFF:-`
+     *
+     * This can be used in place any path parameter to pipe the result of a gm command to another gm command
      */
     const PIPE = "MIFF:-";
     /**<!-- DOCS: gm.Types ### -->
@@ -1038,7 +1095,7 @@ declare namespace gm {
      *
      * - `gm.CommonFlagsObj`
      *
-     * TODO docs
+     * Option configuration options that are common to both `gm.convert` and `gm.composite`
      */
     interface CommonFlagsObj {
         compose?: string;
@@ -1095,7 +1152,7 @@ declare namespace gm {
          * 
          * - `gm.utils.channelComposeCopyMap`
          * 
-         * TODO docs
+         * A dictionary for mapping channel names to their respective compose copy names.
          */
         const channelComposeCopyMap: {
             red: string;
@@ -1114,7 +1171,13 @@ declare namespace gm {
          * 
          * - `gm.utils.GMCommand`
          * 
-         * TODO docs
+         * An internal string indictor for which gm command to use.
+         * 
+         * Only used in configuration for `gm.utils.SupportedFlag`.
+         * 
+         * ```typescript
+         * 'convert' | 'composite'
+         * ```
          */
         type GMCommand = GMCommand;
         /**<!-- DOCS-ALIAS: gm.utils.SupportedFlag -->
@@ -1122,7 +1185,7 @@ declare namespace gm {
          * 
          * - `gm.utils.SupportedFlag`
          * 
-         * TODO docs
+         * An internal configuration object for a supported flag.
          */
         type SupportedFlag = SupportedFlag;
     }

@@ -287,7 +287,22 @@ await $$.findFiles('.') // ['a', 'b']
 $$.findModified;
 ```
 
-Similar to $$.find, but returns a list of ModifiedFile objects, which includes infomation on what each item was last modified.
+Similar to $$.find, but returns a list of ModifiedFile objects, which includes information on what each item was last modified.
+
+```typescript
+await $$.findModified('.')
+// [
+//   {
+//     lastModified: 1689206400000,
+//     path: './a.mp4',
+//     dir: '.',
+//     folders: ['.'],
+//     name: 'a',
+//     ext: 'mp4',
+//     filename: 'a.mp4'
+//   }
+// ]
+```
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -297,7 +312,21 @@ Similar to $$.find, but returns a list of ModifiedFile objects, which includes i
 $$.ModifiedFile;
 ```
 
-TODO docs
+Returned by $$.findModified.
+
+Extends `swiss-node`'s `ExplodedPath`, adding a new `lastModified` number property.
+
+```typescript
+{
+  lastModified: 1689206400000,
+  path: './a.mp4',
+  dir: '.',
+  folders: ['.'],
+  name: 'a',
+  ext: 'mp4',
+  filename: 'a.mp4'
+}
+```
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -307,7 +336,11 @@ TODO docs
 $$.lastModified;
 ```
 
-TODO docs
+Returns the last modified time of a file or files within a directory.
+
+```typescript
+await $$.lastModified('a.mp4') // 1689206400000
+```
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -429,7 +462,14 @@ await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file calle
 $$.pipe;
 ```
 
-TODO docs
+Pipes a series of $ or $$ commands sequentially
+
+```typescript
+await $$.pipe([
+  () => gm.convert(basePath, gm.PIPE, opts1),
+  () => gm.composite(changePath, gm.PIPE, gm.PIPE, changePath, opts2)
+]);
+```
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -635,7 +675,7 @@ const converted = await gm.convert(input, output, {});
 gm.ConvertFlagsObj;
 ```
 
-TODO docs
+Options configuration for the `gm.convert` function
 
 Extends CommonFlagsObj
 
@@ -663,7 +703,7 @@ const composited = await gm.composite(change, base, out, undefined, {});
 gm.CompositeFlagsObj;
 ```
 
-TODO docs
+Options configuration for the `gm.composite` function
 
 Extends CommonFlagsObj
 
@@ -675,7 +715,14 @@ Extends CommonFlagsObj
 gm.ChangeAndMaskFlags;
 ```
 
-TODO docs
+If compositing with a mask, you can specify the change and mask flags separately
+
+```typescript
+{
+  change?: CompositeFlagsObj;
+  mask?: CompositeFlagsObj;
+}
+```
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -685,7 +732,14 @@ TODO docs
 gm.pipe;
 ```
 
-TODO docs
+Pipe a series of gm commands together
+
+```typescript
+await pipe(basePath, outPath, [
+  (p) => convert(p, p, opts1),
+  (p) => composite(changePath, p, p, changePath, opts2)
+]);
+```
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -695,7 +749,9 @@ TODO docs
 gm.PIPE;
 ```
 
-TODO docs
+A shortcut constant for the GraphicsMagick pipe path which is `MIFF:-`
+
+This can be used in place any path parameter to pipe the result of a gm command to another gm command
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -707,7 +763,7 @@ TODO docs
 gm.CommonFlagsObj;
 ```
 
-TODO docs
+Option configuration options that are common to both `gm.convert` and `gm.composite`
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -749,7 +805,7 @@ Converts a FlagsObj to an array of flags and values (for zx).
 gm.utils.channelComposeCopyMap;
 ```
 
-TODO docs
+A dictionary for mapping channel names to their respective compose copy names.
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -769,7 +825,13 @@ An object containing the supported flags and their types (or options).
 gm.utils.GMCommand;
 ```
 
-TODO docs
+An internal string indictor for which gm command to use.
+
+Only used in configuration for `gm.utils.SupportedFlag`.
+
+```typescript
+'convert' | 'composite'
+```
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -779,7 +841,7 @@ TODO docs
 gm.utils.SupportedFlag;
 ```
 
-TODO docs
+An internal configuration object for a supported flag.
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
