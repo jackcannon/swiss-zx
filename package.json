@@ -27,7 +27,7 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "build": "yarn build:code && yarn docs",
+    "build": "yarn build:jsdoc && yarn build:code && yarn docs",
     "quickbuild": "yarn build:code && yarn docs",
     "build:jsdoc": "swiss-docs --src src --jsdoc",
     "build:code": "tsup-node src/index.ts --format cjs,esm --dts --clean",
