@@ -68,12 +68,16 @@ export namespace ffmpegTools {
   /**<!-- DOCS: ffmpegTools.toFFmpegTimeFormat ### @ -->
    * toFFmpegTimeFormat
    *
+   * - `ffmpegTools.toFFmpegTimeFormat`
+   *
    * Convert a number of milliseconds to a time format usable by FFmpeg.
    */
   export const toFFmpegTimeFormat = (time: ms) => new Date(time).toISOString().slice(14, 23);
 
   /**<!-- DOCS: ffmpegTools.getProbe ### @ -->
    * getProbe
+   *
+   * - `ffmpegTools.getProbe`
    *
    * Get the probe of a file as an object
    *
@@ -146,6 +150,8 @@ export namespace ffmpegTools {
   /**<!-- DOCS: ffmpegTools.ProbeResult #### -->
    * ProbeResult
    *
+   * - `ffmpegTools.ProbeResult`
+   *
    * Note: this interface is a guide, and other properties may exist, and some may be have different types
    */
   export interface ProbeResult {
@@ -198,6 +204,8 @@ export namespace ffmpegTools {
   /**<!-- DOCS: ffmpegTools.getProbeValue ### @ -->
    * getProbeValue
    *
+   * - `ffmpegTools.getProbeValue`
+   *
    * Get a value from ffprobe output
    *
    * ```typescript
@@ -209,6 +217,8 @@ export namespace ffmpegTools {
 
   /**<!-- DOCS: ffmpegTools.getTotalFrames ### @ -->
    * getTotalFrames
+   *
+   * - `ffmpegTools.getTotalFrames`
    *
    * Get the total number of frames in a video file.
    *

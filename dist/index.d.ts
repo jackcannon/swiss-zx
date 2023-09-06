@@ -5,6 +5,8 @@ import { ExplodedPath } from 'swiss-node';
 /**<!-- DOCS-ALIAS: $$.FindType -->
  * FindType
  * 
+ * - `$$.FindType`
+ * 
  * Type of item to find
  * 
  * |   | Description       |
@@ -20,6 +22,8 @@ import { ExplodedPath } from 'swiss-node';
 declare type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
 /**<!-- DOCS-ALIAS: $$.FindOptions -->
  * FindOptions
+ * 
+ * - `$$.FindOptions`
  * 
  * Options for $$.find (and related other tools)
  */
@@ -86,6 +90,8 @@ interface FindOptions {
 
 /**<!-- DOCS: $$.exif.ExifToolAttributesObj #### -->
  * ExifToolAttributesObj
+ *
+ * - `$$.ExifToolAttributesObj`
  *
  * Interface for the attributes returned by exiftool
  */
@@ -384,6 +390,8 @@ interface ExifToolAttributesObj {
 /**<!-- DOCS: $$.exif.ExifToolAttributes #### -->
  * ExifToolAttributes
  *
+ * - `$$.ExifToolAttributes`
+ *
  * Type for the names of the attributes returned by exiftool
  */
 declare type ExifToolAttributes = keyof ExifToolAttributesObj;
@@ -394,6 +402,8 @@ declare type ExifToolAttributes = keyof ExifToolAttributesObj;
 declare namespace $$ {
     /**<!-- DOCS: $$.cd ### @ -->
      * cd
+     *
+     * - `$$.cd`
      *
      * Change the current working directory
      *
@@ -407,6 +417,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.pwd ### @ -->
      * pwd
      *
+     * - `$$.pwd`
+     *
      * Get the current working directory
      *
      * ```typescript
@@ -419,6 +431,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.ls ### @ -->
      * ls
      *
+     * - `$$.ls`
+     *
      * Wrapper for ls (list) command
      *
      * ```typescript
@@ -428,6 +442,8 @@ declare namespace $$ {
     const ls: (dir?: string, flags?: string[]) => Promise<string[]>;
     /**<!-- DOCS: $$.rm ### @ -->
      * rm
+     *
+     * - `$$.rm`
      *
      * Wrapper for rm (remove) command
      *
@@ -439,6 +455,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.mkdir ### @ -->
      * mkdir
      *
+     * - `$$.mkdir`
+     *
      * Wrapper for mkdir (make directory) command
      *
      * ```typescript
@@ -448,6 +466,8 @@ declare namespace $$ {
     const mkdir: (item: string) => zx.ProcessPromise;
     /**<!-- DOCS: $$.cp ### @ -->
      * cp
+     *
+     * - `$$.cp`
      *
      * Wrapper for cp (copy) command
      *
@@ -459,6 +479,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.mv ### @ -->
      * mv
      *
+     * - `$$.mv`
+     *
      * Wrapper for mv (move) command
      *
      * ```typescript
@@ -468,6 +490,8 @@ declare namespace $$ {
     const mv: (a: string, b: string) => zx.ProcessPromise;
     /**<!-- DOCS: $$.touch ### @ -->
      * touch
+     *
+     * - `$$.touch`
      *
      * Wrapper for touch (create blank file) command
      *
@@ -479,6 +503,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.cat ### @ -->
      * cat
      *
+     * - `$$.cat`
+     *
      * Wrapper for cat (concatenate) command
      *
      * ```typescript
@@ -488,6 +514,8 @@ declare namespace $$ {
     const cat: (item: string) => zx.ProcessPromise;
     /**<!-- DOCS: $$.grep ### @ -->
      * grep
+     *
+     * - `$$.grep`
      *
      * Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
      *
@@ -499,6 +527,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.find ### @ -->
      * find
      *
+     * - `$$.find`
+     *
      * Helper function for finding files
      *
      * ```typescript
@@ -509,11 +539,15 @@ declare namespace $$ {
     /**<!-- DOCS: $$.FindOptions #### -->
      * FindOptions
      *
+     * - `$$.FindOptions`
+     *
      * Options for $$.find (and related other tools)
      */
     type FindOptions = FindOptions;
     /**<!-- DOCS: $$.FindType #### -->
      * FindType
+     *
+     * - `$$.FindType`
      *
      * Type of item to find
      *
@@ -531,6 +565,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.findDirs ### @ -->
      * findDirs
      *
+     * - `$$.findDirs`
+     *
      * Find all directories in a given directory (shallow)
      *
      * ```typescript
@@ -540,6 +576,8 @@ declare namespace $$ {
     const findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
     /**<!-- DOCS: $$.findFiles ### @ -->
      * findFiles
+     *
+     * - `$$.findFiles`
      *
      * Find all files in a given directory (shallow)
      *
@@ -551,11 +589,15 @@ declare namespace $$ {
     /**<!-- DOCS: $$.findModified ### @ -->
      * findModified
      *
+     * - `$$.findModified`
+     *
      * TODO docs
      */
     const findModified: (dir?: string, options?: FindOptions) => Promise<ModifiedFile[]>;
     /**<!-- DOCS: $$.ModifiedFile #### -->
      * ModifiedFile
+     *
+     * - `$$.ModifiedFile`
      *
      * TODO docs
      */
@@ -565,11 +607,15 @@ declare namespace $$ {
     /**<!-- DOCS: $$.lastModified ### @ -->
      * lastModified
      *
+     * - `$$.lastModified`
+     *
      * TODO docs
      */
     const lastModified: (path: string) => Promise<number>;
     /**<!-- DOCS: $$.rsync ### @ -->
      * rsync
+     *
+     * - `$$.rsync`
      *
      * Wrapper for rsync command
      *
@@ -581,6 +627,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.sync ### @ -->
      * sync
      *
+     * - `$$.sync`
+     *
      * Helper function for syncing files
      *
      * ```typescript
@@ -590,6 +638,8 @@ declare namespace $$ {
     const sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
     /**<!-- DOCS: $$.isFileExist ### @ -->
      * isFileExist
+     *
+     * - `$$.isFileExist`
      *
      * Check if a file exists
      *
@@ -601,6 +651,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.isDirExist ### @ -->
      * isDirExist
      *
+     * - `$$.isDirExist`
+     *
      * Check if a directory exists
      *
      * ```typescript
@@ -610,6 +662,8 @@ declare namespace $$ {
     const isDirExist: (dir: string) => Promise<boolean>;
     /**<!-- DOCS: $$.readFile ### @ -->
      * readFile
+     *
+     * - `$$.readFile`
      *
      * Read a file's contents
      *
@@ -621,6 +675,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.writeFile ### @ -->
      * writeFile
      *
+     * - `$$.writeFile`
+     *
      * Write to a file
      *
      * ```typescript
@@ -630,6 +686,8 @@ declare namespace $$ {
     const writeFile: (filepath: string, contents: string) => Promise<void>;
     /**<!-- DOCS: $$.readJSON ### @ -->
      * readJSON
+     *
+     * - `$$.readJSON`
      *
      * Read a JSON file
      *
@@ -641,6 +699,8 @@ declare namespace $$ {
     /**<!-- DOCS: $$.writeJSON ### @ -->
      * writeJSON
      *
+     * - `$$.writeJSON`
+     *
      * Write to a JSON file
      *
      * ```typescript
@@ -651,11 +711,15 @@ declare namespace $$ {
     /**<!-- DOCS: $$.pipe ### @ -->
      * pipe
      *
+     * - `$$.pipe`
+     *
      * TODO docs
      */
     const pipe: <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T) => ProcessPromise;
     /**<!-- DOCS-ALIAS: $$.exif.exiftool -->
      * exiftool
+     * 
+     * - `$$.exiftool`
      * 
      * Usage:
      * ```typescript
@@ -667,11 +731,15 @@ declare namespace $$ {
     /**<!-- DOCS-ALIAS: $$.exif.ExifToolAttributesObj -->
      * ExifToolAttributesObj
      * 
+     * - `$$.ExifToolAttributesObj`
+     * 
      * Interface for the attributes returned by exiftool
      */
     type ExifToolAttributesObj = ExifToolAttributesObj;
     /**<!-- DOCS-ALIAS: $$.exif.ExifToolAttributes -->
      * ExifToolAttributes
+     * 
+     * - `$$.ExifToolAttributes`
      * 
      * Type for the names of the attributes returned by exiftool
      */
@@ -682,6 +750,8 @@ declare namespace $$ {
     namespace utils {
         /**<!-- DOCS: $$.utils.intoLines #### @ -->
          * intoLines
+         *
+         * - `$$.utils.intoLines`
          *
          * Turns ProcessOutput into string array, split into lines
          *
@@ -746,11 +816,15 @@ declare namespace ffmpegTools {
     /**<!-- DOCS: ffmpegTools.toFFmpegTimeFormat ### @ -->
      * toFFmpegTimeFormat
      *
+     * - `ffmpegTools.toFFmpegTimeFormat`
+     *
      * Convert a number of milliseconds to a time format usable by FFmpeg.
      */
     const toFFmpegTimeFormat: (time: ms) => string;
     /**<!-- DOCS: ffmpegTools.getProbe ### @ -->
      * getProbe
+     *
+     * - `ffmpegTools.getProbe`
      *
      * Get the probe of a file as an object
      *
@@ -761,6 +835,8 @@ declare namespace ffmpegTools {
     const getProbe: (file: string) => Promise<ProbeResult>;
     /**<!-- DOCS: ffmpegTools.ProbeResult #### -->
      * ProbeResult
+     *
+     * - `ffmpegTools.ProbeResult`
      *
      * Note: this interface is a guide, and other properties may exist, and some may be have different types
      */
@@ -812,6 +888,8 @@ declare namespace ffmpegTools {
     /**<!-- DOCS: ffmpegTools.getProbeValue ### @ -->
      * getProbeValue
      *
+     * - `ffmpegTools.getProbeValue`
+     *
      * Get a value from ffprobe output
      *
      * ```typescript
@@ -821,6 +899,8 @@ declare namespace ffmpegTools {
     const getProbeValue: (file: string, propertyName: string) => Promise<string>;
     /**<!-- DOCS: ffmpegTools.getTotalFrames ### @ -->
      * getTotalFrames
+     *
+     * - `ffmpegTools.getTotalFrames`
      *
      * Get the total number of frames in a video file.
      *
@@ -848,11 +928,15 @@ declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string
 /**<!-- DOCS: gm.utils.GMCommand ##### -->
  * GMCommand
  *
+ * - `gm.utils.GMCommand`
+ *
  * TODO docs
  */
 declare type GMCommand = 'convert' | 'composite';
 /**<!-- DOCS: gm.utils.SupportedFlag ##### -->
  * SupportedFlag
+ *
+ * - `gm.utils.SupportedFlag`
  *
  * TODO docs
  */
@@ -874,6 +958,8 @@ declare namespace gm {
     /**<!-- DOCS: gm.convert ### @ -->
      * convert
      *
+     * - `gm.convert`
+     *
      * Wrapper function for gm (GraphicsMagick) convert command
      *
      * ```typescript
@@ -883,6 +969,8 @@ declare namespace gm {
     const convert: (inPath?: string, outPath?: string, flags?: ConvertFlagsObj) => ProcessPromise;
     /**<!-- DOCS: gm.ConvertFlagsObj #### -->
      * ConvertFlagsObj
+     *
+     * - `gm.ConvertFlagsObj`
      *
      * TODO docs
      *
@@ -917,6 +1005,8 @@ declare namespace gm {
     /**<!-- DOCS: gm.composite ### @ -->
      * composite
      *
+     * - `gm.composite`
+     *
      * Wrapper function for gm (GraphicsMagick) composite command
      *
      * Has extra functionality for using a 'Screen' blending mode (similar to Photoshop)
@@ -928,6 +1018,8 @@ declare namespace gm {
     const composite: (changePath?: string, basePath?: string, outPath?: string, maskPath?: string, flags?: ChangeAndMaskFlags | CompositeFlagsObj) => ProcessPromise;
     /**<!-- DOCS: gm.CompositeFlagsObj #### -->
      * CompositeFlagsObj
+     *
+     * - `gm.CompositeFlagsObj`
      *
      * TODO docs
      *
@@ -941,6 +1033,8 @@ declare namespace gm {
     /**<!-- DOCS: gm.ChangeAndMaskFlags #### -->
      * ChangeAndMaskFlags
      *
+     * - `gm.ChangeAndMaskFlags`
+     *
      * TODO docs
      */
     interface ChangeAndMaskFlags {
@@ -950,11 +1044,15 @@ declare namespace gm {
     /**<!-- DOCS: gm.pipe ### @ -->
      * pipe
      *
+     * - `gm.pipe`
+     *
      * TODO docs
      */
     const pipe: (inPath?: string, outPath?: string, processes?: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]) => ProcessPromise;
     /**<!-- DOCS: gm.PIPE_constant ### -->
      * PIPE
+     *
+     * - `gm.PIPE`
      *
      * TODO docs
      */
@@ -964,6 +1062,8 @@ declare namespace gm {
      */
     /**<!-- DOCS: gm.CommonFlagsObj #### -->
      * CommonFlagsObj
+     *
+     * - `gm.CommonFlagsObj`
      *
      * TODO docs
      */
@@ -982,11 +1082,15 @@ declare namespace gm {
     /**<!-- DOCS: gm.FlagsObj #### -->
      * FlagsObj
      *
+     * - `gm.FlagsObj`
+     *
      * `ConvertFlagsObj & CompositeFlagsObj`
      */
     type FlagsObj = ConvertFlagsObj & CompositeFlagsObj;
     /**<!-- DOCS: gm.channel #### -->
      * channel
+     *
+     * - `gm.channel`
      *
      * `'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte'`
      */
@@ -998,11 +1102,15 @@ declare namespace gm {
         /**<!-- DOCS-ALIAS: gm.utils.flagsObjToArray -->
          * flagsObjToArray
          * 
+         * - `gm.utils.flagsObjToArray`
+         * 
          * Converts a FlagsObj to an array of flags and values (for zx).
          */
         const flagsObjToArray: (obj: FlagsObj) => any[];
         /**<!-- DOCS-ALIAS: gm.utils.supportedFlags -->
          * supportedFlags
+         * 
+         * - `gm.utils.supportedFlags`
          * 
          * An object containing the supported flags and their types (or options).
          */
@@ -1011,6 +1119,8 @@ declare namespace gm {
         };
         /**<!-- DOCS-ALIAS: gm.utils.channelComposeCopyMap -->
          * channelComposeCopyMap
+         * 
+         * - `gm.utils.channelComposeCopyMap`
          * 
          * TODO docs
          */
@@ -1029,11 +1139,15 @@ declare namespace gm {
         /**<!-- DOCS-ALIAS: gm.utils.GMCommand -->
          * GMCommand
          * 
+         * - `gm.utils.GMCommand`
+         * 
          * TODO docs
          */
         type GMCommand = GMCommand;
         /**<!-- DOCS-ALIAS: gm.utils.SupportedFlag -->
          * SupportedFlag
+         * 
+         * - `gm.utils.SupportedFlag`
          * 
          * TODO docs
          */

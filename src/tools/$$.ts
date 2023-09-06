@@ -21,6 +21,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.cd ### @ -->
    * cd
    *
+   * - `$$.cd`
+   *
    * Change the current working directory
    *
    * ```typescript
@@ -37,6 +39,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.pwd ### @ -->
    * pwd
    *
+   * - `$$.pwd`
+   *
    * Get the current working directory
    *
    * ```typescript
@@ -50,6 +54,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.ls ### @ -->
    * ls
    *
+   * - `$$.ls`
+   *
    * Wrapper for ls (list) command
    *
    * ```typescript
@@ -62,6 +68,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.rm ### @ -->
    * rm
    *
+   * - `$$.rm`
+   *
    * Wrapper for rm (remove) command
    *
    * ```typescript
@@ -72,6 +80,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.mkdir ### @ -->
    * mkdir
+   *
+   * - `$$.mkdir`
    *
    * Wrapper for mkdir (make directory) command
    *
@@ -84,6 +94,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.cp ### @ -->
    * cp
    *
+   * - `$$.cp`
+   *
    * Wrapper for cp (copy) command
    *
    * ```typescript
@@ -94,6 +106,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.mv ### @ -->
    * mv
+   *
+   * - `$$.mv`
    *
    * Wrapper for mv (move) command
    *
@@ -106,6 +120,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.touch ### @ -->
    * touch
    *
+   * - `$$.touch`
+   *
    * Wrapper for touch (create blank file) command
    *
    * ```typescript
@@ -117,6 +133,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.cat ### @ -->
    * cat
    *
+   * - `$$.cat`
+   *
    * Wrapper for cat (concatenate) command
    *
    * ```typescript
@@ -127,6 +145,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.grep ### @ -->
    * grep
+   *
+   * - `$$.grep`
    *
    * Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
    *
@@ -152,6 +172,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.find ### @ -->
    * find
+   *
+   * - `$$.find`
    *
    * Helper function for finding files
    *
@@ -192,12 +214,16 @@ export namespace $$ {
   /**<!-- DOCS: $$.FindOptions #### -->
    * FindOptions
    *
+   * - `$$.FindOptions`
+   *
    * Options for $$.find (and related other tools)
    */
   export type FindOptions = findTypes.FindOptions;
 
   /**<!-- DOCS: $$.FindType #### -->
    * FindType
+   *
+   * - `$$.FindType`
    *
    * Type of item to find
    *
@@ -216,6 +242,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.findDirs ### @ -->
    * findDirs
    *
+   * - `$$.findDirs`
+   *
    * Find all directories in a given directory (shallow)
    *
    * ```typescript
@@ -228,6 +256,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.findFiles ### @ -->
    * findFiles
    *
+   * - `$$.findFiles`
+   *
    * Find all files in a given directory (shallow)
    *
    * ```typescript
@@ -239,6 +269,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.findModified ### @ -->
    * findModified
+   *
+   * - `$$.findModified`
    *
    * TODO docs
    */
@@ -269,6 +301,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.ModifiedFile #### -->
    * ModifiedFile
    *
+   * - `$$.ModifiedFile`
+   *
    * TODO docs
    */
   export interface ModifiedFile extends ExplodedPath {
@@ -277,6 +311,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.lastModified ### @ -->
    * lastModified
+   *
+   * - `$$.lastModified`
    *
    * TODO docs
    */
@@ -289,6 +325,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.rsync ### @ -->
    * rsync
+   *
+   * - `$$.rsync`
    *
    * Wrapper for rsync command
    *
@@ -322,6 +360,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.sync ### @ -->
    * sync
    *
+   * - `$$.sync`
+   *
    * Helper function for syncing files
    *
    * ```typescript
@@ -334,6 +374,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.isFileExist ### @ -->
    * isFileExist
    *
+   * - `$$.isFileExist`
+   *
    * Check if a file exists
    *
    * ```typescript
@@ -344,6 +386,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.isDirExist ### @ -->
    * isDirExist
+   *
+   * - `$$.isDirExist`
    *
    * Check if a directory exists
    *
@@ -356,6 +400,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.readFile ### @ -->
    * readFile
    *
+   * - `$$.readFile`
+   *
    * Read a file's contents
    *
    * ```typescript
@@ -366,6 +412,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.writeFile ### @ -->
    * writeFile
+   *
+   * - `$$.writeFile`
    *
    * Write to a file
    *
@@ -378,6 +426,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.readJSON ### @ -->
    * readJSON
+   *
+   * - `$$.readJSON`
    *
    * Read a JSON file
    *
@@ -393,6 +443,8 @@ export namespace $$ {
   /**<!-- DOCS: $$.writeJSON ### @ -->
    * writeJSON
    *
+   * - `$$.writeJSON`
+   *
    * Write to a JSON file
    *
    * ```typescript
@@ -407,6 +459,8 @@ export namespace $$ {
 
   /**<!-- DOCS: $$.pipe ### @ -->
    * pipe
+   *
+   * - `$$.pipe`
    *
    * TODO docs
    */
@@ -442,6 +496,8 @@ export namespace $$ {
 
     /**<!-- DOCS: $$.utils.intoLines #### @ -->
      * intoLines
+     *
+     * - `$$.utils.intoLines`
      *
      * Turns ProcessOutput into string array, split into lines
      *

@@ -9,6 +9,8 @@ import { gm } from '../gm';
 /**<!-- DOCS: gm.utils.flagsObjToArray #### @ -->
  * flagsObjToArray
  *
+ * - `gm.utils.flagsObjToArray`
+ *
  * Converts a FlagsObj to an array of flags and values (for zx).
  */
 export const flagsObjToArray = (obj: gm.FlagsObj) => {
@@ -28,6 +30,8 @@ export const flagsObjToArray = (obj: gm.FlagsObj) => {
 /**<!-- DOCS: gm.utils.channelComposeCopyMap #### -->
  * channelComposeCopyMap
  *
+ * - `gm.utils.channelComposeCopyMap`
+ *
  * TODO docs
  */
 export const channelComposeCopyMap: { [key in gm.channel]: string } = {
@@ -45,6 +49,8 @@ export const channelComposeCopyMap: { [key in gm.channel]: string } = {
 
 /**<!-- DOCS: gm.utils.supportedFlags #### -->
  * supportedFlags
+ *
+ * - `gm.utils.supportedFlags`
  *
  * An object containing the supported flags and their types (or options).
  */
@@ -257,12 +263,16 @@ export const supportedFlags: { [key: string]: SupportedFlag } = {
 /**<!-- DOCS: gm.utils.GMCommand ##### -->
  * GMCommand
  *
+ * - `gm.utils.GMCommand`
+ *
  * TODO docs
  */
 export type GMCommand = 'convert' | 'composite';
 
 /**<!-- DOCS: gm.utils.SupportedFlag ##### -->
  * SupportedFlag
+ *
+ * - `gm.utils.SupportedFlag`
  *
  * TODO docs
  */

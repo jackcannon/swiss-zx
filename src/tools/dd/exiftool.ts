@@ -5,6 +5,8 @@ import { $$ } from '../$$';
 /**<!-- DOCS: $$.exif.exiftool ### @ -->
  * exiftool
  *
+ * - `$$.exiftool`
+ *
  * Usage:
  * ```typescript
  * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
@@ -42,6 +44,8 @@ export const exiftool = async (
 
 /**<!-- DOCS: $$.exif.ExifToolAttributesObj #### -->
  * ExifToolAttributesObj
+ *
+ * - `$$.ExifToolAttributesObj`
  *
  * Interface for the attributes returned by exiftool
  */
@@ -340,6 +344,8 @@ export interface ExifToolAttributesObj {
 
 /**<!-- DOCS: $$.exif.ExifToolAttributes #### -->
  * ExifToolAttributes
+ *
+ * - `$$.ExifToolAttributes`
  *
  * Type for the names of the attributes returned by exiftool
  */

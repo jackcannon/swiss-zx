@@ -28,6 +28,8 @@ export namespace gm {
   /**<!-- DOCS: gm.convert ### @ -->
    * convert
    *
+   * - `gm.convert`
+   *
    * Wrapper function for gm (GraphicsMagick) convert command
    *
    * ```typescript
@@ -41,6 +43,8 @@ export namespace gm {
 
   /**<!-- DOCS: gm.ConvertFlagsObj #### -->
    * ConvertFlagsObj
+   *
+   * - `gm.ConvertFlagsObj`
    *
    * TODO docs
    *
@@ -78,6 +82,8 @@ export namespace gm {
 
   /**<!-- DOCS: gm.composite ### @ -->
    * composite
+   *
+   * - `gm.composite`
    *
    * Wrapper function for gm (GraphicsMagick) composite command
    *
@@ -143,6 +149,8 @@ export namespace gm {
   /**<!-- DOCS: gm.CompositeFlagsObj #### -->
    * CompositeFlagsObj
    *
+   * - `gm.CompositeFlagsObj`
+   *
    * TODO docs
    *
    * Extends CommonFlagsObj
@@ -158,6 +166,8 @@ export namespace gm {
   /**<!-- DOCS: gm.ChangeAndMaskFlags #### -->
    * ChangeAndMaskFlags
    *
+   * - `gm.ChangeAndMaskFlags`
+   *
    * TODO docs
    */
   export interface ChangeAndMaskFlags {
@@ -167,6 +177,8 @@ export namespace gm {
 
   /**<!-- DOCS: gm.pipe ### @ -->
    * pipe
+   *
+   * - `gm.pipe`
    *
    * TODO docs
    */
@@ -188,6 +200,8 @@ export namespace gm {
   /**<!-- DOCS: gm.PIPE_constant ### -->
    * PIPE
    *
+   * - `gm.PIPE`
+   *
    * TODO docs
    */
   export const PIPE = 'MIFF:-';
@@ -197,6 +211,8 @@ export namespace gm {
    */
   /**<!-- DOCS: gm.CommonFlagsObj #### -->
    * CommonFlagsObj
+   *
+   * - `gm.CommonFlagsObj`
    *
    * TODO docs
    */
@@ -218,12 +234,16 @@ export namespace gm {
   /**<!-- DOCS: gm.FlagsObj #### -->
    * FlagsObj
    *
+   * - `gm.FlagsObj`
+   *
    * `ConvertFlagsObj & CompositeFlagsObj`
    */
   export type FlagsObj = ConvertFlagsObj & CompositeFlagsObj;
 
   /**<!-- DOCS: gm.channel #### -->
    * channel
+   *
+   * - `gm.channel`
    *
    * `'red' | 'green' | 'blue' | 'cyan' | 'magenta' | 'yellow' | 'black' | 'opacity' | 'gray' | 'matte'`
    */

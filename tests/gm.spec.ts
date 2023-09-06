@@ -41,5 +41,11 @@ describe('gm', () => {
         expect(swisszx.gm.utils.flagsObjToArray).toBeDefined();
       });
     });
+
+    describe('channelComposeCopyMap', () => {
+      it(`exists as 'gm.utils.channelComposeCopyMap'`, () => {
+        expect(swisszx.gm.utils.channelComposeCopyMap).toBeDefined();
+      });
+    });
   });
 });
