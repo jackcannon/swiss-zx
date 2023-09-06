@@ -28,9 +28,9 @@ $2.verbose = false;
 var fs = fsO.promises;
 var $$;
 (($$2) => {
-  $$2.cd = async (dir = ".") => {
+  $$2.cd = (dir = ".") => {
     cdO(dir);
-    await $2`cd ${dir}`;
+    return $2`cd ${dir}`;
   };
   $$2.pwd = async () => utils.intoLines(await $2`pwd`)[0];
   $$2.ls = async (dir = ".", flags = []) => utils.intoLines(await $2`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
@@ -110,7 +110,7 @@ var $$;
           progressBar = getProgressBar(max, progressBarOpts);
         progressBar.set(prog);
       }
-      return await out;
+      return out;
     } else {
       return $2`rsync -rut ${a} ${b} ${flags}`;
     }

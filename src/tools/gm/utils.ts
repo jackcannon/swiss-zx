@@ -23,8 +23,10 @@ import { gm } from '../gm';
  * gm.utils.flagsObjToArray({ brightness: 150, saturation: 50, hue: 200 });
  * // [ '-modulate', '150,50,200' ]
  * ```
+ * @param {gm.FlagsObj} obj
+ * @returns {(string | number)[]}
  */
-export const flagsObjToArray = (obj: gm.FlagsObj) => {
+export const flagsObjToArray = (obj: gm.FlagsObj): (string | number)[] => {
   const { brightness, saturation, hue, ...rest } = obj;
 
   if (rest.modulate === undefined && (brightness !== undefined || saturation !== undefined || hue !== undefined)) {

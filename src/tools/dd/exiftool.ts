@@ -12,6 +12,11 @@ import { $$ } from '../$$';
  * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
  * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
  * ```
+ * @param {string} file
+ * @param {ExifToolAttributesObj} [setAttr]
+ * @param {(ExifToolAttributes | string)[]} [getAttr]
+ * @param {string} [outFile]
+ * @returns {Promise<ExifToolAttributesObj>}
  */
 export const exiftool = async (
   file: string,

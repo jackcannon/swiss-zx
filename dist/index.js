@@ -58,9 +58,9 @@ import_zx.$.verbose = false;
 var fs = import_zx.fs.promises;
 var $$;
 (($$2) => {
-  $$2.cd = async (dir = ".") => {
+  $$2.cd = (dir = ".") => {
     (0, import_zx.cd)(dir);
-    await import_zx.$`cd ${dir}`;
+    return import_zx.$`cd ${dir}`;
   };
   $$2.pwd = async () => utils.intoLines(await import_zx.$`pwd`)[0];
   $$2.ls = async (dir = ".", flags = []) => utils.intoLines(await import_zx.$`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
@@ -140,7 +140,7 @@ var $$;
           progressBar = (0, import_swiss_ak.getProgressBar)(max, progressBarOpts);
         progressBar.set(prog);
       }
-      return await out;
+      return out;
     } else {
       return import_zx.$`rsync -rut ${a} ${b} ${flags}`;
     }

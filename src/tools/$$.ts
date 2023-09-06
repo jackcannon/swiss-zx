@@ -1,5 +1,5 @@
 import 'zx/globals';
-import { $, fs as fsO, cd as cdO } from 'zx';
+import { $, fs as fsO, cd as cdO, ProcessPromise, ProcessOutput } from 'zx';
 import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'swiss-ak';
 import { PathTools, explodePath, ExplodedPath } from 'swiss-node';
 
@@ -17,7 +17,7 @@ const fs = fsO.promises;
 export namespace $$ {
   // SWISS-DOCS-JSDOC-REMOVE-PREV-LINE
 
-  /**<!-- DOCS: $$.cd ### @ -->
+  /**<!-- DOCS: $$.cd ### -->
    * cd
    *
    * - `$$.cd`
@@ -29,10 +29,12 @@ export namespace $$ {
    * await $$.cd('./some/folder');
    * await $$.pwd(); // '/Users/username/some/folder'
    * ```
+   * @param {string} [dir='.']
+   * @returns {ProcessPromise}
    */
-  export const cd = async (dir: string = '.'): Promise<void> => {
+  export const cd = (dir: string = '.'): ProcessPromise => {
     cdO(dir);
-    await $`cd ${dir}`;
+    return $`cd ${dir}`;
   };
 
   /**<!-- DOCS: $$.pwd ### @ -->
@@ -47,6 +49,7 @@ export namespace $$ {
    * await $$.cd('./some/folder');
    * await $$.pwd(); // '/Users/username/some/folder'
    * ```
+   * @returns {Promise<string>}
    */
   export const pwd = async (): Promise<string> => utils.intoLines(await $`pwd`)[0];
 
@@ -60,11 +63,14 @@ export namespace $$ {
    * ```typescript
    * await $$.ls('example') // ['a', 'b']
    * ```
+   * @param {string} [dir='.']
+   * @param {string[]} [flags=[]]
+   * @returns {Promise<string[]>}
    */
   export const ls = async (dir: string = '.', flags: string[] = []): Promise<string[]> =>
     utils.intoLines(await $`ls ${flags.map((flag) => `-${flag}`)} ${dir}`);
 
-  /**<!-- DOCS: $$.rm ### @ -->
+  /**<!-- DOCS: $$.rm ### -->
    * rm
    *
    * - `$$.rm`
@@ -74,10 +80,12 @@ export namespace $$ {
    * ```typescript
    * await $$.rm('example') // same as $`rm -rf 'example'`
    * ```
+   * @param {string} item
+   * @returns {ProcessPromise}
    */
-  export const rm = (item: string) => $`rm -rf ${item}`;
+  export const rm = (item: string): ProcessPromise => $`rm -rf ${item}`;
 
-  /**<!-- DOCS: $$.mkdir ### @ -->
+  /**<!-- DOCS: $$.mkdir ### -->
    * mkdir
    *
    * - `$$.mkdir`
@@ -87,10 +95,12 @@ export namespace $$ {
    * ```typescript
    * await $$.mkdir('example') // same as $`mkdir -p 'example'`
    * ```
+   * @param {string} item
+   * @returns {ProcessPromise}
    */
-  export const mkdir = (item: string) => $`mkdir -p ${item}`;
+  export const mkdir = (item: string): ProcessPromise => $`mkdir -p ${item}`;
 
-  /**<!-- DOCS: $$.cp ### @ -->
+  /**<!-- DOCS: $$.cp ### -->
    * cp
    *
    * - `$$.cp`
@@ -100,10 +110,13 @@ export namespace $$ {
    * ```typescript
    * await $$.cp('example1', 'example2') // same as $`cp -r 'example1' 'example2'`
    * ```
+   * @param {string} a
+   * @param {string} b
+   * @returns {ProcessPromise}
    */
-  export const cp = (a: string, b: string) => $`cp -r ${a} ${b}`;
+  export const cp = (a: string, b: string): ProcessPromise => $`cp -r ${a} ${b}`;
 
-  /**<!-- DOCS: $$.mv ### @ -->
+  /**<!-- DOCS: $$.mv ### -->
    * mv
    *
    * - `$$.mv`
@@ -113,10 +126,13 @@ export namespace $$ {
    * ```typescript
    * await $$.mv('example1', 'example2') // same as $`mv 'example1' 'example2'`
    * ```
+   * @param {string} a
+   * @param {string} b
+   * @returns {ProcessPromise}
    */
-  export const mv = (a: string, b: string) => $`mv ${a} ${b}`;
+  export const mv = (a: string, b: string): ProcessPromise => $`mv ${a} ${b}`;
 
-  /**<!-- DOCS: $$.touch ### @ -->
+  /**<!-- DOCS: $$.touch ### -->
    * touch
    *
    * - `$$.touch`
@@ -126,10 +142,12 @@ export namespace $$ {
    * ```typescript
    * await $$.touch('example') // same as $`touch 'example'`
    * ```
+   * @param {string} item
+   * @returns {ProcessPromise}
    */
-  export const touch = (item: string) => $`touch ${item}`;
+  export const touch = (item: string): ProcessPromise => $`touch ${item}`;
 
-  /**<!-- DOCS: $$.cat ### @ -->
+  /**<!-- DOCS: $$.cat ### -->
    * cat
    *
    * - `$$.cat`
@@ -139,8 +157,10 @@ export namespace $$ {
    * ```typescript
    * await $$.cat('example') // same as $`cat 'example'`
    * ```
+   * @param {string} item
+   * @returns {ProcessPromise}
    */
-  export const cat = (item: string) => $`cat ${item}`;
+  export const cat = (item: string): ProcessPromise => $`cat ${item}`;
 
   /**<!-- DOCS: $$.grep ### @ -->
    * grep
@@ -152,8 +172,11 @@ export namespace $$ {
    * ```typescript
    * await $$.grep('example', '.') // same as $`grep 'example' '.'`
    * ```
+   * @param {string} pattern
+   * @param {string} file
+   * @returns {Promise<string[]>}
    */
-  export const grep = async (pattern: string, file: string) => utils.intoLines(await $`grep ${pattern} ${file}`);
+  export const grep = async (pattern: string, file: string): Promise<string[]> => utils.intoLines(await $`grep ${pattern} ${file}`);
 
   const convertFindOptionsToFlags = (options: FindOptions) => {
     const { type, ext, mindepth, maxdepth, name, regex, removePath } = options;
@@ -179,6 +202,9 @@ export namespace $$ {
    * ```typescript
    * await $$.find('.', { type: 'f' }) // ['a', 'b']
    * ```
+   * @param {string} [dir='.']
+   * @param {FindOptions} [options={}]
+   * @returns {Promise<string[]>}
    */
   export const find = async (dir: string = '.', options: FindOptions = {}): Promise<string[]> => {
     // google zx doesn't allow for unquoted arguments, so we need work around to conditionally add -execdir
@@ -216,35 +242,54 @@ export namespace $$ {
    * - `$$.FindOptions`
    *
    * Options for $$.find (and related other tools)
+   *
+   * | Property                | Required | Type     | Description                               |
+   * | ----------------------- | -------- | -------- | ----------------------------------------- |
+   * | `type`                  | *No*     | FindType | Type of item to find                      |
+   * | `mindepth`              | *No*     | number   | Minimum depth to search                   |
+   * | `maxdepth`              | *No*     | number   | Maximum depth to search                   |
+   * | `name`                  | *No*     | string   | Name of file/directory to find            |
+   * | `ext`                   | *No*     | string   | Shortcut for regex-ing the file extension |
+   * | `regex`                 | *No*     | string   | Regular expression to match               |
+   * | `removePath`            | *No*     | boolean  | Removes the path from the result          |
+   * | `contentsOnly`          | *No*     | boolean  | Ensures input path has a trailing slash   |
+   * | `removeTrailingSlashes` | *No*     | boolean  | Removes trailing slashes from the results |
+   * | `showHidden`            | *No*     | boolean  | Includes files that start with a dot      |
    */
   export interface FindOptions {
     /**
      * Type of item to find
      *
-     * |   | Description       |
-     * |---|-------------------|
-     * | d | directory         |
-     * | f | regular file      |
-     * | b | block special     |
-     * | c | character special |
-     * | l | symbolic link     |
-     * | p | FIFO              |
-     * | s | socket            |
+     * |     | Description       |
+     * |-----|-------------------|
+     * | `d` | directory         |
+     * | `f` | regular file      |
+     * | `b` | block special     |
+     * | `c` | character special |
+     * | `l` | symbolic link     |
+     * | `p` | FIFO              |
+     * | `s` | socket            |
      */
     type?: FindType;
+
     /**
      * Minimum depth to search
      */
     mindepth?: number;
+
     /**
      * Maximum depth to search
      */
     maxdepth?: number;
+
     /**
      * Name of file/directory to find
      */
     name?: string;
 
+    /**
+     * Shortcut for regex-ing the file extension
+     */
     ext?: string;
 
     /**
@@ -257,24 +302,24 @@ export namespace $$ {
      * ```
      */
     regex?: string;
+
     /**
-     * If true, removes the path from the result (so you just get the file/directory name)
+     * Removes the path from the result
      */
     removePath?: boolean;
 
-    // Removed as not used
-    // absolutePath?: boolean;
-
     /**
-     * If true, ensures the provided path has a trailing slash.
+     * Ensures input path has a trailing slash
      */
     contentsOnly?: boolean;
+
     /**
-     * If true, removes trailing slashes from the results.
+     * Removes trailing slashes from the results
      */
     removeTrailingSlashes?: boolean;
+
     /**
-     * If true, includes files that start with a dot.
+     * Includes files that start with a dot
      */
     showHidden?: boolean;
   }
@@ -308,6 +353,9 @@ export namespace $$ {
    * ```typescript
    * await $$.findDirs('.') // ['a', 'b']
    * ```
+   * @param {string} [dir='.']
+   * @param {FindOptions} [options={}]
+   * @returns {Promise<string[]>}
    */
   export const findDirs = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
     find(dir, { type: 'd', maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
@@ -322,6 +370,9 @@ export namespace $$ {
    * ```typescript
    * await $$.findFiles('.') // ['a', 'b']
    * ```
+   * @param {string} [dir='.']
+   * @param {FindOptions} [options={}]
+   * @returns {Promise<string[]>}
    */
   export const findFiles = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
     find(dir, { type: 'f', maxdepth: 1, removePath: true, contentsOnly: true, ...options });
@@ -347,6 +398,9 @@ export namespace $$ {
    * //   }
    * // ]
    * ```
+   * @param {string} [dir='.']
+   * @param {FindOptions} [options={}]
+   * @returns {Promise<ModifiedFile[]>}
    */
   export const findModified = async (dir: string = '.', options: FindOptions = {}): Promise<ModifiedFile[]> => {
     const newDir = options.contentsOnly ? PathTools.trailSlash(dir) : dir;
@@ -407,6 +461,8 @@ export namespace $$ {
    * ```typescript
    * await $$.lastModified('a.mp4') // 1689206400000
    * ```
+   * @param {string} path
+   * @returns {Promise<number>}
    */
   export const lastModified = async (path: string): Promise<number> => {
     let list = await findModified(path, { type: 'f' });
@@ -425,8 +481,13 @@ export namespace $$ {
    * ```typescript
    * await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2'`
    * ```
+   * @param {string} a
+   * @param {string} b
+   * @param {string[]} [flags=[]]
+   * @param {Partial<ProgressBarOptions>} [progressBarOpts]
+   * @returns {Promise<any>}
    */
-  export const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts?: Partial<ProgressBarOptions>) => {
+  export const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts?: Partial<ProgressBarOptions>): Promise<ProcessOutput> => {
     if (progressBarOpts) {
       const out = $`rsync -rut ${a} ${b} ${flags} --progress`;
       let progressBar = getProgressBar(undefined, progressBarOpts);
@@ -443,7 +504,7 @@ export namespace $$ {
 
         progressBar.set(prog);
       }
-      return await out;
+      return out;
     } else {
       return $`rsync -rut ${a} ${b} ${flags}`;
     }
@@ -459,8 +520,12 @@ export namespace $$ {
    * ```typescript
    * await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2' --delete`
    * ```
+   * @param {string} a
+   * @param {string} b
+   * @param {Partial<ProgressBarOptions>} [progressBarOpts]
+   * @returns {Promise<any>}
    */
-  export const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) =>
+  export const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>): Promise<ProcessOutput> =>
     rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ['--delete'], progressBarOpts);
 
   /**<!-- DOCS: $$.isFileExist ### @ -->
@@ -473,6 +538,8 @@ export namespace $$ {
    * ```typescript
    * await $$.isFileExist('example') // true
    * ```
+   * @param {string} file
+   * @returns {Promise<boolean>}
    */
   export const isFileExist = async (file: string) => (await $`[[ -f ${file} ]]`.exitCode) === 0;
 
@@ -486,6 +553,8 @@ export namespace $$ {
    * ```typescript
    * await $$.isDirExist('example') // true
    * ```
+   * @param {string} dir
+   * @returns {Promise<boolean>}
    */
   export const isDirExist = async (dir: string) => (await $`[[ -d ${dir} ]]`.exitCode) === 0;
 
@@ -499,6 +568,8 @@ export namespace $$ {
    * ```typescript
    * await $$.readFile('example') // 'hello world'
    * ```
+   * @param {string} filepath
+   * @returns {Promise<string>}
    */
   export const readFile = (filepath: string): Promise<string> => retryOr<any>('', 2, 100, true, () => fs.readFile(filepath, { encoding: 'utf8' }));
 
@@ -512,6 +583,9 @@ export namespace $$ {
    * ```typescript
    * await $$.writeFile('example', 'hello world') // saves a new file called 'example' with the contents 'hello world'
    * ```
+   * @param {string} filepath
+   * @param {string} contents
+   * @returns {Promise<void>}
    */
   export const writeFile = (filepath: string, contents: string): Promise<void> =>
     retryOr<any>(undefined, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
@@ -519,13 +593,15 @@ export namespace $$ {
   /**<!-- DOCS: $$.readJSON ### @ -->
    * readJSON
    *
-   * - `$$.readJSON`
+   * - `$$.readJSON<T>`
    *
    * Read a JSON file
    *
    * ```typescript
    * await $$.readJSON('example.json') // { hello: 'world' }
    * ```
+   * @param {string} filepath
+   * @returns {Promise<T>}
    */
   export const readJSON = async <T extends unknown>(filepath: string): Promise<T> => {
     const raw = await readFile(filepath);
@@ -535,13 +611,15 @@ export namespace $$ {
   /**<!-- DOCS: $$.writeJSON ### @ -->
    * writeJSON
    *
-   * - `$$.writeJSON`
+   * - `$$.writeJSON<T>`
    *
    * Write to a JSON file
    *
    * ```typescript
    * await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file called 'example.json' with the contents {'hello':'world'}
    * ```
+   * @param {T} obj
+   * @returns {Promise<T>}
    */
   export const writeJSON = async <T extends Object>(filepath, obj: T): Promise<T> => {
     const raw = (obj ? JSON.stringify(obj, null, 2) : '{}') || '{}';
@@ -549,7 +627,7 @@ export namespace $$ {
     return obj;
   };
 
-  /**<!-- DOCS: $$.pipe ### @ -->
+  /**<!-- DOCS: $$.pipe ### -->
    * pipe
    *
    * - `$$.pipe`
@@ -562,6 +640,9 @@ export namespace $$ {
    *   () => gm.composite(changePath, gm.PIPE, gm.PIPE, changePath, opts2)
    * ]);
    * ```
+   * @param {((index?: number, arg?: T) => ProcessPromise)[]} processes
+   * @param {T} [arg]
+   * @returns {ProcessPromise}
    */
   export const pipe = <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T): ProcessPromise => {
     if (processes.length === 0) return $``;
@@ -593,7 +674,7 @@ export namespace $$ {
   export namespace utils {
     // SWISS-DOCS-JSDOC-REMOVE-PREV-LINE
 
-    /**<!-- DOCS: $$.utils.intoLines #### @ -->
+    /**<!-- DOCS: $$.utils.intoLines #### -->
      * intoLines
      *
      * - `$$.utils.intoLines`
@@ -603,6 +684,8 @@ export namespace $$ {
      * ```typescript
      * utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
      * ```
+     * @param {ProcessOutput} out
+     * @returns {string[]}
      */
     export const intoLines = (out: ProcessOutput) => out.toString().split('\n').filter(fn.isTruthy);
   } // SWISS-DOCS-JSDOC-REMOVE-THIS-LINE

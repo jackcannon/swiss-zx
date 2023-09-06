@@ -1,4 +1,4 @@
-import * as zx from 'zx';
+import { ProcessPromise as ProcessPromise$1, ProcessOutput } from 'zx';
 import { ms, ProgressBarOptions } from 'swiss-ak';
 import { ExplodedPath } from 'swiss-node';
 
@@ -314,7 +314,7 @@ declare type ExifToolAttributes = keyof ExifToolAttributesObj;
  * $$ (double dollar)
  */
 declare namespace $$ {
-    /**<!-- DOCS: $$.cd ### @ -->
+    /**<!-- DOCS: $$.cd ### -->
      * cd
      *
      * - `$$.cd`
@@ -326,8 +326,10 @@ declare namespace $$ {
      * await $$.cd('./some/folder');
      * await $$.pwd(); // '/Users/username/some/folder'
      * ```
+     * @param {string} [dir='.']
+     * @returns {ProcessPromise}
      */
-    const cd: (dir?: string) => Promise<void>;
+    const cd: (dir?: string) => ProcessPromise$1;
     /**<!-- DOCS: $$.pwd ### @ -->
      * pwd
      *
@@ -340,6 +342,7 @@ declare namespace $$ {
      * await $$.cd('./some/folder');
      * await $$.pwd(); // '/Users/username/some/folder'
      * ```
+     * @returns {Promise<string>}
      */
     const pwd: () => Promise<string>;
     /**<!-- DOCS: $$.ls ### @ -->
@@ -352,9 +355,12 @@ declare namespace $$ {
      * ```typescript
      * await $$.ls('example') // ['a', 'b']
      * ```
+     * @param {string} [dir='.']
+     * @param {string[]} [flags=[]]
+     * @returns {Promise<string[]>}
      */
     const ls: (dir?: string, flags?: string[]) => Promise<string[]>;
-    /**<!-- DOCS: $$.rm ### @ -->
+    /**<!-- DOCS: $$.rm ### -->
      * rm
      *
      * - `$$.rm`
@@ -364,9 +370,11 @@ declare namespace $$ {
      * ```typescript
      * await $$.rm('example') // same as $`rm -rf 'example'`
      * ```
+     * @param {string} item
+     * @returns {ProcessPromise}
      */
-    const rm: (item: string) => zx.ProcessPromise;
-    /**<!-- DOCS: $$.mkdir ### @ -->
+    const rm: (item: string) => ProcessPromise$1;
+    /**<!-- DOCS: $$.mkdir ### -->
      * mkdir
      *
      * - `$$.mkdir`
@@ -376,9 +384,11 @@ declare namespace $$ {
      * ```typescript
      * await $$.mkdir('example') // same as $`mkdir -p 'example'`
      * ```
+     * @param {string} item
+     * @returns {ProcessPromise}
      */
-    const mkdir: (item: string) => zx.ProcessPromise;
-    /**<!-- DOCS: $$.cp ### @ -->
+    const mkdir: (item: string) => ProcessPromise$1;
+    /**<!-- DOCS: $$.cp ### -->
      * cp
      *
      * - `$$.cp`
@@ -388,9 +398,12 @@ declare namespace $$ {
      * ```typescript
      * await $$.cp('example1', 'example2') // same as $`cp -r 'example1' 'example2'`
      * ```
+     * @param {string} a
+     * @param {string} b
+     * @returns {ProcessPromise}
      */
-    const cp: (a: string, b: string) => zx.ProcessPromise;
-    /**<!-- DOCS: $$.mv ### @ -->
+    const cp: (a: string, b: string) => ProcessPromise$1;
+    /**<!-- DOCS: $$.mv ### -->
      * mv
      *
      * - `$$.mv`
@@ -400,9 +413,12 @@ declare namespace $$ {
      * ```typescript
      * await $$.mv('example1', 'example2') // same as $`mv 'example1' 'example2'`
      * ```
+     * @param {string} a
+     * @param {string} b
+     * @returns {ProcessPromise}
      */
-    const mv: (a: string, b: string) => zx.ProcessPromise;
-    /**<!-- DOCS: $$.touch ### @ -->
+    const mv: (a: string, b: string) => ProcessPromise$1;
+    /**<!-- DOCS: $$.touch ### -->
      * touch
      *
      * - `$$.touch`
@@ -412,9 +428,11 @@ declare namespace $$ {
      * ```typescript
      * await $$.touch('example') // same as $`touch 'example'`
      * ```
+     * @param {string} item
+     * @returns {ProcessPromise}
      */
-    const touch: (item: string) => zx.ProcessPromise;
-    /**<!-- DOCS: $$.cat ### @ -->
+    const touch: (item: string) => ProcessPromise$1;
+    /**<!-- DOCS: $$.cat ### -->
      * cat
      *
      * - `$$.cat`
@@ -424,8 +442,10 @@ declare namespace $$ {
      * ```typescript
      * await $$.cat('example') // same as $`cat 'example'`
      * ```
+     * @param {string} item
+     * @returns {ProcessPromise}
      */
-    const cat: (item: string) => zx.ProcessPromise;
+    const cat: (item: string) => ProcessPromise$1;
     /**<!-- DOCS: $$.grep ### @ -->
      * grep
      *
@@ -436,6 +456,9 @@ declare namespace $$ {
      * ```typescript
      * await $$.grep('example', '.') // same as $`grep 'example' '.'`
      * ```
+     * @param {string} pattern
+     * @param {string} file
+     * @returns {Promise<string[]>}
      */
     const grep: (pattern: string, file: string) => Promise<string[]>;
     /**<!-- DOCS: $$.find ### @ -->
@@ -448,6 +471,9 @@ declare namespace $$ {
      * ```typescript
      * await $$.find('.', { type: 'f' }) // ['a', 'b']
      * ```
+     * @param {string} [dir='.']
+     * @param {FindOptions} [options={}]
+     * @returns {Promise<string[]>}
      */
     const find: (dir?: string, options?: FindOptions) => Promise<string[]>;
     /**<!-- DOCS: $$.FindOptions #### -->
@@ -456,20 +482,33 @@ declare namespace $$ {
      * - `$$.FindOptions`
      *
      * Options for $$.find (and related other tools)
+     *
+     * | Property                | Required | Type     | Description                               |
+     * | ----------------------- | -------- | -------- | ----------------------------------------- |
+     * | `type`                  | *No*     | FindType | Type of item to find                      |
+     * | `mindepth`              | *No*     | number   | Minimum depth to search                   |
+     * | `maxdepth`              | *No*     | number   | Maximum depth to search                   |
+     * | `name`                  | *No*     | string   | Name of file/directory to find            |
+     * | `ext`                   | *No*     | string   | Shortcut for regex-ing the file extension |
+     * | `regex`                 | *No*     | string   | Regular expression to match               |
+     * | `removePath`            | *No*     | boolean  | Removes the path from the result          |
+     * | `contentsOnly`          | *No*     | boolean  | Ensures input path has a trailing slash   |
+     * | `removeTrailingSlashes` | *No*     | boolean  | Removes trailing slashes from the results |
+     * | `showHidden`            | *No*     | boolean  | Includes files that start with a dot      |
      */
     interface FindOptions {
         /**
          * Type of item to find
          *
-         * |   | Description       |
-         * |---|-------------------|
-         * | d | directory         |
-         * | f | regular file      |
-         * | b | block special     |
-         * | c | character special |
-         * | l | symbolic link     |
-         * | p | FIFO              |
-         * | s | socket            |
+         * |     | Description       |
+         * |-----|-------------------|
+         * | `d` | directory         |
+         * | `f` | regular file      |
+         * | `b` | block special     |
+         * | `c` | character special |
+         * | `l` | symbolic link     |
+         * | `p` | FIFO              |
+         * | `s` | socket            |
          */
         type?: FindType;
         /**
@@ -484,6 +523,9 @@ declare namespace $$ {
          * Name of file/directory to find
          */
         name?: string;
+        /**
+         * Shortcut for regex-ing the file extension
+         */
         ext?: string;
         /**
          * Regular expression to match
@@ -496,19 +538,19 @@ declare namespace $$ {
          */
         regex?: string;
         /**
-         * If true, removes the path from the result (so you just get the file/directory name)
+         * Removes the path from the result
          */
         removePath?: boolean;
         /**
-         * If true, ensures the provided path has a trailing slash.
+         * Ensures input path has a trailing slash
          */
         contentsOnly?: boolean;
         /**
-         * If true, removes trailing slashes from the results.
+         * Removes trailing slashes from the results
          */
         removeTrailingSlashes?: boolean;
         /**
-         * If true, includes files that start with a dot.
+         * Includes files that start with a dot
          */
         showHidden?: boolean;
     }
@@ -540,6 +582,9 @@ declare namespace $$ {
      * ```typescript
      * await $$.findDirs('.') // ['a', 'b']
      * ```
+     * @param {string} [dir='.']
+     * @param {FindOptions} [options={}]
+     * @returns {Promise<string[]>}
      */
     const findDirs: (dir?: string, options?: FindOptions) => Promise<string[]>;
     /**<!-- DOCS: $$.findFiles ### @ -->
@@ -552,6 +597,9 @@ declare namespace $$ {
      * ```typescript
      * await $$.findFiles('.') // ['a', 'b']
      * ```
+     * @param {string} [dir='.']
+     * @param {FindOptions} [options={}]
+     * @returns {Promise<string[]>}
      */
     const findFiles: (dir?: string, options?: FindOptions) => Promise<string[]>;
     /**<!-- DOCS: $$.findModified ### @ -->
@@ -575,6 +623,9 @@ declare namespace $$ {
      * //   }
      * // ]
      * ```
+     * @param {string} [dir='.']
+     * @param {FindOptions} [options={}]
+     * @returns {Promise<ModifiedFile[]>}
      */
     const findModified: (dir?: string, options?: FindOptions) => Promise<ModifiedFile[]>;
     /**<!-- DOCS: $$.ModifiedFile #### -->
@@ -611,6 +662,8 @@ declare namespace $$ {
      * ```typescript
      * await $$.lastModified('a.mp4') // 1689206400000
      * ```
+     * @param {string} path
+     * @returns {Promise<number>}
      */
     const lastModified: (path: string) => Promise<number>;
     /**<!-- DOCS: $$.rsync ### @ -->
@@ -623,8 +676,13 @@ declare namespace $$ {
      * ```typescript
      * await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2'`
      * ```
+     * @param {string} a
+     * @param {string} b
+     * @param {string[]} [flags=[]]
+     * @param {Partial<ProgressBarOptions>} [progressBarOpts]
+     * @returns {Promise<any>}
      */
-    const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
+    const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.sync ### @ -->
      * sync
      *
@@ -635,8 +693,12 @@ declare namespace $$ {
      * ```typescript
      * await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2' --delete`
      * ```
+     * @param {string} a
+     * @param {string} b
+     * @param {Partial<ProgressBarOptions>} [progressBarOpts]
+     * @returns {Promise<any>}
      */
-    const sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<zx.ProcessOutput>;
+    const sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.isFileExist ### @ -->
      * isFileExist
      *
@@ -647,6 +709,8 @@ declare namespace $$ {
      * ```typescript
      * await $$.isFileExist('example') // true
      * ```
+     * @param {string} file
+     * @returns {Promise<boolean>}
      */
     const isFileExist: (file: string) => Promise<boolean>;
     /**<!-- DOCS: $$.isDirExist ### @ -->
@@ -659,6 +723,8 @@ declare namespace $$ {
      * ```typescript
      * await $$.isDirExist('example') // true
      * ```
+     * @param {string} dir
+     * @returns {Promise<boolean>}
      */
     const isDirExist: (dir: string) => Promise<boolean>;
     /**<!-- DOCS: $$.readFile ### @ -->
@@ -671,6 +737,8 @@ declare namespace $$ {
      * ```typescript
      * await $$.readFile('example') // 'hello world'
      * ```
+     * @param {string} filepath
+     * @returns {Promise<string>}
      */
     const readFile: (filepath: string) => Promise<string>;
     /**<!-- DOCS: $$.writeFile ### @ -->
@@ -683,33 +751,40 @@ declare namespace $$ {
      * ```typescript
      * await $$.writeFile('example', 'hello world') // saves a new file called 'example' with the contents 'hello world'
      * ```
+     * @param {string} filepath
+     * @param {string} contents
+     * @returns {Promise<void>}
      */
     const writeFile: (filepath: string, contents: string) => Promise<void>;
     /**<!-- DOCS: $$.readJSON ### @ -->
      * readJSON
      *
-     * - `$$.readJSON`
+     * - `$$.readJSON<T>`
      *
      * Read a JSON file
      *
      * ```typescript
      * await $$.readJSON('example.json') // { hello: 'world' }
      * ```
+     * @param {string} filepath
+     * @returns {Promise<T>}
      */
     const readJSON: <T extends unknown>(filepath: string) => Promise<T>;
     /**<!-- DOCS: $$.writeJSON ### @ -->
      * writeJSON
      *
-     * - `$$.writeJSON`
+     * - `$$.writeJSON<T>`
      *
      * Write to a JSON file
      *
      * ```typescript
      * await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file called 'example.json' with the contents {'hello':'world'}
      * ```
+     * @param {T} obj
+     * @returns {Promise<T>}
      */
     const writeJSON: <T extends Object>(filepath: any, obj: T) => Promise<T>;
-    /**<!-- DOCS: $$.pipe ### @ -->
+    /**<!-- DOCS: $$.pipe ### -->
      * pipe
      *
      * - `$$.pipe`
@@ -722,8 +797,11 @@ declare namespace $$ {
      *   () => gm.composite(changePath, gm.PIPE, gm.PIPE, changePath, opts2)
      * ]);
      * ```
+     * @param {((index?: number, arg?: T) => ProcessPromise)[]} processes
+     * @param {T} [arg]
+     * @returns {ProcessPromise}
      */
-    const pipe: <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T) => ProcessPromise;
+    const pipe: <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise$1)[], arg?: T) => ProcessPromise$1;
     /**<!-- DOCS-ALIAS: $$.exif.exiftool -->
      * exiftool
      * 
@@ -734,6 +812,11 @@ declare namespace $$ {
      * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
      * $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
      * ```
+     * @param {string} file
+     * @param {ExifToolAttributesObj} [setAttr]
+     * @param {(ExifToolAttributes | string)[]} [getAttr]
+     * @param {string} [outFile]
+     * @returns {Promise<ExifToolAttributesObj>}
      */
     const exiftool: (file: string, setAttr?: ExifToolAttributesObj, getAttr?: (keyof ExifToolAttributesObj)[], outFile?: string) => Promise<ExifToolAttributesObj>;
     /**<!-- DOCS-ALIAS: $$.exif.ExifToolAttributesObj -->
@@ -756,7 +839,7 @@ declare namespace $$ {
      * utils
      */
     namespace utils {
-        /**<!-- DOCS: $$.utils.intoLines #### @ -->
+        /**<!-- DOCS: $$.utils.intoLines #### -->
          * intoLines
          *
          * - `$$.utils.intoLines`
@@ -766,6 +849,8 @@ declare namespace $$ {
          * ```typescript
          * utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
          * ```
+         * @param {ProcessOutput} out
+         * @returns {string[]}
          */
         const intoLines: (out: ProcessOutput) => string[];
     }
@@ -786,6 +871,7 @@ declare namespace os {
      * ```typescript
      * await closeFinder();
      * ```
+     * @returns {Promise<void>}
      */
     const closeFinder: () => Promise<void>;
 }
@@ -800,6 +886,7 @@ declare namespace os {
  * ```typescript
  * await closeFinder();
  * ```
+ * @returns {Promise<void>}
  */
 declare const closeFinder: () => Promise<void>;
 
@@ -819,6 +906,11 @@ declare namespace ffmpegTools {
      * const progBarOpts = {}; // Same options as getProgressBar
      * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
      * ```
+     * @param {() => ProcessPromise} [command=() => $`ffmpeg -progress pr.txt`]
+     * @param {string} [progressFileName='pr.txt']
+     * @param {number} [totalFrames=1]
+     * @param {ProgressBarOptions} [progressBarOpts={}]
+     * @returns {Promise<void>}
      */
     const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
     /**<!-- DOCS: ffmpegTools.toFFmpegTimeFormat ### @ -->
@@ -833,6 +925,8 @@ declare namespace ffmpegTools {
      * ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21)); // '03:21.000'
      * ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21) + 456); // '03:21.456'
      * ```
+     * @param {ms} time
+     * @returns {string}
      */
     const toFFmpegTimeFormat: (time: ms) => string;
     /**<!-- DOCS: ffmpegTools.getProbe ### @ -->
@@ -845,6 +939,8 @@ declare namespace ffmpegTools {
      * ```typescript
      * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
      * ```
+     * @param {string} file
+     * @returns {Promise<ProbeResult>}
      */
     const getProbe: (file: string) => Promise<ProbeResult>;
     /**<!-- DOCS: ffmpegTools.ProbeResult #### -->
@@ -909,6 +1005,9 @@ declare namespace ffmpegTools {
      * ```typescript
      * const probe = await getProbe('file.mp4', 'width'); // '1280'
      * ```
+     * @param {string} file
+     * @param {string} propertyName
+     * @returns {Promise<string>}
      */
     const getProbeValue: (file: string, propertyName: string) => Promise<string>;
     /**<!-- DOCS: ffmpegTools.getTotalFrames ### @ -->
@@ -921,6 +1020,8 @@ declare namespace ffmpegTools {
      * ```typescript
      * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
      * ```
+     * @param {string | string[]} [list]
+     * @returns {Promise<number>}
      */
     const getTotalFrames: (list?: string | string[]) => Promise<number>;
 }
@@ -936,6 +1037,11 @@ declare namespace ffmpegTools {
  * const progBarOpts = {}; // Same options as getProgressBar
  * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
  * ```
+ * @param {() => ProcessPromise} [command=() => $`ffmpeg -progress pr.txt`]
+ * @param {string} [progressFileName='pr.txt']
+ * @param {number} [totalFrames=1]
+ * @param {ProgressBarOptions} [progressBarOpts={}]
+ * @returns {Promise<void>}
  */
 declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
 
@@ -975,7 +1081,7 @@ interface SupportedFlag {
  * gm
  */
 declare namespace gm {
-    /**<!-- DOCS: gm.convert ### @ -->
+    /**<!-- DOCS: gm.convert ### -->
      * convert
      *
      * - `gm.convert`
@@ -985,6 +1091,10 @@ declare namespace gm {
      * ```typescript
      * const converted = await gm.convert(input, output, {});
      * ```
+     * @param {string} [inPath=PIPE]
+     * @param {string} [outPath=PIPE]
+     * @param {ConvertFlagsObj} [flags={}]
+     * @returns {ProcessPromise}
      */
     const convert: (inPath?: string, outPath?: string, flags?: ConvertFlagsObj) => ProcessPromise;
     /**<!-- DOCS: gm.ConvertFlagsObj #### -->
@@ -1022,7 +1132,7 @@ declare namespace gm {
         /** hue - shortcut/alias for `-modulate 100,100,x` */
         hue?: number;
     }
-    /**<!-- DOCS: gm.composite ### @ -->
+    /**<!-- DOCS: gm.composite ### -->
      * composite
      *
      * - `gm.composite`
@@ -1034,6 +1144,12 @@ declare namespace gm {
      * ```typescript
      * const composited = await gm.composite(change, base, out, undefined, {});
      * ```
+     * @param {string} [changePath=PIPE]
+     * @param {string} [basePath=PIPE]
+     * @param {string} [outPath=PIPE]
+     * @param {string} [maskPath='']
+     * @param {ChangeAndMaskFlags | CompositeFlagsObj} [flags={}]
+     * @returns {ProcessPromise}
      */
     const composite: (changePath?: string, basePath?: string, outPath?: string, maskPath?: string, flags?: ChangeAndMaskFlags | CompositeFlagsObj) => ProcessPromise;
     /**<!-- DOCS: gm.CompositeFlagsObj #### -->
@@ -1068,7 +1184,7 @@ declare namespace gm {
         change?: CompositeFlagsObj;
         mask?: CompositeFlagsObj;
     }
-    /**<!-- DOCS: gm.pipe ### @ -->
+    /**<!-- DOCS: gm.pipe ### -->
      * pipe
      *
      * - `gm.pipe`
@@ -1081,6 +1197,10 @@ declare namespace gm {
      *   (p) => composite(changePath, p, p, changePath, opts2)
      * ]);
      * ```
+     * @param {string} [inPath]
+     * @param {string} [outPath]
+     * @param {((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]} [processes=[]]
+     * @returns {ProcessPromise}
      */
     const pipe: (inPath?: string, outPath?: string, processes?: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]) => ProcessPromise;
     /**<!-- DOCS: gm.PIPE_constant ### -->
@@ -1152,8 +1272,10 @@ declare namespace gm {
          * gm.utils.flagsObjToArray({ brightness: 150, saturation: 50, hue: 200 });
          * // [ '-modulate', '150,50,200' ]
          * ```
+         * @param {gm.FlagsObj} obj
+         * @returns {(string | number)[]}
          */
-        const flagsObjToArray: (obj: FlagsObj) => any[];
+        const flagsObjToArray: (obj: FlagsObj) => (string | number)[];
         /**<!-- DOCS-ALIAS: gm.utils.supportedFlags -->
          * supportedFlags
          * 

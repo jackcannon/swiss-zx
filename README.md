@@ -68,7 +68,7 @@ yarn add swiss-zx
 ### cd
 
 ```typescript
-$$.cd;
+$$.cd(dir: string): ProcessPromise
 ```
 
 Change the current working directory
@@ -79,12 +79,20 @@ await $$.cd('./some/folder');
 await $$.pwd(); // '/Users/username/some/folder'
 ```
 
+|  #  | Parameter Name | Required | Type     | Default |
+|:---:|:---------------|:---------|:---------|:--------|
+| *0* | `dir`          | *No*     | `string` | `'.'`   |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### pwd
 
 ```typescript
-$$.pwd;
+$$.pwd(undefined): Promise<string>
 ```
 
 Get the current working directory
@@ -95,12 +103,16 @@ await $$.cd('./some/folder');
 await $$.pwd(); // '/Users/username/some/folder'
 ```
 
+| Return Type       |
+|-------------------|
+| `Promise<string>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### ls
 
 ```typescript
-$$.ls;
+$$.ls(dir: string, flags: string[]): Promise<string[]>
 ```
 
 Wrapper for ls (list) command
@@ -109,12 +121,21 @@ Wrapper for ls (list) command
 await $$.ls('example') // ['a', 'b']
 ```
 
+|  #  | Parameter Name | Required | Type       | Default |
+|:---:|:---------------|:---------|:-----------|:--------|
+| *0* | `dir`          | *No*     | `string`   | `'.'`   |
+| *1* | `flags`        | *No*     | `string[]` | `[]`    |
+
+| Return Type         |
+|---------------------|
+| `Promise<string[]>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### rm
 
 ```typescript
-$$.rm;
+$$.rm(item: string): ProcessPromise
 ```
 
 Wrapper for rm (remove) command
@@ -123,12 +144,20 @@ Wrapper for rm (remove) command
 await $$.rm('example') // same as $`rm -rf 'example'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `item`         | **Yes**  | `string` |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### mkdir
 
 ```typescript
-$$.mkdir;
+$$.mkdir(item: string): ProcessPromise
 ```
 
 Wrapper for mkdir (make directory) command
@@ -137,12 +166,20 @@ Wrapper for mkdir (make directory) command
 await $$.mkdir('example') // same as $`mkdir -p 'example'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `item`         | **Yes**  | `string` |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### cp
 
 ```typescript
-$$.cp;
+$$.cp(a: string, b: string): ProcessPromise
 ```
 
 Wrapper for cp (copy) command
@@ -151,12 +188,21 @@ Wrapper for cp (copy) command
 await $$.cp('example1', 'example2') // same as $`cp -r 'example1' 'example2'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `a`            | **Yes**  | `string` |
+| *1* | `b`            | **Yes**  | `string` |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### mv
 
 ```typescript
-$$.mv;
+$$.mv(a: string, b: string): ProcessPromise
 ```
 
 Wrapper for mv (move) command
@@ -165,12 +211,21 @@ Wrapper for mv (move) command
 await $$.mv('example1', 'example2') // same as $`mv 'example1' 'example2'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `a`            | **Yes**  | `string` |
+| *1* | `b`            | **Yes**  | `string` |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### touch
 
 ```typescript
-$$.touch;
+$$.touch(item: string): ProcessPromise
 ```
 
 Wrapper for touch (create blank file) command
@@ -179,12 +234,20 @@ Wrapper for touch (create blank file) command
 await $$.touch('example') // same as $`touch 'example'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `item`         | **Yes**  | `string` |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### cat
 
 ```typescript
-$$.cat;
+$$.cat(item: string): ProcessPromise
 ```
 
 Wrapper for cat (concatenate) command
@@ -193,12 +256,20 @@ Wrapper for cat (concatenate) command
 await $$.cat('example') // same as $`cat 'example'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `item`         | **Yes**  | `string` |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### grep
 
 ```typescript
-$$.grep;
+$$.grep(pattern: string, file: string): Promise<string[]>
 ```
 
 Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
@@ -207,12 +278,21 @@ Wrapper for grep (**G**lobal **R**egular **E**xpression **P**rint) command
 await $$.grep('example', '.') // same as $`grep 'example' '.'`
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `pattern`      | **Yes**  | `string` |
+| *1* | `file`         | **Yes**  | `string` |
+
+| Return Type         |
+|---------------------|
+| `Promise<string[]>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### find
 
 ```typescript
-$$.find;
+$$.find(dir: string, options: FindOptions): Promise<string[]>
 ```
 
 Helper function for finding files
@@ -220,6 +300,15 @@ Helper function for finding files
 ```typescript
 await $$.find('.', { type: 'f' }) // ['a', 'b']
 ```
+
+|  #  | Parameter Name | Required | Type          | Default |
+|:---:|:---------------|:---------|:--------------|:--------|
+| *0* | `dir`          | *No*     | `string`      | `'.'`   |
+| *1* | `options`      | *No*     | `FindOptions` | `{}`    |
+
+| Return Type         |
+|---------------------|
+| `Promise<string[]>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -230,6 +319,19 @@ $$.FindOptions;
 ```
 
 Options for $$.find (and related other tools)
+
+| Property                | Required | Type     | Description                               |
+| ----------------------- | -------- | -------- | ----------------------------------------- |
+| `type`                  | *No*     | FindType | Type of item to find                      |
+| `mindepth`              | *No*     | number   | Minimum depth to search                   |
+| `maxdepth`              | *No*     | number   | Maximum depth to search                   |
+| `name`                  | *No*     | string   | Name of file/directory to find            |
+| `ext`                   | *No*     | string   | Shortcut for regex-ing the file extension |
+| `regex`                 | *No*     | string   | Regular expression to match               |
+| `removePath`            | *No*     | boolean  | Removes the path from the result          |
+| `contentsOnly`          | *No*     | boolean  | Ensures input path has a trailing slash   |
+| `removeTrailingSlashes` | *No*     | boolean  | Removes trailing slashes from the results |
+| `showHidden`            | *No*     | boolean  | Includes files that start with a dot      |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -256,7 +358,7 @@ Type of item to find
 ### findDirs
 
 ```typescript
-$$.findDirs;
+$$.findDirs(dir: string, options: FindOptions): Promise<string[]>
 ```
 
 Find all directories in a given directory (shallow)
@@ -265,12 +367,21 @@ Find all directories in a given directory (shallow)
 await $$.findDirs('.') // ['a', 'b']
 ```
 
+|  #  | Parameter Name | Required | Type          | Default |
+|:---:|:---------------|:---------|:--------------|:--------|
+| *0* | `dir`          | *No*     | `string`      | `'.'`   |
+| *1* | `options`      | *No*     | `FindOptions` | `{}`    |
+
+| Return Type         |
+|---------------------|
+| `Promise<string[]>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### findFiles
 
 ```typescript
-$$.findFiles;
+$$.findFiles(dir: string, options: FindOptions): Promise<string[]>
 ```
 
 Find all files in a given directory (shallow)
@@ -279,12 +390,21 @@ Find all files in a given directory (shallow)
 await $$.findFiles('.') // ['a', 'b']
 ```
 
+|  #  | Parameter Name | Required | Type          | Default |
+|:---:|:---------------|:---------|:--------------|:--------|
+| *0* | `dir`          | *No*     | `string`      | `'.'`   |
+| *1* | `options`      | *No*     | `FindOptions` | `{}`    |
+
+| Return Type         |
+|---------------------|
+| `Promise<string[]>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### findModified
 
 ```typescript
-$$.findModified;
+$$.findModified(dir: string, options: FindOptions): Promise<ModifiedFile[]>
 ```
 
 Similar to $$.find, but returns a list of ModifiedFile objects, which includes information on what each item was last modified.
@@ -303,6 +423,15 @@ await $$.findModified('.')
 //   }
 // ]
 ```
+
+|  #  | Parameter Name | Required | Type          | Default |
+|:---:|:---------------|:---------|:--------------|:--------|
+| *0* | `dir`          | *No*     | `string`      | `'.'`   |
+| *1* | `options`      | *No*     | `FindOptions` | `{}`    |
+
+| Return Type               |
+|---------------------------|
+| `Promise<ModifiedFile[]>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -333,7 +462,7 @@ Extends `swiss-node`'s `ExplodedPath`, adding a new `lastModified` number proper
 ### lastModified
 
 ```typescript
-$$.lastModified;
+$$.lastModified(path: string): Promise<number>
 ```
 
 Returns the last modified time of a file or files within a directory.
@@ -342,12 +471,20 @@ Returns the last modified time of a file or files within a directory.
 await $$.lastModified('a.mp4') // 1689206400000
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `path`         | **Yes**  | `string` |
+
+| Return Type       |
+|-------------------|
+| `Promise<number>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### rsync
 
 ```typescript
-$$.rsync;
+$$.rsync(a: string, b: string, flags: string[], progressBarOpts: Partial<ProgressBarOptions>): Promise<any>
 ```
 
 Wrapper for rsync command
@@ -356,12 +493,23 @@ Wrapper for rsync command
 await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2'`
 ```
 
+|  #  | Parameter Name    | Required | Type                          | Default |
+|:---:|:------------------|:---------|:------------------------------|:--------|
+| *0* | `a`               | **Yes**  | `string`                      |         |
+| *1* | `b`               | **Yes**  | `string`                      |         |
+| *2* | `flags`           | *No*     | `string[]`                    | `[]`    |
+| *3* | `progressBarOpts` | *No*     | `Partial<ProgressBarOptions>` |         |
+
+| Return Type    |
+|----------------|
+| `Promise<any>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### sync
 
 ```typescript
-$$.sync;
+$$.sync(a: string, b: string, progressBarOpts: Partial<ProgressBarOptions>): Promise<any>
 ```
 
 Helper function for syncing files
@@ -370,12 +518,22 @@ Helper function for syncing files
 await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2' --delete`
 ```
 
+|  #  | Parameter Name    | Required | Type                          |
+|:---:|:------------------|:---------|:------------------------------|
+| *0* | `a`               | **Yes**  | `string`                      |
+| *1* | `b`               | **Yes**  | `string`                      |
+| *2* | `progressBarOpts` | *No*     | `Partial<ProgressBarOptions>` |
+
+| Return Type    |
+|----------------|
+| `Promise<any>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### isFileExist
 
 ```typescript
-$$.isFileExist;
+$$.isFileExist(file: string): Promise<boolean>
 ```
 
 Check if a file exists
@@ -384,12 +542,20 @@ Check if a file exists
 await $$.isFileExist('example') // true
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `file`         | **Yes**  | `string` |
+
+| Return Type        |
+|--------------------|
+| `Promise<boolean>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### isDirExist
 
 ```typescript
-$$.isDirExist;
+$$.isDirExist(dir: string): Promise<boolean>
 ```
 
 Check if a directory exists
@@ -398,12 +564,20 @@ Check if a directory exists
 await $$.isDirExist('example') // true
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `dir`          | **Yes**  | `string` |
+
+| Return Type        |
+|--------------------|
+| `Promise<boolean>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### readFile
 
 ```typescript
-$$.readFile;
+$$.readFile(filepath: string): Promise<string>
 ```
 
 Read a file's contents
@@ -412,12 +586,20 @@ Read a file's contents
 await $$.readFile('example') // 'hello world'
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `filepath`     | **Yes**  | `string` |
+
+| Return Type       |
+|-------------------|
+| `Promise<string>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### writeFile
 
 ```typescript
-$$.writeFile;
+$$.writeFile(filepath: string, contents: string): Promise<void>
 ```
 
 Write to a file
@@ -426,12 +608,21 @@ Write to a file
 await $$.writeFile('example', 'hello world') // saves a new file called 'example' with the contents 'hello world'
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `filepath`     | **Yes**  | `string` |
+| *1* | `contents`     | **Yes**  | `string` |
+
+| Return Type     |
+|-----------------|
+| `Promise<void>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### readJSON
 
 ```typescript
-$$.readJSON;
+$$.readJSON<T>(filepath: string): Promise<T>
 ```
 
 Read a JSON file
@@ -440,12 +631,20 @@ Read a JSON file
 await $$.readJSON('example.json') // { hello: 'world' }
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `filepath`     | **Yes**  | `string` |
+
+| Return Type  |
+|--------------|
+| `Promise<T>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### writeJSON
 
 ```typescript
-$$.writeJSON;
+$$.writeJSON<T>(obj: T): Promise<T>
 ```
 
 Write to a JSON file
@@ -454,12 +653,20 @@ Write to a JSON file
 await $$.writeJSON('example.json', { hello: 'world' }) // saves a new file called 'example.json' with the contents {'hello':'world'}
 ```
 
+|  #  | Parameter Name | Required | Type |
+|:---:|:---------------|:---------|:-----|
+| *0* | `obj`          | **Yes**  | `T`  |
+
+| Return Type  |
+|--------------|
+| `Promise<T>` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### <span id="___pipe">pipe</span>
 
 ```typescript
-$$.pipe;
+$$.pipe(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg: T): ProcessPromise
 ```
 
 Pipes a series of $ or $$ commands sequentially
@@ -471,12 +678,21 @@ await $$.pipe([
 ]);
 ```
 
+|  #  | Parameter Name | Required | Type                                              |
+|:---:|:---------------|:---------|:--------------------------------------------------|
+| *0* | `processes`    | **Yes**  | `((index?: number, arg?: T) => ProcessPromise)[]` |
+| *1* | `arg`          | *No*     | `T`                                               |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
+
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### exiftool
 
 ```typescript
-$$.exiftool;
+$$.exiftool(file: string, setAttr: ExifToolAttributesObj, getAttr: (ExifToolAttributes | string)[], outFile: string): Promise<ExifToolAttributesObj>
 ```
 
 Usage:
@@ -484,6 +700,17 @@ Usage:
 $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'});
 $$.exiftool('/path/to/file.jpg', {'Copyright': 'Eg val'}, undefined, '/path/to/new_file.jpg');
 ```
+
+|  #  | Parameter Name | Required | Type                               |
+|:---:|:---------------|:---------|:-----------------------------------|
+| *0* | `file`         | **Yes**  | `string`                           |
+| *1* | `setAttr`      | *No*     | `ExifToolAttributesObj`            |
+| *2* | `getAttr`      | *No*     | `(ExifToolAttributes \| string)[]` |
+| *3* | `outFile`      | *No*     | `string`                           |
+
+| Return Type                      |
+|----------------------------------|
+| `Promise<ExifToolAttributesObj>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -512,7 +739,7 @@ Type for the names of the attributes returned by exiftool
 #### intoLines
 
 ```typescript
-$$.utils.intoLines;
+$$.utils.intoLines(out: ProcessOutput): string[]
 ```
 
 Turns ProcessOutput into string array, split into lines
@@ -520,6 +747,14 @@ Turns ProcessOutput into string array, split into lines
 ```typescript
 utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
 ```
+
+|  #  | Parameter Name | Required | Type            |
+|:---:|:---------------|:---------|:----------------|
+| *0* | `out`          | **Yes**  | `ProcessOutput` |
+
+| Return Type |
+|-------------|
+| `string[]`  |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -532,8 +767,8 @@ utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
 ### closeFinder
 
 ```typescript
-closeFinder;
-os.closeFinder;
+closeFinder(undefined): Promise<void>
+os.closeFinder(undefined): Promise<void>
 ```
 
 Close all Mac OS X Finder windows.
@@ -541,6 +776,10 @@ Close all Mac OS X Finder windows.
 ```typescript
 await closeFinder();
 ```
+
+| Return Type     |
+|-----------------|
+| `Promise<void>` |
 
 <p style="text-align: right" align="right"><a href="#os"> [↑ Back to <b>os</b> ↑] </a></p>
 
@@ -558,8 +797,8 @@ await closeFinder();
 ### ffmpeg
 
 ```typescript
-ffmpeg;
-ffmpegTools.ffmpeg;
+ffmpeg(command: () => ProcessPromise, progressFileName: string, totalFrames: number, progressBarOpts: ProgressBarOptions): Promise<void>
+ffmpegTools.ffmpeg(command: () => ProcessPromise, progressFileName: string, totalFrames: number, progressBarOpts: ProgressBarOptions): Promise<void>
 ```
 
 Wrapper for ffmpeg command that provides progress bar to track progress
@@ -569,12 +808,23 @@ const progBarOpts = {}; // Same options as getProgressBar
 await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
 ```
 
+|  #  | Parameter Name     | Required | Type                   | Default                               |
+|:---:|:-------------------|:---------|:-----------------------|:--------------------------------------|
+| *0* | `command`          | *No*     | `() => ProcessPromise` | ``() => $`ffmpeg -progress pr.txt` `` |
+| *1* | `progressFileName` | *No*     | `string`               | `'pr.txt'`                            |
+| *2* | `totalFrames`      | *No*     | `number`               | `1`                                   |
+| *3* | `progressBarOpts`  | *No*     | `ProgressBarOptions`   | `{}`                                  |
+
+| Return Type     |
+|-----------------|
+| `Promise<void>` |
+
 <p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### toFFmpegTimeFormat
 
 ```typescript
-ffmpegTools.toFFmpegTimeFormat;
+ffmpegTools.toFFmpegTimeFormat(time: ms): string
 ```
 
 Convert a number of milliseconds to a time format usable by FFmpeg.
@@ -585,12 +835,20 @@ ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21)); // '03:21.000'
 ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21) + 456); // '03:21.456'
 ```
 
+|  #  | Parameter Name | Required | Type |
+|:---:|:---------------|:---------|:-----|
+| *0* | `time`         | **Yes**  | `ms` |
+
+| Return Type |
+|-------------|
+| `string`    |
+
 <p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### getProbe
 
 ```typescript
-ffmpegTools.getProbe;
+ffmpegTools.getProbe(file: string): Promise<ProbeResult>
 ```
 
 Get the probe of a file as an object
@@ -598,6 +856,14 @@ Get the probe of a file as an object
 ```typescript
 const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
 ```
+
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `file`         | **Yes**  | `string` |
+
+| Return Type            |
+|------------------------|
+| `Promise<ProbeResult>` |
 
 <p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
@@ -614,7 +880,7 @@ Note: this interface is a guide, and other properties may exist, and some may be
 ### getProbeValue
 
 ```typescript
-ffmpegTools.getProbeValue;
+ffmpegTools.getProbeValue(file: string, propertyName: string): Promise<string>
 ```
 
 Get a value from ffprobe output
@@ -623,12 +889,21 @@ Get a value from ffprobe output
 const probe = await getProbe('file.mp4', 'width'); // '1280'
 ```
 
+|  #  | Parameter Name | Required | Type     |
+|:---:|:---------------|:---------|:---------|
+| *0* | `file`         | **Yes**  | `string` |
+| *1* | `propertyName` | **Yes**  | `string` |
+
+| Return Type       |
+|-------------------|
+| `Promise<string>` |
+
 <p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### getTotalFrames
 
 ```typescript
-ffmpegTools.getTotalFrames;
+ffmpegTools.getTotalFrames(list: string | string[]): Promise<number>
 ```
 
 Get the total number of frames in a video file.
@@ -636,6 +911,14 @@ Get the total number of frames in a video file.
 ```typescript
 const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
 ```
+
+|  #  | Parameter Name | Required | Type                 |
+|:---:|:---------------|:---------|:---------------------|
+| *0* | `list`         | *No*     | `string \| string[]` |
+
+| Return Type       |
+|-------------------|
+| `Promise<number>` |
 
 <p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
@@ -664,7 +947,7 @@ const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
 ### convert
 
 ```typescript
-gm.convert;
+gm.convert(inPath: string, outPath: string, flags: ConvertFlagsObj): ProcessPromise
 ```
 
 Wrapper function for gm (GraphicsMagick) convert command
@@ -672,6 +955,16 @@ Wrapper function for gm (GraphicsMagick) convert command
 ```typescript
 const converted = await gm.convert(input, output, {});
 ```
+
+|  #  | Parameter Name | Required | Type              | Default |
+|:---:|:---------------|:---------|:------------------|:--------|
+| *0* | `inPath`       | *No*     | `string`          | `PIPE`  |
+| *1* | `outPath`      | *No*     | `string`          | `PIPE`  |
+| *2* | `flags`        | *No*     | `ConvertFlagsObj` | `{}`    |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -690,7 +983,7 @@ Extends CommonFlagsObj
 ### composite
 
 ```typescript
-gm.composite;
+gm.composite(changePath: string, basePath: string, outPath: string, maskPath: string, flags: ChangeAndMaskFlags | CompositeFlagsObj): ProcessPromise
 ```
 
 Wrapper function for gm (GraphicsMagick) composite command
@@ -700,6 +993,18 @@ Has extra functionality for using a 'Screen' blending mode (similar to Photoshop
 ```typescript
 const composited = await gm.composite(change, base, out, undefined, {});
 ```
+
+|  #  | Parameter Name | Required | Type                                      | Default |
+|:---:|:---------------|:---------|:------------------------------------------|:--------|
+| *0* | `changePath`   | *No*     | `string`                                  | `PIPE`  |
+| *1* | `basePath`     | *No*     | `string`                                  | `PIPE`  |
+| *2* | `outPath`      | *No*     | `string`                                  | `PIPE`  |
+| *3* | `maskPath`     | *No*     | `string`                                  | `''`    |
+| *4* | `flags`        | *No*     | `ChangeAndMaskFlags \| CompositeFlagsObj` | `{}`    |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -735,7 +1040,7 @@ If compositing with a mask, you can specify the change and mask flags separately
 ### <span id="gm_pipe">pipe</span>
 
 ```typescript
-gm.pipe;
+gm.pipe(inPath: string, outPath: string, processes: ((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]): ProcessPromise
 ```
 
 Pipe a series of gm commands together
@@ -746,6 +1051,16 @@ await pipe(basePath, outPath, [
   (p) => composite(changePath, p, p, changePath, opts2)
 ]);
 ```
+
+|  #  | Parameter Name | Required | Type                                                                        | Default |
+|:---:|:---------------|:---------|:----------------------------------------------------------------------------|:--------|
+| *0* | `inPath`       | *No*     | `string`                                                                    |         |
+| *1* | `outPath`      | *No*     | `string`                                                                    |         |
+| *2* | `processes`    | *No*     | `((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]` | `[]`    |
+
+| Return Type      |
+|------------------|
+| `ProcessPromise` |
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
@@ -798,7 +1113,7 @@ gm.channel;
 #### flagsObjToArray
 
 ```typescript
-gm.utils.flagsObjToArray;
+gm.utils.flagsObjToArray(obj: gm.FlagsObj): (string | number)[]
 ```
 
 Converts a FlagsObj to an array of flags and values (for zx).
@@ -813,6 +1128,14 @@ gm.utils.flagsObjToArray({ resize: '1080', fill: 'gray', gravity: 'SouthEast' })
 gm.utils.flagsObjToArray({ brightness: 150, saturation: 50, hue: 200 });
 // [ '-modulate', '150,50,200' ]
 ```
+
+|  #  | Parameter Name | Required | Type          |
+|:---:|:---------------|:---------|:--------------|
+| *0* | `obj`          | **Yes**  | `gm.FlagsObj` |
+
+| Return Type            |
+|------------------------|
+| `(string \| number)[]` |
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 

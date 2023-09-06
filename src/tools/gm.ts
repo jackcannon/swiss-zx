@@ -25,7 +25,7 @@ export namespace gm {
     };
   };
 
-  /**<!-- DOCS: gm.convert ### @ -->
+  /**<!-- DOCS: gm.convert ### -->
    * convert
    *
    * - `gm.convert`
@@ -35,6 +35,10 @@ export namespace gm {
    * ```typescript
    * const converted = await gm.convert(input, output, {});
    * ```
+   * @param {string} [inPath=PIPE]
+   * @param {string} [outPath=PIPE]
+   * @param {ConvertFlagsObj} [flags={}]
+   * @returns {ProcessPromise}
    */
   export const convert = (inPath: string = PIPE, outPath: string = PIPE, flags: ConvertFlagsObj = {}): ProcessPromise => {
     const flagsArray = gmUtils.flagsObjToArray(flags);
@@ -80,7 +84,7 @@ export namespace gm {
     hue?: number;
   }
 
-  /**<!-- DOCS: gm.composite ### @ -->
+  /**<!-- DOCS: gm.composite ### -->
    * composite
    *
    * - `gm.composite`
@@ -92,6 +96,12 @@ export namespace gm {
    * ```typescript
    * const composited = await gm.composite(change, base, out, undefined, {});
    * ```
+   * @param {string} [changePath=PIPE]
+   * @param {string} [basePath=PIPE]
+   * @param {string} [outPath=PIPE]
+   * @param {string} [maskPath='']
+   * @param {ChangeAndMaskFlags | CompositeFlagsObj} [flags={}]
+   * @returns {ProcessPromise}
    */
   export const composite = (
     changePath: string = PIPE,
@@ -182,7 +192,7 @@ export namespace gm {
     mask?: CompositeFlagsObj;
   }
 
-  /**<!-- DOCS: gm.pipe ### @ -->
+  /**<!-- DOCS: gm.pipe ### -->
    * pipe
    *
    * - `gm.pipe`
@@ -195,6 +205,10 @@ export namespace gm {
    *   (p) => composite(changePath, p, p, changePath, opts2)
    * ]);
    * ```
+   * @param {string} [inPath]
+   * @param {string} [outPath]
+   * @param {((pipeIn?: string, pipeOut?: string, index?: number) => ProcessPromise)[]} [processes=[]]
+   * @returns {ProcessPromise}
    */
   export const pipe = (
     inPath?: string,

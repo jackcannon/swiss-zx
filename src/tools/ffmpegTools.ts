@@ -24,6 +24,11 @@ export namespace ffmpegTools {
    * const progBarOpts = {}; // Same options as getProgressBar
    * await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
    * ```
+   * @param {() => ProcessPromise} [command=() => $`ffmpeg -progress pr.txt`]
+   * @param {string} [progressFileName='pr.txt']
+   * @param {number} [totalFrames=1]
+   * @param {ProgressBarOptions} [progressBarOpts={}]
+   * @returns {Promise<void>}
    */
   export const ffmpeg = async (
     command: () => ProcessPromise = () => $`ffmpeg -progress pr.txt`,
@@ -77,6 +82,8 @@ export namespace ffmpegTools {
    * ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21)); // '03:21.000'
    * ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21) + 456); // '03:21.456'
    * ```
+   * @param {ms} time
+   * @returns {string}
    */
   export const toFFmpegTimeFormat = (time: ms) => new Date(time).toISOString().slice(14, 23);
 
@@ -90,6 +97,8 @@ export namespace ffmpegTools {
    * ```typescript
    * const probe = await getProbe('file.mp4'); // { width: 1280, height: 720, ... }
    * ```
+   * @param {string} file
+   * @returns {Promise<ProbeResult>}
    */
   export const getProbe = async (file: string): Promise<ProbeResult> => {
     const full = await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep =`;
@@ -217,6 +226,9 @@ export namespace ffmpegTools {
    * ```typescript
    * const probe = await getProbe('file.mp4', 'width'); // '1280'
    * ```
+   * @param {string} file
+   * @param {string} propertyName
+   * @returns {Promise<string>}
    */
   export const getProbeValue = async (file: string, propertyName: string): Promise<string> =>
     (await $`ffprobe -select_streams v -show_streams ${file} 2>/dev/null | grep ${propertyName} | head -n 1 | sed -e 's/.*=//'`).toString();
@@ -231,6 +243,8 @@ export namespace ffmpegTools {
    * ```typescript
    * const num = await getTotalFrames('video.mp4'); // 120 (2 secs at 60fps)
    * ```
+   * @param {string | string[]} [list]
+   * @returns {Promise<number>}
    */
   export const getTotalFrames = async (list?: string | string[]): Promise<number> => {
     if (!list) {
