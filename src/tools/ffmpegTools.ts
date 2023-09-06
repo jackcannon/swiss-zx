@@ -71,6 +71,12 @@ export namespace ffmpegTools {
    * - `ffmpegTools.toFFmpegTimeFormat`
    *
    * Convert a number of milliseconds to a time format usable by FFmpeg.
+   *
+   * ```typescript
+   * ffmpegTools.toFFmpegTimeFormat(minutes(3)); // '03:00.000'
+   * ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21)); // '03:21.000'
+   * ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21) + 456); // '03:21.456'
+   * ```
    */
   export const toFFmpegTimeFormat = (time: ms) => new Date(time).toISOString().slice(14, 23);
 

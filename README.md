@@ -579,6 +579,12 @@ ffmpegTools.toFFmpegTimeFormat;
 
 Convert a number of milliseconds to a time format usable by FFmpeg.
 
+```typescript
+ffmpegTools.toFFmpegTimeFormat(minutes(3)); // '03:00.000'
+ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21)); // '03:21.000'
+ffmpegTools.toFFmpegTimeFormat(minutes(3) + seconds(21) + 456); // '03:21.456'
+```
+
 <p style="text-align: right" align="right"><a href="#ffmpegtools"> [↑ Back to <b>ffmpegTools</b> ↑] </a></p>
 
 ### getProbe
@@ -797,6 +803,17 @@ gm.utils.flagsObjToArray;
 
 Converts a FlagsObj to an array of flags and values (for zx).
 
+```typescript
+gm.utils.flagsObjToArray({ channel: 'red' }); // [ '-channel', 'red' ]
+gm.utils.flagsObjToArray({ displace: '10' }); // [ '-displace', '10' ]
+
+gm.utils.flagsObjToArray({ resize: '1080', fill: 'gray', gravity: 'SouthEast' });
+// ['-resize', '1080', '-fill', 'gray', '-gravity', 'SouthEast']
+
+gm.utils.flagsObjToArray({ brightness: 150, saturation: 50, hue: 200 });
+// [ '-modulate', '150,50,200' ]
+```
+
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 
 #### channelComposeCopyMap
@@ -806,6 +823,12 @@ gm.utils.channelComposeCopyMap;
 ```
 
 A dictionary for mapping channel names to their respective compose copy names.
+
+```typescript
+gm.utils.channelComposeCopyMap['red'] // 'CopyRed'
+gm.utils.channelComposeCopyMap['magena'] // 'CopyMagenta'
+gm.utils.channelComposeCopyMap['gray'] // 'Copy'
+```
 
 <p style="text-align: right" align="right"><a href="#gm"> [↑ Back to <b>gm</b> ↑] </a></p>
 

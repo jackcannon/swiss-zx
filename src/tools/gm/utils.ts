@@ -12,6 +12,17 @@ import { gm } from '../gm';
  * - `gm.utils.flagsObjToArray`
  *
  * Converts a FlagsObj to an array of flags and values (for zx).
+ *
+ * ```typescript
+ * gm.utils.flagsObjToArray({ channel: 'red' }); // [ '-channel', 'red' ]
+ * gm.utils.flagsObjToArray({ displace: '10' }); // [ '-displace', '10' ]
+ *
+ * gm.utils.flagsObjToArray({ resize: '1080', fill: 'gray', gravity: 'SouthEast' });
+ * // ['-resize', '1080', '-fill', 'gray', '-gravity', 'SouthEast']
+ *
+ * gm.utils.flagsObjToArray({ brightness: 150, saturation: 50, hue: 200 });
+ * // [ '-modulate', '150,50,200' ]
+ * ```
  */
 export const flagsObjToArray = (obj: gm.FlagsObj) => {
   const { brightness, saturation, hue, ...rest } = obj;
@@ -20,7 +31,7 @@ export const flagsObjToArray = (obj: gm.FlagsObj) => {
     rest.modulate = `${brightness ?? 100},${saturation ?? 100},${hue ?? 100}`;
   }
 
-  return Object.entries(obj)
+  return Object.entries(rest)
     .filter(([name, value]) => value !== undefined && value !== null && value !== false)
     .map(([name, value]) => ['-' + name, (supportedFlags[name]?.processOutput || fn.noact)(value)])
     .flat()
@@ -33,6 +44,12 @@ export const flagsObjToArray = (obj: gm.FlagsObj) => {
  * - `gm.utils.channelComposeCopyMap`
  *
  * A dictionary for mapping channel names to their respective compose copy names.
+ *
+ * ```typescript
+ * gm.utils.channelComposeCopyMap['red'] // 'CopyRed'
+ * gm.utils.channelComposeCopyMap['magena'] // 'CopyMagenta'
+ * gm.utils.channelComposeCopyMap['gray'] // 'Copy'
+ * ```
  */
 export const channelComposeCopyMap: { [key in gm.channel]: string } = {
   red: 'CopyRed',

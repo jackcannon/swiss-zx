@@ -269,7 +269,7 @@ var flagsObjToArray = (obj) => {
   if (rest.modulate === void 0 && (brightness !== void 0 || saturation !== void 0 || hue !== void 0)) {
     rest.modulate = `${brightness ?? 100},${saturation ?? 100},${hue ?? 100}`;
   }
-  return Object.entries(obj).filter(([name, value]) => value !== void 0 && value !== null && value !== false).map(([name, value]) => {
+  return Object.entries(rest).filter(([name, value]) => value !== void 0 && value !== null && value !== false).map(([name, value]) => {
     var _a;
     return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || fn2.noact)(value)];
   }).flat().filter((x) => x !== void 0 && x !== true);
