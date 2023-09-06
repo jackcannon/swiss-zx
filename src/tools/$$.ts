@@ -3,7 +3,6 @@ import { $, fs as fsO, cd as cdO } from 'zx';
 import { fn, getProgressBar, ms, ProgressBarOptions, retryOr, seconds } from 'swiss-ak';
 import { PathTools, explodePath, ExplodedPath } from 'swiss-node';
 
-import * as findTypes from '../utils/findTypes';
 import * as exif from './dd/exiftool';
 
 $.verbose = false;
@@ -156,7 +155,7 @@ export namespace $$ {
    */
   export const grep = async (pattern: string, file: string) => utils.intoLines(await $`grep ${pattern} ${file}`);
 
-  const convertFindOptionsToFlags = (options: findTypes.FindOptions) => {
+  const convertFindOptionsToFlags = (options: FindOptions) => {
     const { type, ext, mindepth, maxdepth, name, regex, removePath } = options;
     const flags = [];
 
@@ -181,7 +180,7 @@ export namespace $$ {
    * await $$.find('.', { type: 'f' }) // ['a', 'b']
    * ```
    */
-  export const find = async (dir: string = '.', options: findTypes.FindOptions = {}): Promise<string[]> => {
+  export const find = async (dir: string = '.', options: FindOptions = {}): Promise<string[]> => {
     // google zx doesn't allow for unquoted arguments, so we need work around to conditionally add -execdir
     let result;
 
@@ -218,7 +217,67 @@ export namespace $$ {
    *
    * Options for $$.find (and related other tools)
    */
-  export type FindOptions = findTypes.FindOptions;
+  export interface FindOptions {
+    /**
+     * Type of item to find
+     *
+     * |   | Description       |
+     * |---|-------------------|
+     * | d | directory         |
+     * | f | regular file      |
+     * | b | block special     |
+     * | c | character special |
+     * | l | symbolic link     |
+     * | p | FIFO              |
+     * | s | socket            |
+     */
+    type?: FindType;
+    /**
+     * Minimum depth to search
+     */
+    mindepth?: number;
+    /**
+     * Maximum depth to search
+     */
+    maxdepth?: number;
+    /**
+     * Name of file/directory to find
+     */
+    name?: string;
+
+    ext?: string;
+
+    /**
+     * Regular expression to match
+     *
+     * IMPORTANT: use String.raw to make sure the backslashes are escaped
+     *
+     * ```typescript
+     * const regex = String.raw`^.*\.js$` // '^.*\.js$'
+     * ```
+     */
+    regex?: string;
+    /**
+     * If true, removes the path from the result (so you just get the file/directory name)
+     */
+    removePath?: boolean;
+
+    // Removed as not used
+    // absolutePath?: boolean;
+
+    /**
+     * If true, ensures the provided path has a trailing slash.
+     */
+    contentsOnly?: boolean;
+    /**
+     * If true, removes trailing slashes from the results.
+     */
+    removeTrailingSlashes?: boolean;
+    /**
+     * If true, includes files that start with a dot.
+     */
+    showHidden?: boolean;
+  }
 
   /**<!-- DOCS: $$.FindType #### -->
    * FindType
@@ -237,7 +296,7 @@ export namespace $$ {
    * | p | FIFO              |
    * | s | socket            |
    */
-  export type FindType = findTypes.FindType;
+  export type FindType = 'd' | 'f' | 'b' | 'c' | 'l' | 'p' | 's';
 
   /**<!-- DOCS: $$.findDirs ### @ -->
    * findDirs
@@ -250,7 +309,7 @@ export namespace $$ {
    * await $$.findDirs('.') // ['a', 'b']
    * ```
    */
-  export const findDirs = (dir: string = '.', options: findTypes.FindOptions = {}): Promise<string[]> =>
+  export const findDirs = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
     find(dir, { type: 'd', maxdepth: 1, removePath: true, contentsOnly: true, removeTrailingSlashes: true, ...options });
 
   /**<!-- DOCS: $$.findFiles ### @ -->
@@ -264,7 +323,7 @@ export namespace $$ {
    * await $$.findFiles('.') // ['a', 'b']
    * ```
    */
-  export const findFiles = (dir: string = '.', options: findTypes.FindOptions = {}): Promise<string[]> =>
+  export const findFiles = (dir: string = '.', options: FindOptions = {}): Promise<string[]> =>
     find(dir, { type: 'f', maxdepth: 1, removePath: true, contentsOnly: true, ...options });
 
   /**<!-- DOCS: $$.findModified ### @ -->
@@ -272,9 +331,24 @@ export namespace $$ {
    *
    * - `$$.findModified`
    *
-   * TODO docs
+   * Similar to $$.find, but returns a list of ModifiedFile objects, which includes information on what each item was last modified.
+   *
+   * ```typescript
+   * await $$.findModified('.')
+   * // [
+   * //   {
+   * //     lastModified: 1689206400000,
+   * //     path: './a.mp4',
+   * //     dir: '.',
+   * //     folders: ['.'],
+   * //     name: 'a',
+   * //     ext: 'mp4',
+   * //     filename: 'a.mp4'
+   * //   }
+   * // ]
+   * ```
    */
-  export const findModified = async (dir: string = '.', options: findTypes.FindOptions = {}): Promise<ModifiedFile[]> => {
+  export const findModified = async (dir: string = '.', options: FindOptions = {}): Promise<ModifiedFile[]> => {
     const newDir = options.contentsOnly ? PathTools.trailSlash(dir) : dir;
     const flags = convertFindOptionsToFlags(options);
 
@@ -303,7 +377,21 @@ export namespace $$ {
    *
    * - `$$.ModifiedFile`
    *
-   * TODO docs
+   * Returned by $$.findModified.
+   *
+   * Extends `swiss-node`'s `ExplodedPath`, adding a new `lastModified` number property.
+   *
+   * ```typescript
+   * {
+   *   lastModified: 1689206400000,
+   *   path: './a.mp4',
+   *   dir: '.',
+   *   folders: ['.'],
+   *   name: 'a',
+   *   ext: 'mp4',
+   *   filename: 'a.mp4'
+   * }
+   * ```
    */
   export interface ModifiedFile extends ExplodedPath {
     lastModified: ms;
@@ -314,7 +402,11 @@ export namespace $$ {
    *
    * - `$$.lastModified`
    *
-   * TODO docs
+   * Returns the last modified time of a file or files within a directory.
+   *
+   * ```typescript
+   * await $$.lastModified('a.mp4') // 1689206400000
+   * ```
    */
   export const lastModified = async (path: string): Promise<number> => {
     let list = await findModified(path, { type: 'f' });
@@ -462,7 +554,14 @@ export namespace $$ {
    *
    * - `$$.pipe`
    *
-   * TODO docs
+   * Pipes a series of $ or $$ commands sequentially
+   *
+   * ```typescript
+   * await $$.pipe([
+   *   () => gm.convert(basePath, gm.PIPE, opts1),
+   *   () => gm.composite(changePath, gm.PIPE, gm.PIPE, changePath, opts2)
+   * ]);
+   * ```
    */
   export const pipe = <T extends unknown>(processes: ((index?: number, arg?: T) => ProcessPromise)[], arg?: T): ProcessPromise => {
     if (processes.length === 0) return $``;

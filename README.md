@@ -287,7 +287,7 @@ await $$.findFiles('.') // ['a', 'b']
 $$.findModified;
 ```
 
-TODO docs
+Similar to $$.find, but returns a list of ModifiedFile objects, which includes infomation on what each item was last modified.
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 

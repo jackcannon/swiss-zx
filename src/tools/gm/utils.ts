@@ -32,7 +32,7 @@ export const flagsObjToArray = (obj: gm.FlagsObj) => {
  *
  * - `gm.utils.channelComposeCopyMap`
  *
- * TODO docs
+ * A dictionary for mapping channel names to their respective compose copy names.
  */
 export const channelComposeCopyMap: { [key in gm.channel]: string } = {
   red: 'CopyRed',
@@ -265,7 +265,13 @@ export const supportedFlags: { [key: string]: SupportedFlag } = {
  *
  * - `gm.utils.GMCommand`
  *
- * TODO docs
+ * An internal string indictor for which gm command to use.
+ *
+ * Only used in configuration for `gm.utils.SupportedFlag`.
+ *
+ * ```typescript
+ * 'convert' | 'composite'
+ * ```
  */
 export type GMCommand = 'convert' | 'composite';
 
@@ -274,7 +280,7 @@ export type GMCommand = 'convert' | 'composite';
  *
  * - `gm.utils.SupportedFlag`
  *
- * TODO docs
+ * An internal configuration object for a supported flag.
  */
 export interface SupportedFlag {
   name: string;

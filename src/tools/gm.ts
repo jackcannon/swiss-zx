@@ -46,7 +46,7 @@ export namespace gm {
    *
    * - `gm.ConvertFlagsObj`
    *
-   * TODO docs
+   * Options configuration for the `gm.convert` function
    *
    * Extends CommonFlagsObj
    */
@@ -151,7 +151,7 @@ export namespace gm {
    *
    * - `gm.CompositeFlagsObj`
    *
-   * TODO docs
+   * Options configuration for the `gm.composite` function
    *
    * Extends CommonFlagsObj
    */
@@ -168,7 +168,14 @@ export namespace gm {
    *
    * - `gm.ChangeAndMaskFlags`
    *
-   * TODO docs
+   * If compositing with a mask, you can specify the change and mask flags separately
+   *
+   * ```typescript
+   * {
+   *   change?: CompositeFlagsObj;
+   *   mask?: CompositeFlagsObj;
+   * }
+   * ```
    */
   export interface ChangeAndMaskFlags {
     change?: CompositeFlagsObj;
@@ -180,7 +187,14 @@ export namespace gm {
    *
    * - `gm.pipe`
    *
-   * TODO docs
+   * Pipe a series of gm commands together
+   *
+   * ```typescript
+   * await pipe(basePath, outPath, [
+   *   (p) => convert(p, p, opts1),
+   *   (p) => composite(changePath, p, p, changePath, opts2)
+   * ]);
+   * ```
    */
   export const pipe = (
     inPath?: string,
@@ -202,7 +216,9 @@ export namespace gm {
    *
    * - `gm.PIPE`
    *
-   * TODO docs
+   * A shortcut constant for the GraphicsMagick pipe path which is `MIFF:-`
+   *
+   * This can be used in place any path parameter to pipe the result of a gm command to another gm command
    */
   export const PIPE = 'MIFF:-';
 
@@ -214,7 +230,7 @@ export namespace gm {
    *
    * - `gm.CommonFlagsObj`
    *
-   * TODO docs
+   * Option configuration options that are common to both `gm.convert` and `gm.composite`
    */
   export interface CommonFlagsObj {
     compose?: string;
