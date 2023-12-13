@@ -484,7 +484,7 @@ await $$.lastModified('a.mp4') // 1689206400000
 ### rsync
 
 ```typescript
-$$.rsync(a: string, b: string, flags: string[], progressBarOpts: Partial<ProgressBarOptions>): Promise<any>
+$$.rsync(a: string, b: string, flags: string[], progressBarOpts: Partial<ProgressBarOptions>): Promise<ProcessOutput>
 ```
 
 Wrapper for rsync command
@@ -500,16 +500,16 @@ await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'examp
 | *2* | `flags`           | *No*     | `string[]`                    | `[]`    |
 | *3* | `progressBarOpts` | *No*     | `Partial<ProgressBarOptions>` |         |
 
-| Return Type    |
-|----------------|
-| `Promise<any>` |
+| Return Type              |
+|--------------------------|
+| `Promise<ProcessOutput>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### sync
 
 ```typescript
-$$.sync(a: string, b: string, progressBarOpts: Partial<ProgressBarOptions>): Promise<any>
+$$.sync(a: string, b: string, progressBarOpts: Partial<ProgressBarOptions>): Promise<ProcessOutput>
 ```
 
 Helper function for syncing files
@@ -524,9 +524,9 @@ await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'exampl
 | *1* | `b`               | **Yes**  | `string`                      |
 | *2* | `progressBarOpts` | *No*     | `Partial<ProgressBarOptions>` |
 
-| Return Type    |
-|----------------|
-| `Promise<any>` |
+| Return Type              |
+|--------------------------|
+| `Promise<ProcessOutput>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 

@@ -680,7 +680,7 @@ declare namespace $$ {
      * @param {string} b
      * @param {string[]} [flags=[]]
      * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-     * @returns {Promise<any>}
+     * @returns {Promise<ProcessOutput>}
      */
     const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.sync ### @ -->
@@ -696,7 +696,7 @@ declare namespace $$ {
      * @param {string} a
      * @param {string} b
      * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-     * @returns {Promise<any>}
+     * @returns {Promise<ProcessOutput>}
      */
     const sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.isFileExist ### @ -->
@@ -1114,6 +1114,8 @@ declare namespace gm {
         fill?: string;
         flip?: boolean;
         flop?: boolean;
+        stroke?: string;
+        strokewidth?: number;
         threshold?: number;
         'white-threshold'?: number;
         format?: string;
@@ -1213,6 +1215,22 @@ declare namespace gm {
      * This can be used in place any path parameter to pipe the result of a gm command to another gm command
      */
     const PIPE = "MIFF:-";
+    namespace prefixes {
+        const CAPTION = "CAPTION:";
+        const caption: (text: string) => string;
+        const GRADIENT = "GRADIENT:";
+        const gradient: (fromColour: string, toColour: string) => string;
+        const HISTOGRAM = "HISTOGRAM:";
+        const histogram: (path: string) => string;
+        const LABEL = "LABEL:";
+        const label: (text: string) => string;
+        const TILE = "TILE:";
+        const tile: (path: string) => string;
+        const XC = "XC:";
+        const xc: (colour: string) => string;
+        const COLOUR = "XC:";
+        const colour: (colour: string) => string;
+    }
     /**<!-- DOCS: gm.Types ### -->
      * Types
      */

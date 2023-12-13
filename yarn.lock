@@ -2747,20 +2747,15 @@ supports-preserve-symlinks-flag@^1.0.0:
   resolved "https://registry.yarnpkg.com/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz#6eda4bd344a3c94aea376d4cc31bc77311039e09"
   integrity sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==
 
-swiss-ak@^2.2.1:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-2.2.1.tgz#28ca05444c8032da4e2ea1a12fca27fb6d8e67e1"
-  integrity sha512-YoulvBY368krgNdWcCYry8BDSKk+95ydGVNTE6JysHbKfhDKSLlApoIBzLBiPtsIjCM3KpKbUIPZucMWMFMsGQ==
-
 swiss-ak@^2.4.0, swiss-ak@^2.6.0:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-2.6.0.tgz#ad729a2e04ac6446030be4ba5c35e996019808c2"
   integrity sha512-sALskFVciH1maNqZpSu+uLfCkf/F/Fs4aGXPaK8Bf2FpK/hvZS9O2v666+ud/+Arb4KvpxDBqbn5ZUbpMCBslg==
 
-swiss-docs@^0.7.3:
-  version "0.7.3"
-  resolved "https://registry.yarnpkg.com/swiss-docs/-/swiss-docs-0.7.3.tgz#70db6813c78b77daea35de8888e3fbae35b7e16b"
-  integrity sha512-MwlFI1AQawMoXsSDrdI2eC7T8Hs8omAMKrBxNIoCr30qpYBopCXp8aVvAaxtJUWBjCoAhnk62pluh9XoN4l2Gg==
+swiss-docs@^0.7.5:
+  version "0.7.5"
+  resolved "https://registry.yarnpkg.com/swiss-docs/-/swiss-docs-0.7.5.tgz#b6e77839b3d5919f661c69662f73efcaceefbbd8"
+  integrity sha512-faOufMXyDkwNPrUuT6jVOBT1uRkuJwSGffz9GjYBJaKUDKtCp0vPsd116ObmMFbIC/MMieCduJPcYG/pQ+ocPg==
   dependencies:
     glob "^9.1.2"
     minimist "^1.2.8"
@@ -2768,18 +2763,7 @@ swiss-docs@^0.7.3:
     swiss-node "^1.4.0"
     ts-to-jsdoc "^1.3.0"
 
-swiss-node@^1.3.1:
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/swiss-node/-/swiss-node-1.3.1.tgz#011a32bccdafa71afd2d53045b57df7b48433d72"
-  integrity sha512-oc1FQYFdGAcQNHoE87FuCsnmOZS975V2oUfmiaOcoDpDwLo+zLI8/n1K4mYP0DaOgB4tqqWal4wrQcYwziV7lA==
-  dependencies:
-    chalk "^4.1.2"
-    fuse.js "^6.6.2"
-    prompts "^2.4.2"
-    string-width "^5.1.2"
-    swiss-ak "^2.2.1"
-
-swiss-node@^1.4.0:
+swiss-node@^1.4.0, swiss-node@^1.4.5:
   version "1.4.5"
   resolved "https://registry.yarnpkg.com/swiss-node/-/swiss-node-1.4.5.tgz#efd7abe6c0d7eaba7c41af289b52bf0aa03ee0f2"
   integrity sha512-ZOuioOpY94EEzLYIOHDlDb+8ZeIBKfcEEnqyXGM3UaqYgWyOgl+4IzqNrYcshMZLJ8odDccVba1RxpyGnHPHqQ==

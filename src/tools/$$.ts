@@ -485,7 +485,7 @@ export namespace $$ {
    * @param {string} b
    * @param {string[]} [flags=[]]
    * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-   * @returns {Promise<any>}
+   * @returns {Promise<ProcessOutput>}
    */
   export const rsync = async (a: string, b: string, flags: string[] = [], progressBarOpts?: Partial<ProgressBarOptions>): Promise<ProcessOutput> => {
     if (progressBarOpts) {
@@ -523,7 +523,7 @@ export namespace $$ {
    * @param {string} a
    * @param {string} b
    * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-   * @returns {Promise<any>}
+   * @returns {Promise<ProcessOutput>}
    */
   export const sync = (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>): Promise<ProcessOutput> =>
     rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ['--delete'], progressBarOpts);
@@ -571,7 +571,7 @@ export namespace $$ {
    * @param {string} filepath
    * @returns {Promise<string>}
    */
-  export const readFile = (filepath: string): Promise<string> => retryOr<any>('', 2, 100, true, () => fs.readFile(filepath, { encoding: 'utf8' }));
+  export const readFile = (filepath: string): Promise<string> => retryOr<any>('', 2, 100, () => fs.readFile(filepath, { encoding: 'utf8' }));
 
   /**<!-- DOCS: $$.writeFile ### @ -->
    * writeFile
@@ -588,7 +588,7 @@ export namespace $$ {
    * @returns {Promise<void>}
    */
   export const writeFile = (filepath: string, contents: string): Promise<void> =>
-    retryOr<any>(undefined, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
+    retryOr<any>(undefined, 2, 100, () => fs.writeFile(filepath, contents, { encoding: 'utf8' }));
 
   /**<!-- DOCS: $$.readJSON ### @ -->
    * readJSON

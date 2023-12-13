@@ -226,6 +226,20 @@ export const supportedFlags: { [key: string]: SupportedFlag } = {
     description: 'width and height of the image',
     hint: '<width>x<height>'
   },
+  stroke: {
+    name: 'stroke',
+    type: 'string',
+    commands: ['convert'],
+    description: 'stroke color to use',
+    hint: 'colour'
+  },
+  strokewidth: {
+    name: 'strokewidth',
+    type: 'number',
+    commands: ['convert'],
+    description: 'the width of the stroke',
+    hint: 'pixels'
+  },
   threshold: {
     name: 'threshold',
     type: 'number',

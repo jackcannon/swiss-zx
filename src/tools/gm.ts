@@ -2,6 +2,8 @@ import { fn } from 'swiss-ak';
 import { $$ } from './$$';
 import * as gmUtils from './gm/utils';
 
+const IS_DEBUG = false;
+
 //<!-- DOCS: 400 -->
 /**<!-- DOCS: gm ##! -->
  * gm
@@ -42,6 +44,9 @@ export namespace gm {
    */
   export const convert = (inPath: string = PIPE, outPath: string = PIPE, flags: ConvertFlagsObj = {}): ProcessPromise => {
     const flagsArray = gmUtils.flagsObjToArray(flags);
+
+    if (IS_DEBUG) console.log('CONVERT:', `gm convert ${flagsArray.join(' ')} ${inPath ? `"${inPath}"` : ''} ${outPath ? `"${outPath}"` : ''}`);
+
     return $`gm convert ${flagsArray} ${inPath} ${outPath}`;
   };
 
@@ -62,6 +67,8 @@ export namespace gm {
     fill?: string;
     flip?: boolean;
     flop?: boolean;
+    stroke?: string;
+    strokewidth?: number;
     threshold?: number;
     'white-threshold'?: number;
 
@@ -153,6 +160,14 @@ export namespace gm {
     const changeFlags = gmUtils.flagsObjToArray(change);
     const maskFlags = gmUtils.flagsObjToArray(mask);
 
+    if (IS_DEBUG)
+      console.log(
+        'COMPOSITE:',
+        `gm composite ${changeFlags.join(' ')} ${changePath ? `"${changePath}"` : ''} ${basePath ? `"${basePath}"` : ''} ${maskFlags.join(' ')} ${
+          maskPath ? `"${maskPath}"` : ''
+        } ${outPath ? `"${outPath}"` : ''}`
+      );
+
     return $`gm composite ${changeFlags} ${changePath} ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
   };
 
@@ -199,10 +214,17 @@ export namespace gm {
    *
    * Pipe a series of gm commands together
    *
+   * > WARNING: If inPath is provided, it will be piped in to first process
+   * > WARNING: If outPath is provided, it will be piped out from last process
+   *
    * ```typescript
    * await pipe(basePath, outPath, [
    *   (p) => convert(p, p, opts1),
    *   (p) => composite(changePath, p, p, changePath, opts2)
+   * ]);
+   * await pipe(undefined, undefined, [
+   *   (p) => convert(basePath, p, opts1),
+   *   (p) => composite(changePath, p, outPath, changePath, opts2)
    * ]);
    * ```
    * @param {string} [inPath]
@@ -235,6 +257,51 @@ export namespace gm {
    * This can be used in place any path parameter to pipe the result of a gm command to another gm command
    */
   export const PIPE = 'MIFF:-';
+
+  // TODO docs
+  export namespace prefixes {
+    // TODO docs - Draws text on a canvas image with size specified by -size canvas color as specified by -background' (default white), and text stroke and fill colors as specified by `-stroke and -fill. Capable of supporting multi-line text.
+    export const CAPTION = 'CAPTION:';
+
+    // TODO docs
+    export const caption = (text: string) => CAPTION + text;
+
+    // TODO docs - Returns a rendered gradient image using the specified image size. Specify the desired shading as part of the filename. For example: gradient:red-blue or gradient:#F00-#00F
+    export const GRADIENT = 'GRADIENT:';
+
+    // TODO docs
+    export const gradient = (fromColour: string, toColour: string) => `${GRADIENT}${fromColour}-${toColour}`;
+
+    // TODO docs - Generate an RGB histogram of the input image. The output format is always ImageMagick MIFF (regardless of file extension). For example: gm convert file.tiff histogram:file.miff
+    export const HISTOGRAM = 'HISTOGRAM:';
+
+    // TODO docs
+    export const histogram = (path: string) => `${HISTOGRAM}${path}`;
+
+    // TODO docs  - Specify the desired text as the filename (e.g. "label:This is a label").
+    export const LABEL = 'LABEL:';
+
+    // TODO docs
+    export const label = (text: string) => `${LABEL}${text}`;
+
+    // TODO docs - Create a tiled version of an image at by tiling a image. Use -size to specify the tiled image size. The image is specified similar to "TILE:image.miff". For example: gm convert -size 800x600 tile:image.jpg out.jpg
+    export const TILE = 'TILE:';
+
+    // TODO docs
+    export const tile = (path: string) => TILE + path;
+
+    // TODO docs - Useful to create solid color "canvas" images. Use -size and -depth to specify the image width, height, and depth. Example XC color specifications include "XC:red" and "XC:# FF0000". See the color reference for the numeric values used for named colors. For example: gm convert -size 640x480 xc:red red.jpg
+    export const XC = 'XC:';
+
+    // TODO docs
+    export const xc = (colour: string) => `${XC}${colour}`;
+
+    // TODO docs
+    export const COLOUR = XC;
+
+    // TODO docs
+    export const colour = xc;
+  }
 
   /**<!-- DOCS: gm.Types ### -->
    * Types

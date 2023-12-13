@@ -148,8 +148,8 @@ var $$;
   $$2.sync = (a, b, progressBarOpts) => $$2.rsync(import_swiss_node.PathTools.trailSlash(a), import_swiss_node.PathTools.trailSlash(b), ["--delete"], progressBarOpts);
   $$2.isFileExist = async (file) => await import_zx.$`[[ -f ${file} ]]`.exitCode === 0;
   $$2.isDirExist = async (dir) => await import_zx.$`[[ -d ${dir} ]]`.exitCode === 0;
-  $$2.readFile = (filepath) => (0, import_swiss_ak.retryOr)("", 2, 100, true, () => fs.readFile(filepath, { encoding: "utf8" }));
-  $$2.writeFile = (filepath, contents) => (0, import_swiss_ak.retryOr)(void 0, 2, 100, true, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
+  $$2.readFile = (filepath) => (0, import_swiss_ak.retryOr)("", 2, 100, () => fs.readFile(filepath, { encoding: "utf8" }));
+  $$2.writeFile = (filepath, contents) => (0, import_swiss_ak.retryOr)(void 0, 2, 100, () => fs.writeFile(filepath, contents, { encoding: "utf8" }));
   $$2.readJSON = async (filepath) => {
     const raw = await $$2.readFile(filepath);
     return JSON.parse(raw || "{}");
@@ -468,6 +468,20 @@ var supportedFlags = {
     description: "width and height of the image",
     hint: "<width>x<height>"
   },
+  stroke: {
+    name: "stroke",
+    type: "string",
+    commands: ["convert"],
+    description: "stroke color to use",
+    hint: "colour"
+  },
+  strokewidth: {
+    name: "strokewidth",
+    type: "number",
+    commands: ["convert"],
+    description: "the width of the stroke",
+    hint: "pixels"
+  },
   threshold: {
     name: "threshold",
     type: "number",
@@ -522,6 +536,7 @@ var supportedFlags = {
 };
 
 // src/tools/gm.ts
+var IS_DEBUG = false;
 var gm;
 ((gm2) => {
   const formaliseCompositeFlags = (flags) => {
@@ -540,6 +555,8 @@ var gm;
   };
   gm2.convert = (inPath = gm2.PIPE, outPath = gm2.PIPE, flags = {}) => {
     const flagsArray = flagsObjToArray(flags);
+    if (IS_DEBUG)
+      console.log("CONVERT:", `gm convert ${flagsArray.join(" ")} ${inPath ? `"${inPath}"` : ""} ${outPath ? `"${outPath}"` : ""}`);
     return $`gm convert ${flagsArray} ${inPath} ${outPath}`;
   };
   gm2.composite = (changePath = gm2.PIPE, basePath = gm2.PIPE, outPath = gm2.PIPE, maskPath = "", flags = {}) => {
@@ -572,6 +589,11 @@ var gm;
     }
     const changeFlags = flagsObjToArray(change);
     const maskFlags = flagsObjToArray(mask);
+    if (IS_DEBUG)
+      console.log(
+        "COMPOSITE:",
+        `gm composite ${changeFlags.join(" ")} ${changePath ? `"${changePath}"` : ""} ${basePath ? `"${basePath}"` : ""} ${maskFlags.join(" ")} ${maskPath ? `"${maskPath}"` : ""} ${outPath ? `"${outPath}"` : ""}`
+      );
     return $`gm composite ${changeFlags} ${changePath} ${basePath} ${maskFlags} ${maskPath} ${outPath}`;
   };
   gm2.pipe = (inPath, outPath, processes = []) => {
@@ -584,6 +606,23 @@ var gm;
     return $$.pipe(mapped);
   };
   gm2.PIPE = "MIFF:-";
+  let prefixes;
+  ((prefixes2) => {
+    prefixes2.CAPTION = "CAPTION:";
+    prefixes2.caption = (text) => prefixes2.CAPTION + text;
+    prefixes2.GRADIENT = "GRADIENT:";
+    prefixes2.gradient = (fromColour, toColour) => `${prefixes2.GRADIENT}${fromColour}-${toColour}`;
+    prefixes2.HISTOGRAM = "HISTOGRAM:";
+    prefixes2.histogram = (path) => `${prefixes2.HISTOGRAM}${path}`;
+    prefixes2.LABEL = "LABEL:";
+    prefixes2.label = (text) => `${prefixes2.LABEL}${text}`;
+    prefixes2.TILE = "TILE:";
+    prefixes2.tile = (path) => prefixes2.TILE + path;
+    prefixes2.XC = "XC:";
+    prefixes2.xc = (colour2) => `${prefixes2.XC}${colour2}`;
+    prefixes2.COLOUR = prefixes2.XC;
+    prefixes2.colour = prefixes2.xc;
+  })(prefixes = gm2.prefixes || (gm2.prefixes = {}));
   let utils;
   ((utils2) => {
     utils2.flagsObjToArray = flagsObjToArray;
