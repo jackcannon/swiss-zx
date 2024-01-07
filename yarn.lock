@@ -2752,18 +2752,18 @@ swiss-ak@^2.4.0, swiss-ak@^2.6.0:
   resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-2.6.0.tgz#ad729a2e04ac6446030be4ba5c35e996019808c2"
   integrity sha512-sALskFVciH1maNqZpSu+uLfCkf/F/Fs4aGXPaK8Bf2FpK/hvZS9O2v666+ud/+Arb4KvpxDBqbn5ZUbpMCBslg==
 
-swiss-docs@^0.7.5:
-  version "0.7.5"
-  resolved "https://registry.yarnpkg.com/swiss-docs/-/swiss-docs-0.7.5.tgz#b6e77839b3d5919f661c69662f73efcaceefbbd8"
-  integrity sha512-faOufMXyDkwNPrUuT6jVOBT1uRkuJwSGffz9GjYBJaKUDKtCp0vPsd116ObmMFbIC/MMieCduJPcYG/pQ+ocPg==
+swiss-docs@^0.7.6:
+  version "0.7.6"
+  resolved "https://registry.yarnpkg.com/swiss-docs/-/swiss-docs-0.7.6.tgz#0062961dcfd4e5b11522401677d6e78a73adf743"
+  integrity sha512-kNoTULW6UnLchJc0cPIG4e8hFER7iL/wSefLVzQej9KVH8jWQF4Fso6fvhTXQiV15fmhDtS/WZkwqWAhzhB+zw==
   dependencies:
     glob "^9.1.2"
     minimist "^1.2.8"
     swiss-ak "^2.6.0"
-    swiss-node "^1.4.0"
+    swiss-node "^1.4.5"
     ts-to-jsdoc "^1.3.0"
 
-swiss-node@^1.4.0, swiss-node@^1.4.5:
+swiss-node@^1.4.5:
   version "1.4.5"
   resolved "https://registry.yarnpkg.com/swiss-node/-/swiss-node-1.4.5.tgz#efd7abe6c0d7eaba7c41af289b52bf0aa03ee0f2"
   integrity sha512-ZOuioOpY94EEzLYIOHDlDb+8ZeIBKfcEEnqyXGM3UaqYgWyOgl+4IzqNrYcshMZLJ8odDccVba1RxpyGnHPHqQ==
