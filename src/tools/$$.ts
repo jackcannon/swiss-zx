@@ -484,8 +484,8 @@ export namespace $$ {
    * @param {string} a
    * @param {string} b
    * @param {string[]} [flags=[]]
-   * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-   * @returns {Promise<ProcessOutput>}
+   * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
+   * @returns {Promise<any>}
    */
   export const rsync = async (
     a: string,
@@ -527,8 +527,8 @@ export namespace $$ {
    * ```
    * @param {string} a
    * @param {string} b
-   * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-   * @returns {Promise<ProcessOutput>}
+   * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
+   * @returns {Promise<any>}
    */
   export const sync = (a: string, b: string, progressBarOpts?: Partial<progressBar.ProgressBarOptions>): Promise<ProcessOutput> =>
     rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ['--delete'], progressBarOpts);

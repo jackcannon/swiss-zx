@@ -98,17 +98,17 @@ var $$;
   $$2.rsync = async (a, b, flags = [], progressBarOpts) => {
     if (progressBarOpts) {
       const out = $2`rsync -rut ${a} ${b} ${flags} --progress`;
-      let progressBar = getProgressBar(void 0, progressBarOpts);
-      progressBar.start();
+      let progressBar3 = getProgressBar(void 0, progressBarOpts);
+      progressBar3.start();
       for await (const chunk of out.stdout) {
         const match = chunk.toString().match(/to\-check=([0-9]+)\/([0-9]+)/);
         if (!match)
           continue;
         const [_m, num, max] = match.map(Number);
         const prog = max - num;
-        if ((progressBar == null ? void 0 : progressBar.max) === void 0)
-          progressBar = getProgressBar(max, progressBarOpts);
-        progressBar.set(prog);
+        if ((progressBar3 == null ? void 0 : progressBar3.max) === void 0)
+          progressBar3 = getProgressBar(max, progressBarOpts);
+        progressBar3.set(prog);
       }
       return out;
     } else {

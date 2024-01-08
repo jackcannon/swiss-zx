@@ -1,5 +1,5 @@
 import { ProcessPromise as ProcessPromise$1, ProcessOutput } from 'zx';
-import { ms, ProgressBarOptions } from 'swiss-ak';
+import { ms, progressBar } from 'swiss-ak';
 import { ExplodedPath } from 'swiss-node';
 
 /**<!-- DOCS: $$.exif.ExifToolAttributesObj #### -->
@@ -679,10 +679,10 @@ declare namespace $$ {
      * @param {string} a
      * @param {string} b
      * @param {string[]} [flags=[]]
-     * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-     * @returns {Promise<ProcessOutput>}
+     * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
+     * @returns {Promise<any>}
      */
-    const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<ProgressBarOptions>) => Promise<ProcessOutput>;
+    const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<progressBar.ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.sync ### @ -->
      * sync
      *
@@ -695,10 +695,10 @@ declare namespace $$ {
      * ```
      * @param {string} a
      * @param {string} b
-     * @param {Partial<ProgressBarOptions>} [progressBarOpts]
-     * @returns {Promise<ProcessOutput>}
+     * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
+     * @returns {Promise<any>}
      */
-    const sync: (a: string, b: string, progressBarOpts?: Partial<ProgressBarOptions>) => Promise<ProcessOutput>;
+    const sync: (a: string, b: string, progressBarOpts?: Partial<progressBar.ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.isFileExist ### @ -->
      * isFileExist
      *
@@ -909,10 +909,10 @@ declare namespace ffmpegTools {
      * @param {() => ProcessPromise} [command=() => $`ffmpeg -progress pr.txt`]
      * @param {string} [progressFileName='pr.txt']
      * @param {number} [totalFrames=1]
-     * @param {ProgressBarOptions} [progressBarOpts={}]
+     * @param {progressBar.ProgressBarOptions} [progressBarOpts={}]
      * @returns {Promise<void>}
      */
-    const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
+    const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: progressBar.ProgressBarOptions) => Promise<void>;
     /**<!-- DOCS: ffmpegTools.toFFmpegTimeFormat ### @ -->
      * toFFmpegTimeFormat
      *
@@ -1040,10 +1040,10 @@ declare namespace ffmpegTools {
  * @param {() => ProcessPromise} [command=() => $`ffmpeg -progress pr.txt`]
  * @param {string} [progressFileName='pr.txt']
  * @param {number} [totalFrames=1]
- * @param {ProgressBarOptions} [progressBarOpts={}]
+ * @param {progressBar.ProgressBarOptions} [progressBarOpts={}]
  * @returns {Promise<void>}
  */
-declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: ProgressBarOptions) => Promise<void>;
+declare const ffmpeg: (command?: () => ProcessPromise, progressFileName?: string, totalFrames?: number, progressBarOpts?: progressBar.ProgressBarOptions) => Promise<void>;
 
 /**<!-- DOCS: gm.utils.GMCommand ##### -->
  * GMCommand
@@ -1193,10 +1193,17 @@ declare namespace gm {
      *
      * Pipe a series of gm commands together
      *
+     * > WARNING: If inPath is provided, it will be piped in to first process
+     * > WARNING: If outPath is provided, it will be piped out from last process
+     *
      * ```typescript
      * await pipe(basePath, outPath, [
      *   (p) => convert(p, p, opts1),
      *   (p) => composite(changePath, p, p, changePath, opts2)
+     * ]);
+     * await pipe(undefined, undefined, [
+     *   (p) => convert(basePath, p, opts1),
+     *   (p) => composite(changePath, p, outPath, changePath, opts2)
      * ]);
      * ```
      * @param {string} [inPath]

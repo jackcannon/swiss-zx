@@ -1,5 +1,5 @@
 import { $ } from 'zx';
-import { getProgressBar, ms, ProgressBarOptions } from 'swiss-ak';
+import { getProgressBar, ms, progressBar } from 'swiss-ak';
 import { $$ } from './$$';
 
 $.verbose = false;
@@ -27,14 +27,14 @@ export namespace ffmpegTools {
    * @param {() => ProcessPromise} [command=() => $`ffmpeg -progress pr.txt`]
    * @param {string} [progressFileName='pr.txt']
    * @param {number} [totalFrames=1]
-   * @param {ProgressBarOptions} [progressBarOpts={}]
+   * @param {progressBar.ProgressBarOptions} [progressBarOpts={}]
    * @returns {Promise<void>}
    */
   export const ffmpeg = async (
     command: () => ProcessPromise = () => $`ffmpeg -progress pr.txt`,
     progressFileName: string = 'pr.txt',
     totalFrames: number = 1,
-    progressBarOpts: ProgressBarOptions = {}
+    progressBarOpts: progressBar.ProgressBarOptions = {}
   ) => {
     await $`echo "" > ${progressFileName}`;
 

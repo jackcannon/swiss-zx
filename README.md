@@ -92,7 +92,7 @@ await $$.pwd(); // '/Users/username/some/folder'
 ### pwd
 
 ```typescript
-$$.pwd(undefined): Promise<string>
+$$.pwd(): Promise<string>
 ```
 
 Get the current working directory
@@ -484,7 +484,7 @@ await $$.lastModified('a.mp4') // 1689206400000
 ### rsync
 
 ```typescript
-$$.rsync(a: string, b: string, flags: string[], progressBarOpts: Partial<ProgressBarOptions>): Promise<ProcessOutput>
+$$.rsync(a: string, b: string, flags: string[], progressBarOpts: Partial<progressBar.ProgressBarOptions>): Promise<any>
 ```
 
 Wrapper for rsync command
@@ -493,23 +493,23 @@ Wrapper for rsync command
 await $$.rsync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2'`
 ```
 
-|  #  | Parameter Name    | Required | Type                          | Default |
-|:---:|:------------------|:---------|:------------------------------|:--------|
-| *0* | `a`               | **Yes**  | `string`                      |         |
-| *1* | `b`               | **Yes**  | `string`                      |         |
-| *2* | `flags`           | *No*     | `string[]`                    | `[]`    |
-| *3* | `progressBarOpts` | *No*     | `Partial<ProgressBarOptions>` |         |
+|  #  | Parameter Name    | Required | Type                                      | Default |
+|:---:|:------------------|:---------|:------------------------------------------|:--------|
+| *0* | `a`               | **Yes**  | `string`                                  |         |
+| *1* | `b`               | **Yes**  | `string`                                  |         |
+| *2* | `flags`           | *No*     | `string[]`                                | `[]`    |
+| *3* | `progressBarOpts` | *No*     | `Partial<progressBar.ProgressBarOptions>` |         |
 
-| Return Type              |
-|--------------------------|
-| `Promise<ProcessOutput>` |
+| Return Type    |
+|----------------|
+| `Promise<any>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
 ### sync
 
 ```typescript
-$$.sync(a: string, b: string, progressBarOpts: Partial<ProgressBarOptions>): Promise<ProcessOutput>
+$$.sync(a: string, b: string, progressBarOpts: Partial<progressBar.ProgressBarOptions>): Promise<any>
 ```
 
 Helper function for syncing files
@@ -518,15 +518,15 @@ Helper function for syncing files
 await $$.sync('example1', 'example2') // same as $`rsync -rut 'example1' 'example2' --delete`
 ```
 
-|  #  | Parameter Name    | Required | Type                          |
-|:---:|:------------------|:---------|:------------------------------|
-| *0* | `a`               | **Yes**  | `string`                      |
-| *1* | `b`               | **Yes**  | `string`                      |
-| *2* | `progressBarOpts` | *No*     | `Partial<ProgressBarOptions>` |
+|  #  | Parameter Name    | Required | Type                                      |
+|:---:|:------------------|:---------|:------------------------------------------|
+| *0* | `a`               | **Yes**  | `string`                                  |
+| *1* | `b`               | **Yes**  | `string`                                  |
+| *2* | `progressBarOpts` | *No*     | `Partial<progressBar.ProgressBarOptions>` |
 
-| Return Type              |
-|--------------------------|
-| `Promise<ProcessOutput>` |
+| Return Type    |
+|----------------|
+| `Promise<any>` |
 
 <p style="text-align: right" align="right"><a href="#-double-dollar"> [↑ Back to <b>$$ (double dollar)</b> ↑] </a></p>
 
@@ -767,8 +767,8 @@ utils.intoLines($`echo "1\n2\n3"`) // ['1', '2', '3']
 ### closeFinder
 
 ```typescript
-closeFinder(undefined): Promise<void>
-os.closeFinder(undefined): Promise<void>
+closeFinder(): Promise<void>
+os.closeFinder(): Promise<void>
 ```
 
 Close all Mac OS X Finder windows.
@@ -797,8 +797,8 @@ await closeFinder();
 ### ffmpeg
 
 ```typescript
-ffmpeg(command: () => ProcessPromise, progressFileName: string, totalFrames: number, progressBarOpts: ProgressBarOptions): Promise<void>
-ffmpegTools.ffmpeg(command: () => ProcessPromise, progressFileName: string, totalFrames: number, progressBarOpts: ProgressBarOptions): Promise<void>
+ffmpeg(command: () => ProcessPromise, progressFileName: string, totalFrames: number, progressBarOpts: progressBar.ProgressBarOptions): Promise<void>
+ffmpegTools.ffmpeg(command: () => ProcessPromise, progressFileName: string, totalFrames: number, progressBarOpts: progressBar.ProgressBarOptions): Promise<void>
 ```
 
 Wrapper for ffmpeg command that provides progress bar to track progress
@@ -808,12 +808,12 @@ const progBarOpts = {}; // Same options as getProgressBar
 await ffmpeg(() => $`ffmpeg -y -i ${a} ${b} -progress ${pr}`, pr, framesNum, progBarOpts);
 ```
 
-|  #  | Parameter Name     | Required | Type                   | Default                               |
-|:---:|:-------------------|:---------|:-----------------------|:--------------------------------------|
-| *0* | `command`          | *No*     | `() => ProcessPromise` | ``() => $`ffmpeg -progress pr.txt` `` |
-| *1* | `progressFileName` | *No*     | `string`               | `'pr.txt'`                            |
-| *2* | `totalFrames`      | *No*     | `number`               | `1`                                   |
-| *3* | `progressBarOpts`  | *No*     | `ProgressBarOptions`   | `{}`                                  |
+|  #  | Parameter Name     | Required | Type                             | Default                               |
+|:---:|:-------------------|:---------|:---------------------------------|:--------------------------------------|
+| *0* | `command`          | *No*     | `() => ProcessPromise`           | ``() => $`ffmpeg -progress pr.txt` `` |
+| *1* | `progressFileName` | *No*     | `string`                         | `'pr.txt'`                            |
+| *2* | `totalFrames`      | *No*     | `number`                         | `1`                                   |
+| *3* | `progressBarOpts`  | *No*     | `progressBar.ProgressBarOptions` | `{}`                                  |
 
 | Return Type     |
 |-----------------|
@@ -1045,10 +1045,17 @@ gm.pipe(inPath: string, outPath: string, processes: ((pipeIn?: string, pipeOut?:
 
 Pipe a series of gm commands together
 
+> WARNING: If inPath is provided, it will be piped in to first process
+> WARNING: If outPath is provided, it will be piped out from last process
+
 ```typescript
 await pipe(basePath, outPath, [
   (p) => convert(p, p, opts1),
   (p) => composite(changePath, p, p, changePath, opts2)
+]);
+await pipe(undefined, undefined, [
+  (p) => convert(basePath, p, opts1),
+  (p) => composite(changePath, p, outPath, changePath, opts2)
 ]);
 ```
 
