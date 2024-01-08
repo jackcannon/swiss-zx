@@ -2747,6 +2747,11 @@ supports-preserve-symlinks-flag@^1.0.0:
   resolved "https://registry.yarnpkg.com/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz#6eda4bd344a3c94aea376d4cc31bc77311039e09"
   integrity sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==
 
+swiss-ak@^2.12.1, swiss-ak@^2.12.4:
+  version "2.12.4"
+  resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-2.12.4.tgz#4b2a8d7f76b4c952f98740a784b1094e2d43ce74"
+  integrity sha512-lKVVcpGztpEjySlJ7txC6OdcQxANPCigrt2thQLdqOOgGCDRk2Se6M4a4JeOnSwdm1ToytF/bJcYqcUZrfZlqQ==
+
 swiss-ak@^2.4.0, swiss-ak@^2.6.0:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/swiss-ak/-/swiss-ak-2.6.0.tgz#ad729a2e04ac6446030be4ba5c35e996019808c2"
@@ -2773,6 +2778,15 @@ swiss-node@^1.4.5:
     prompts "^2.4.2"
     string-width "^5.1.2"
     swiss-ak "^2.4.0"
+
+swiss-node@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/swiss-node/-/swiss-node-2.0.1.tgz#f304a2e4d5d59143ca5dc8eaba1cde823ec8fd7c"
+  integrity sha512-p2Mdc05RHVZ93vL2TKBuCeoz30qhHph9j0MJsJpiRlVj1ZaucviDVscuQJALvBdIXLpeEy5T9MFzebDDqM3bsg==
+  dependencies:
+    fuse.js "^6.6.2"
+    prompts "^2.4.2"
+    swiss-ak "^2.12.1"
 
 test-exclude@^6.0.0:
   version "6.0.0"
