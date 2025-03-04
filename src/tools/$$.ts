@@ -1,7 +1,7 @@
 import 'zx/globals';
 import { $, fs as fsO, cd as cdO, ProcessPromise, ProcessOutput } from 'zx';
-import { fn, getProgressBar, ms, progressBar, retryOr, seconds } from 'swiss-ak';
-import { PathTools, explodePath, ExplodedPath } from 'swiss-node';
+import { fn, ms, retryOr, seconds } from 'swiss-ak';
+import { PathTools, explodePath, ExplodedPath, getProgressBar, progressBar } from 'swiss-node';
 
 import * as exif from './dd/exiftool';
 
@@ -485,7 +485,7 @@ export namespace $$ {
    * @param {string} b
    * @param {string[]} [flags=[]]
    * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
-   * @returns {Promise<any>}
+   * @returns {Promise<ProcessOutput>}
    */
   export const rsync = async (
     a: string,
@@ -528,7 +528,7 @@ export namespace $$ {
    * @param {string} a
    * @param {string} b
    * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
-   * @returns {Promise<any>}
+   * @returns {Promise<ProcessOutput>}
    */
   export const sync = (a: string, b: string, progressBarOpts?: Partial<progressBar.ProgressBarOptions>): Promise<ProcessOutput> =>
     rsync(PathTools.trailSlash(a), PathTools.trailSlash(b), ['--delete'], progressBarOpts);

@@ -128,7 +128,7 @@ var $$;
   $$2.rsync = async (a, b, flags = [], progressBarOpts) => {
     if (progressBarOpts) {
       const out = import_zx.$`rsync -rut ${a} ${b} ${flags} --progress`;
-      let progressBar3 = (0, import_swiss_ak.getProgressBar)(void 0, progressBarOpts);
+      let progressBar3 = (0, import_swiss_node.getProgressBar)(void 0, progressBarOpts);
       progressBar3.start();
       for await (const chunk of out.stdout) {
         const match = chunk.toString().match(/to\-check=([0-9]+)\/([0-9]+)/);
@@ -137,7 +137,7 @@ var $$;
         const [_m, num, max] = match.map(Number);
         const prog = max - num;
         if ((progressBar3 == null ? void 0 : progressBar3.max) === void 0)
-          progressBar3 = (0, import_swiss_ak.getProgressBar)(max, progressBarOpts);
+          progressBar3 = (0, import_swiss_node.getProgressBar)(max, progressBarOpts);
         progressBar3.set(prog);
       }
       return out;
@@ -187,7 +187,7 @@ var closeFinder = os.closeFinder;
 
 // src/tools/ffmpegTools.ts
 var import_zx2 = require("zx");
-var import_swiss_ak2 = require("swiss-ak");
+var import_swiss_node2 = require("swiss-node");
 import_zx2.$.verbose = false;
 var ffmpegTools;
 ((ffmpegTools2) => {
@@ -195,7 +195,7 @@ var ffmpegTools;
     await import_zx2.$`echo "" > ${progressFileName}`;
     const ffmpegProcess = command();
     const tail = import_zx2.$`tail -f ${progressFileName}`.nothrow();
-    const bar = (0, import_swiss_ak2.getProgressBar)(totalFrames, {
+    const bar = (0, import_swiss_node2.getProgressBar)(totalFrames, {
       showCount: true,
       showPercent: true,
       wrapperFn: chalk.magenta,
@@ -290,10 +290,10 @@ var ffmpegTools;
 var ffmpeg = ffmpegTools.ffmpeg;
 
 // src/tools/gm.ts
-var import_swiss_ak4 = require("swiss-ak");
+var import_swiss_ak3 = require("swiss-ak");
 
 // src/tools/gm/utils.ts
-var import_swiss_ak3 = require("swiss-ak");
+var import_swiss_ak2 = require("swiss-ak");
 var flagsObjToArray = (obj) => {
   const { brightness, saturation, hue, ...rest } = obj;
   if (rest.modulate === void 0 && (brightness !== void 0 || saturation !== void 0 || hue !== void 0)) {
@@ -301,7 +301,7 @@ var flagsObjToArray = (obj) => {
   }
   return Object.entries(rest).filter(([name, value]) => value !== void 0 && value !== null && value !== false).map(([name, value]) => {
     var _a;
-    return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || import_swiss_ak3.fn.noact)(value)];
+    return ["-" + name, (((_a = supportedFlags[name]) == null ? void 0 : _a.processOutput) || import_swiss_ak2.fn.noact)(value)];
   }).flat().filter((x) => x !== void 0 && x !== true);
 };
 var channelComposeCopyMap = {
@@ -575,7 +575,7 @@ var gm;
     }
     if (change.prism) {
       const { prism, ...rest } = change;
-      const prismStrs = prism instanceof Array ? prism.map(import_swiss_ak4.fn.toString) : prism.split(",").map((str) => str.trim());
+      const prismStrs = prism instanceof Array ? prism.map(import_swiss_ak3.fn.toString) : prism.split(",").map((str) => str.trim());
       const [channel, amount] = [...["red", ...prismStrs].slice(-2), "1x0"].slice(0, 2);
       const values = [...typeof amount === "string" ? amount.split("x").map(Number) : [amount], 0].slice(0, 2);
       const dForw = values.map((x) => x * 2).join("x");

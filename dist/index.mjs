@@ -1,8 +1,8 @@
 // src/tools/$$.ts
 import "zx/globals";
 import { $ as $2, fs as fsO, cd as cdO } from "zx";
-import { fn, getProgressBar, retryOr, seconds } from "swiss-ak";
-import { PathTools, explodePath } from "swiss-node";
+import { fn, retryOr, seconds } from "swiss-ak";
+import { PathTools, explodePath, getProgressBar } from "swiss-node";
 
 // src/tools/dd/exiftool.ts
 var exiftool = async (file, setAttr, getAttr, outFile) => {
@@ -157,7 +157,7 @@ var closeFinder = os.closeFinder;
 
 // src/tools/ffmpegTools.ts
 import { $ as $3 } from "zx";
-import { getProgressBar as getProgressBar2 } from "swiss-ak";
+import { getProgressBar as getProgressBar2 } from "swiss-node";
 $3.verbose = false;
 var ffmpegTools;
 ((ffmpegTools2) => {

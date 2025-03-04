@@ -1,6 +1,6 @@
 import { ProcessPromise as ProcessPromise$1, ProcessOutput } from 'zx';
-import { ms, progressBar } from 'swiss-ak';
-import { ExplodedPath } from 'swiss-node';
+import { ms } from 'swiss-ak';
+import { ExplodedPath, progressBar } from 'swiss-node';
 
 /**<!-- DOCS: $$.exif.ExifToolAttributesObj #### -->
  * ExifToolAttributesObj
@@ -680,7 +680,7 @@ declare namespace $$ {
      * @param {string} b
      * @param {string[]} [flags=[]]
      * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
-     * @returns {Promise<any>}
+     * @returns {Promise<ProcessOutput>}
      */
     const rsync: (a: string, b: string, flags?: string[], progressBarOpts?: Partial<progressBar.ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.sync ### @ -->
@@ -696,7 +696,7 @@ declare namespace $$ {
      * @param {string} a
      * @param {string} b
      * @param {Partial<progressBar.ProgressBarOptions>} [progressBarOpts]
-     * @returns {Promise<any>}
+     * @returns {Promise<ProcessOutput>}
      */
     const sync: (a: string, b: string, progressBarOpts?: Partial<progressBar.ProgressBarOptions>) => Promise<ProcessOutput>;
     /**<!-- DOCS: $$.isFileExist ### @ -->

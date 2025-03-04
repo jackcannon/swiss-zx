@@ -1,5 +1,6 @@
 import { $ } from 'zx';
-import { getProgressBar, ms, progressBar } from 'swiss-ak';
+import { ms } from 'swiss-ak';
+import { getProgressBar, progressBar } from 'swiss-node';
 import { $$ } from './$$';
 
 $.verbose = false;
